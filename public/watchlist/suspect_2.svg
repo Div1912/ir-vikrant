@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#090d16"/>
+  <circle cx="100" cy="80" r="40" fill="#e2e8f0"/>
+  <circle cx="85" cy="76" r="4.5" fill="#090d16"/>
+  <circle cx="115" cy="76" r="4.5" fill="#090d16"/>
+  <path d="M94 100 Q100 95 106 100" stroke="#090d16" stroke-width="3" fill="none"/>
+  <path d="M45 185 Q100 130 155 185" fill="#334155"/>
+  <!-- Tactical Reticle -->
+  <rect x="25" y="25" width="150" height="150" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="8,6"/>
+  <text x="100" y="192" font-family="monospace" font-size="10" font-weight="bold" fill="#f59e0b" text-anchor="middle">SUSPECT #02 • W-8824</text>
+</svg>
