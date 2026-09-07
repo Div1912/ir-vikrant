@@ -129,7 +129,7 @@ export default function LiveCameraFeed({
 
   // IP Webcam support
   const [feedSource, setFeedSource] = useState<'device' | 'ip_webcam'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [showIpInput, setShowIpInput] = useState<boolean>(false);
   const [showInsecureHelp, setShowInsecureHelp] = useState<boolean>(false);
@@ -145,7 +145,7 @@ export default function LiveCameraFeed({
       if (savedUrl) {
         // Auto-upgrade obsolete IPs (.52, .247, or .163) to current active phone IP .216
         if (savedUrl.includes('10.35.147.')) {
-          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.216');
+          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.105');
           localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
         }
         setIpWebcamUrl(savedUrl);
@@ -746,7 +746,7 @@ export default function LiveCameraFeed({
               <span className="text-foreground/40 font-bold">PRESETS:</span>
               <button
                 onClick={() => {
-                  const url = 'http://10.35.147.216:8080/video';
+                  const url = 'http://10.35.147.105:8080/video';
                   setIpWebcamUrl(url);
                   setCameraError(null);
                   setFeedSource('ip_webcam');
@@ -754,21 +754,21 @@ export default function LiveCameraFeed({
                 }}
                 className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10"
               >
-                10.35.147.216 (HTTP)
+                10.35.147.105 (HTTP)
               </button>
               <button
                 onClick={() => {
-                  const url = 'https://10.35.147.216:8080/video';
+                  const url = 'https://10.35.147.105:8080/video';
                   setIpWebcamUrl(url);
                   setCameraError(null);
                   setFeedSource('ip_webcam');
                   syncCameraSettings('ip_webcam', url, 'direct');
-                  window.open('https://10.35.147.216:8080', '_blank');
+                  window.open('https://10.35.147.105:8080', '_blank');
                 }}
                 className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 flex items-center gap-0.5"
                 title="Opens phone HTTPS in new tab to trust SSL certificate"
               >
-                <span>10.35.147.216 (HTTPS)</span>
+                <span>10.35.147.105 (HTTPS)</span>
                 <ExternalLink size={9} />
               </button>
               <button
@@ -870,7 +870,7 @@ export default function LiveCameraFeed({
           <div className="flex gap-1.5">
             <input
               type="text"
-              placeholder="e.g. http://10.35.147.216:8080 or 10.35.147.216:8080"
+              placeholder="e.g. http://10.35.147.105:8080 or 10.35.147.105:8080"
               value={ipWebcamUrl}
               onChange={e => setIpWebcamUrl(e.target.value)}
               className="flex-1 bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-white text-[9px] focus:outline-none focus:border-cyan-400"
@@ -898,27 +898,27 @@ export default function LiveCameraFeed({
             <span className="text-foreground/50 font-bold">PRESETS:</span>
             <button
               onClick={() => {
-                const url = 'http://10.35.147.216:8080/video';
+                const url = 'http://10.35.147.105:8080/video';
                 setIpWebcamUrl(url);
                 setFeedSource('ip_webcam');
                 syncCameraSettings('ip_webcam', url, ipStreamMode);
               }}
               className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
             >
-              10.35.147.216 (HTTP)
+              10.35.147.105 (HTTP)
             </button>
             <button
               onClick={() => {
-                const url = 'https://10.35.147.216:8080/video';
+                const url = 'https://10.35.147.105:8080/video';
                 setIpWebcamUrl(url);
                 setFeedSource('ip_webcam');
                 syncCameraSettings('ip_webcam', url, ipStreamMode);
-                window.open('https://10.35.147.216:8080', '_blank');
+                window.open('https://10.35.147.105:8080', '_blank');
               }}
               className="px-1.5 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-0.5"
               title="Open phone HTTPS in tab to trust cert"
             >
-              <span>10.35.147.216 (HTTPS ↗)</span>
+              <span>10.35.147.105 (HTTPS ↗)</span>
             </button>
             <button
               onClick={() => {

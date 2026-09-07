@@ -94,7 +94,7 @@ export default function ExplosivesSensorPage() {
   const serialPortRef = useRef<any>(null);
   const lastAutoCaptureTimeRef = useRef<number>(0);
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const ipImgRef = useRef<HTMLImageElement | null>(null);
@@ -179,7 +179,7 @@ export default function ExplosivesSensorPage() {
       let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedUrl) {
         if (savedUrl.includes('10.35.147.')) {
-          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.216');
+          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.105');
           localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
         }
         setIpWebcamUrl(savedUrl);

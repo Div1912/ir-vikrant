@@ -13,7 +13,7 @@ export default function SettingsPage() {
 
   // Global Camera Source Config (Applied across all pages)
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function SettingsPage() {
       let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedUrl) {
         if (savedUrl.includes('10.35.147.')) {
-          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.216');
+          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.105');
           localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
         }
         setIpWebcamUrl(savedUrl);
@@ -212,7 +212,7 @@ export default function SettingsPage() {
                   <label className="text-[10px] text-foreground/50 uppercase block mb-1">IP WEBCAM STREAM URL</label>
                   <input
                     type="text"
-                    placeholder="http://10.35.147.216:8080/video"
+                    placeholder="http://10.35.147.105:8080/video"
                     value={ipWebcamUrl}
                     onChange={e => setIpWebcamUrl(e.target.value)}
                     className="w-full bg-black/60 border border-panel-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400 text-xs"
@@ -224,21 +224,21 @@ export default function SettingsPage() {
                     <span className="text-foreground/50 font-bold">PRESETS:</span>
                     <button
                       type="button"
-                      onClick={() => setIpWebcamUrl('http://10.35.147.216:8080/video')}
+                      onClick={() => setIpWebcamUrl('http://10.35.147.105:8080/video')}
                       className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
                     >
-                      10.35.147.216 (HTTP)
+                      10.35.147.105 (HTTP)
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setIpWebcamUrl('https://10.35.147.216:8080/video');
-                        window.open('https://10.35.147.216:8080', '_blank');
+                        setIpWebcamUrl('https://10.35.147.105:8080/video');
+                        window.open('https://10.35.147.105:8080', '_blank');
                       }}
                       className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
                       title="Opens phone HTTPS in tab to trust cert"
                     >
-                      10.35.147.216 (HTTPS ↗)
+                      10.35.147.105 (HTTPS ↗)
                     </button>
                     <button
                       type="button"

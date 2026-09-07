@@ -79,7 +79,7 @@ export default function WatchlistPage() {
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [feedSource, setFeedSource] = useState<'device' | 'ip_webcam'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const [ipCamError, setIpCamError] = useState<string | null>(null);
@@ -136,7 +136,7 @@ export default function WatchlistPage() {
       let savedIp = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedIp) {
         if (savedIp.includes('10.35.147.')) {
-          savedIp = savedIp.replace(/10\.35\.147\.\d+/, '10.35.147.216');
+          savedIp = savedIp.replace(/10\.35\.147\.\d+/, '10.35.147.105');
           localStorage.setItem('vikrant_ip_webcam_url', savedIp);
         }
         setIpWebcamUrl(savedIp);
@@ -1303,7 +1303,7 @@ export default function WatchlistPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. http://10.35.147.216:8080 or 10.35.147.216:8080"
+                  placeholder="e.g. http://10.35.147.105:8080 or 10.35.147.105:8080"
                   value={ipWebcamUrl}
                   onChange={e => {
                     setIpWebcamUrl(e.target.value);
@@ -1376,7 +1376,7 @@ export default function WatchlistPage() {
                   <span className="text-foreground/50 font-bold">PRESETS:</span>
                   <button
                     onClick={() => {
-                      const url = 'http://10.35.147.216:8080/video';
+                      const url = 'http://10.35.147.105:8080/video';
                       setIpWebcamUrl(url);
                       if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
                       setFeedSource('ip_webcam');
@@ -1384,21 +1384,21 @@ export default function WatchlistPage() {
                     }}
                     className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
                   >
-                    10.35.147.216 (HTTP Phone)
+                    10.35.147.105 (HTTP Phone)
                   </button>
                   <button
                     onClick={() => {
-                      const url = 'https://10.35.147.216:8080/video';
+                      const url = 'https://10.35.147.105:8080/video';
                       setIpWebcamUrl(url);
                       if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
                       setFeedSource('ip_webcam');
                       setIpCamError(null);
-                      window.open('https://10.35.147.216:8080', '_blank');
+                      window.open('https://10.35.147.105:8080', '_blank');
                     }}
                     className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1"
                     title="Opens phone HTTPS in new tab to trust SSL certificate"
                   >
-                    <span>10.35.147.216 (HTTPS ↗)</span>
+                    <span>10.35.147.105 (HTTPS ↗)</span>
                   </button>
                   <button
                     onClick={() => {
