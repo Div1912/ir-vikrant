@@ -13,16 +13,29 @@ export default function SettingsPage() {
 
   // Global Camera Source Config (Applied across all pages)
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.52:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       const savedSource = localStorage.getItem('vikrant_camera_source');
       if (savedSource === 'device' || savedSource === 'ip_webcam') setCameraSource(savedSource);
-      const savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
-      if (savedUrl) setIpWebcamUrl(savedUrl);
-      const savedMode = localStorage.getItem('vikrant_ip_stream_mode');
+      
+      let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
+      if (savedUrl) {
+        if (savedUrl.includes('10.35.147.52') || savedUrl.includes('10.35.147.247')) {
+          savedUrl = savedUrl.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+          localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
+        }
+        setIpWebcamUrl(savedUrl);
+      }
+
+      let savedMode = localStorage.getItem('vikrant_ip_stream_mode');
+      if (isCloud && savedMode === 'proxy') {
+        savedMode = 'direct';
+        localStorage.setItem('vikrant_ip_stream_mode', 'direct');
+      }
       if (savedMode === 'direct' || savedMode === 'proxy') setIpStreamMode(savedMode);
     }
   }, []);
@@ -199,7 +212,7 @@ export default function SettingsPage() {
                   <label className="text-[10px] text-foreground/50 uppercase block mb-1">IP WEBCAM STREAM URL</label>
                   <input
                     type="text"
-                    placeholder="http://10.35.147.52:8080/video"
+                    placeholder="http://10.35.147.163:8080/video"
                     value={ipWebcamUrl}
                     onChange={e => setIpWebcamUrl(e.target.value)}
                     className="w-full bg-black/60 border border-panel-border rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400 text-xs"
@@ -207,21 +220,32 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex items-center justify-between text-[9px] flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-foreground/50">PRESETS:</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-foreground/50 font-bold">PRESETS:</span>
                     <button
                       type="button"
-                      onClick={() => setIpWebcamUrl('http://10.35.147.52:8080/video')}
+                      onClick={() => setIpWebcamUrl('http://10.35.147.163:8080/video')}
                       className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
                     >
-                      10.35.147.52:8080
+                      10.35.147.163 (HTTP)
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIpWebcamUrl('http://10.112.250.89:8080/video')}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
+                      onClick={() => {
+                        setIpWebcamUrl('https://10.35.147.163:8080/video');
+                        window.open('https://10.35.147.163:8080', '_blank');
+                      }}
+                      className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30"
+                      title="Opens phone HTTPS in tab to trust cert"
                     >
-                      10.112.250.89:8080
+                      10.35.147.163 (HTTPS ↗)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIpWebcamUrl('http://10.35.147.52:8080/video')}
+                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/60"
+                    >
+                      10.35.147.52 (Old)
                     </button>
                   </div>
 
@@ -244,9 +268,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <span className="text-[9px] text-cyan-400/80 block mt-1">
-                  Active URL is automatically used for Watchlist, Dashboard Recon, Explosives, and Narcotics.
-                </span>
+                <div className="text-[9px] text-cyan-300/90 bg-cyan-950/40 p-2 rounded-lg border border-cyan-500/20 flex flex-col gap-1 mt-2">
+                  <span className="font-bold text-cyan-400">⚡ VERCEL (HTTPS) STREAMING TIP:</span>
+                  <span>Browsers block local HTTP streams on secure websites. In Chrome/Edge: click the tune/padlock icon left of the URL in the address bar ➔ <strong>Site settings</strong> ➔ Set <strong>Insecure content</strong> to <strong>Allow</strong> ➔ Refresh.</span>
+                </div>
               </div>
             )}
           </div>

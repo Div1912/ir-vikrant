@@ -175,7 +175,7 @@ export default function NarcoticsSensorPage() {
   const serialReaderRef = useRef<any>(null);
   const lastAutoCaptureTimeRef = useRef<number>(0);
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.52:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const ipImgRef = useRef<HTMLImageElement | null>(null);
@@ -228,11 +228,24 @@ export default function NarcoticsSensorPage() {
   // Sync camera settings from localStorage and listen to cross-page settings updates
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       const savedSrc = localStorage.getItem('vikrant_camera_source') as 'ip_webcam' | 'device' | null;
       if (savedSrc) setCameraSource(savedSrc);
-      const savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
-      if (savedUrl) setIpWebcamUrl(savedUrl);
-      const savedMode = localStorage.getItem('vikrant_ip_stream_mode') as 'direct' | 'proxy' | null;
+
+      let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
+      if (savedUrl) {
+        if (savedUrl.includes('10.35.147.52') || savedUrl.includes('10.35.147.247')) {
+          savedUrl = savedUrl.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+          localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
+        }
+        setIpWebcamUrl(savedUrl);
+      }
+
+      let savedMode = localStorage.getItem('vikrant_ip_stream_mode') as 'direct' | 'proxy' | null;
+      if (isCloud && savedMode === 'proxy') {
+        savedMode = 'direct';
+        localStorage.setItem('vikrant_ip_stream_mode', 'direct');
+      }
       if (savedMode) setIpStreamMode(savedMode);
 
       const handleSettingsChange = (e: any) => {
@@ -863,7 +876,11 @@ export default function NarcoticsSensorPage() {
           className="hidden"
           onLoad={() => setIpCamConnected(true)}
           onError={() => {
-            if (ipStreamMode === 'direct') {
+            const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
+            if (isCloud && isLocalIp) {
+              setIpCamConnected(false);
+            } else if (ipStreamMode === 'direct') {
               console.warn('[Narcotics] Direct IP stream failed, falling back to proxy');
               setIpStreamMode('proxy');
             } else {

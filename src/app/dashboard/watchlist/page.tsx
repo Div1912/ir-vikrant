@@ -79,7 +79,7 @@ export default function WatchlistPage() {
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [feedSource, setFeedSource] = useState<'device' | 'ip_webcam'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.52:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const [ipCamError, setIpCamError] = useState<string | null>(null);
@@ -128,12 +128,26 @@ export default function WatchlistPage() {
     };
 
     if (typeof window !== 'undefined') {
+      const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       const savedSrc = localStorage.getItem('vikrant_camera_source') as 'device' | 'ip_webcam' | null;
       if (savedSrc) setFeedSource(savedSrc);
-      const savedIp = localStorage.getItem('vikrant_ip_webcam_url');
-      if (savedIp) setIpWebcamUrl(savedIp);
-      const savedMode = localStorage.getItem('vikrant_ip_stream_mode') as 'direct' | 'proxy' | null;
+      
+      let savedIp = localStorage.getItem('vikrant_ip_webcam_url');
+      if (savedIp) {
+        if (savedIp.includes('10.35.147.52') || savedIp.includes('10.35.147.247')) {
+          savedIp = savedIp.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+          localStorage.setItem('vikrant_ip_webcam_url', savedIp);
+        }
+        setIpWebcamUrl(savedIp);
+      }
+
+      let savedMode = localStorage.getItem('vikrant_ip_stream_mode') as 'direct' | 'proxy' | null;
+      if (isCloud && savedMode === 'proxy') {
+        savedMode = 'direct';
+        localStorage.setItem('vikrant_ip_stream_mode', 'direct');
+      }
       if (savedMode) setIpStreamMode(savedMode);
+
       const savedThresh = localStorage.getItem('vikrant_face_match_threshold');
       if (savedThresh) setMatchThreshold(Number(savedThresh));
 
@@ -1266,7 +1280,7 @@ export default function WatchlistPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. http://10.35.147.52:8080 or 10.35.147.52:8080"
+                  placeholder="e.g. http://10.35.147.163:8080 or 10.35.147.163:8080"
                   value={ipWebcamUrl}
                   onChange={e => {
                     setIpWebcamUrl(e.target.value);
@@ -1335,8 +1349,34 @@ export default function WatchlistPage() {
 
               {/* Presets and Stream Mode */}
               <div className="flex items-center justify-between flex-wrap gap-2 text-[9px]">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-foreground/50">PRESETS:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-foreground/50 font-bold">PRESETS:</span>
+                  <button
+                    onClick={() => {
+                      const url = 'http://10.35.147.163:8080/video';
+                      setIpWebcamUrl(url);
+                      if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
+                      setFeedSource('ip_webcam');
+                      setIpCamError(null);
+                    }}
+                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
+                  >
+                    10.35.147.163 (HTTP Phone)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const url = 'https://10.35.147.163:8080/video';
+                      setIpWebcamUrl(url);
+                      if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
+                      setFeedSource('ip_webcam');
+                      setIpCamError(null);
+                      window.open('https://10.35.147.163:8080', '_blank');
+                    }}
+                    className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1"
+                    title="Opens phone HTTPS in new tab to trust SSL certificate"
+                  >
+                    <span>10.35.147.163 (HTTPS ↗)</span>
+                  </button>
                   <button
                     onClick={() => {
                       const url = 'http://10.35.147.52:8080/video';
@@ -1345,21 +1385,9 @@ export default function WatchlistPage() {
                       setFeedSource('ip_webcam');
                       setIpCamError(null);
                     }}
-                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
+                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/60 border border-white/10"
                   >
-                    10.35.147.52:8080 (Active Phone)
-                  </button>
-                  <button
-                    onClick={() => {
-                      const url = 'http://10.112.250.89:8080/video';
-                      setIpWebcamUrl(url);
-                      if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
-                      setFeedSource('ip_webcam');
-                      setIpCamError(null);
-                    }}
-                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
-                  >
-                    10.112.250.89:8080 (Hotspot)
+                    10.35.147.52 (Old)
                   </button>
                 </div>
 
@@ -1416,7 +1444,18 @@ export default function WatchlistPage() {
                 }}
                 onError={() => {
                   console.warn('[Watchlist IP Cam] Failed to load stream with mode:', ipStreamMode);
-                  if (ipStreamMode === 'direct') {
+                  const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+                  const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
+                  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+
+                  if (isCloud && isLocalIp) {
+                    setIpCamConnected(false);
+                    setIpCamError(
+                      isHttps && ipWebcamUrl.startsWith('http://')
+                        ? 'Mixed Content: Browser blocked HTTP stream on Vercel HTTPS. Allow Insecure Content in Chrome site settings or switch to Device Cam.'
+                        : `Could not connect to ${ipWebcamUrl}. Ensure phone server is active and on same Wi-Fi.`
+                    );
+                  } else if (ipStreamMode === 'direct') {
                     setIpStreamMode('proxy');
                   } else {
                     setIpCamConnected(false);
@@ -1453,27 +1492,41 @@ export default function WatchlistPage() {
 
             {/* Error Overlay if disconnected */}
             {feedSource === 'ip_webcam' && ipCamError && !ipCamConnected && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-4 text-center z-10 font-mono">
-                <AlertTriangle size={32} className="text-amber-400 mb-2 animate-bounce" />
+              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-4 text-center z-20 font-mono">
+                <AlertTriangle size={30} className="text-amber-400 mb-2 animate-bounce" />
                 <span className="text-xs text-white font-bold mb-1">PHONE CAMERA NOT REACHABLE</span>
-                <span className="text-[10px] text-foreground/60 max-w-sm mb-3">
+                <span className="text-[10px] text-foreground/70 max-w-sm mb-3">
                   {ipCamError}
                 </span>
-                <div className="flex gap-2 pointer-events-auto">
+                <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
                   <button
                     onClick={() => {
-                      setIpStreamMode(m => (m === 'direct' ? 'proxy' : 'direct'));
+                      setFeedSource('device');
                       setIpCamError(null);
                     }}
-                    className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[10px] font-bold"
+                    className="px-3 py-1.5 liquid-btn text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1"
                   >
-                    SWITCH TO {ipStreamMode === 'direct' ? 'PROXY' : 'DIRECT'}
+                    <Camera size={12} />
+                    <span>USE LAPTOP WEBCAM</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const httpsUrl = ipWebcamUrl.replace(/^http:/, 'https:');
+                      setIpWebcamUrl(httpsUrl);
+                      if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', httpsUrl);
+                      setIpCamError(null);
+                      window.open(httpsUrl.replace(/\/video$/, ''), '_blank');
+                    }}
+                    className="px-3 py-1.5 liquid-btn-primary text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
+                  >
+                    <span>OPEN HTTPS & TRUST CERT</span>
+                    <ExternalLink size={10} />
                   </button>
                   <button
                     onClick={() => setShowIpModal(true)}
-                    className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-[10px]"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px]"
                   >
-                    CHANGE IP ADDRESS
+                    CHANGE IP
                   </button>
                 </div>
               </div>
