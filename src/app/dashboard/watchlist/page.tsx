@@ -79,10 +79,11 @@ export default function WatchlistPage() {
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [feedSource, setFeedSource] = useState<'device' | 'ip_webcam'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const [ipCamError, setIpCamError] = useState<string | null>(null);
+  const [autoFallbackNotice, setAutoFallbackNotice] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [lastScanScore, setLastScanScore] = useState<number>(0);
   const [showIpModal, setShowIpModal] = useState<boolean>(false);
@@ -134,8 +135,8 @@ export default function WatchlistPage() {
       
       let savedIp = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedIp) {
-        if (savedIp.includes('10.35.147.52') || savedIp.includes('10.35.147.247')) {
-          savedIp = savedIp.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+        if (savedIp.includes('10.35.147.')) {
+          savedIp = savedIp.replace(/10\.35\.147\.\d+/, '10.35.147.216');
           localStorage.setItem('vikrant_ip_webcam_url', savedIp);
         }
         setIpWebcamUrl(savedIp);
@@ -311,6 +312,28 @@ export default function WatchlistPage() {
       }
     };
   }, [feedSource, selectedDeviceId]);
+
+  // Auto-Fallback from unreachable phone IP camera to laptop/device camera
+  const triggerAutoFallbackToDeviceCamera = useCallback((reason: string) => {
+    console.warn('[Watchlist] Auto-falling back to laptop camera:', reason);
+    setFeedSource('device');
+    setHasCamera(true);
+    setAutoFallbackNotice(reason);
+    setIpCamConnected(false);
+  }, []);
+
+  // Watchdog: If phone stream does not connect within 3.5s, automatically fall back to laptop camera
+  useEffect(() => {
+    if (feedSource !== 'ip_webcam') return;
+    const timer = setTimeout(() => {
+      if (!ipCamConnected) {
+        triggerAutoFallbackToDeviceCamera(
+          `Phone stream unreachable (${ipWebcamUrl.replace(/https?:\/\//, '').split('/')[0]}). Auto-switched to laptop camera.`
+        );
+      }
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [feedSource, ipCamConnected, ipWebcamUrl, triggerAutoFallbackToDeviceCamera]);
 
   // 4. Auto-Capture & Alert Generation when Suspect is Spotted
   const triggerSuspectInterception = useCallback(
@@ -1280,7 +1303,7 @@ export default function WatchlistPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. http://10.35.147.163:8080 or 10.35.147.163:8080"
+                  placeholder="e.g. http://10.35.147.216:8080 or 10.35.147.216:8080"
                   value={ipWebcamUrl}
                   onChange={e => {
                     setIpWebcamUrl(e.target.value);
@@ -1353,7 +1376,7 @@ export default function WatchlistPage() {
                   <span className="text-foreground/50 font-bold">PRESETS:</span>
                   <button
                     onClick={() => {
-                      const url = 'http://10.35.147.163:8080/video';
+                      const url = 'http://10.35.147.216:8080/video';
                       setIpWebcamUrl(url);
                       if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
                       setFeedSource('ip_webcam');
@@ -1361,21 +1384,21 @@ export default function WatchlistPage() {
                     }}
                     className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
                   >
-                    10.35.147.163 (HTTP Phone)
+                    10.35.147.216 (HTTP Phone)
                   </button>
                   <button
                     onClick={() => {
-                      const url = 'https://10.35.147.163:8080/video';
+                      const url = 'https://10.35.147.216:8080/video';
                       setIpWebcamUrl(url);
                       if (typeof window !== 'undefined') localStorage.setItem('vikrant_ip_webcam_url', url);
                       setFeedSource('ip_webcam');
                       setIpCamError(null);
-                      window.open('https://10.35.147.163:8080', '_blank');
+                      window.open('https://10.35.147.216:8080', '_blank');
                     }}
                     className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1"
                     title="Opens phone HTTPS in new tab to trust SSL certificate"
                   >
-                    <span>10.35.147.163 (HTTPS ↗)</span>
+                    <span>10.35.147.216 (HTTPS ↗)</span>
                   </button>
                   <button
                     onClick={() => {
@@ -1416,6 +1439,34 @@ export default function WatchlistPage() {
 
           {/* Camera Surface with Live Targeting HUD */}
           <div className="flex-1 w-full min-h-[300px] bg-black rounded-xl overflow-hidden relative border border-panel-border flex items-center justify-center">
+            {/* Auto-Fallback Notification Banner */}
+            {autoFallbackNotice && (
+              <div className="absolute top-2 inset-x-2 z-40 bg-amber-950/90 border border-amber-500/70 text-amber-200 text-[10px] font-mono px-3 py-1.5 rounded-lg flex items-center justify-between shadow-xl backdrop-blur-md animate-in fade-in">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle size={13} className="text-amber-400 shrink-0 animate-pulse" />
+                  <span>{autoFallbackNotice}</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => {
+                      setAutoFallbackNotice(null);
+                      setFeedSource('ip_webcam');
+                      setIpCamConnected(false);
+                    }}
+                    className="px-2 py-0.5 rounded bg-amber-500/25 hover:bg-amber-500/40 text-amber-100 font-bold border border-amber-500/40 text-[9px] transition-all"
+                  >
+                    RETRY PHONE CAM
+                  </button>
+                  <button
+                    onClick={() => setAutoFallbackNotice(null)}
+                    className="text-amber-400/60 hover:text-white text-xs px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
             {feedSource === 'device' ? (
               <video
                 ref={videoRef}
@@ -1441,26 +1492,18 @@ export default function WatchlistPage() {
                   setHasCamera(true);
                   setIpCamConnected(true);
                   setIpCamError(null);
+                  setAutoFallbackNotice(null);
                 }}
                 onError={() => {
                   console.warn('[Watchlist IP Cam] Failed to load stream with mode:', ipStreamMode);
                   const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-                  const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
                   const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
-                  if (isCloud && isLocalIp) {
-                    setIpCamConnected(false);
-                    setIpCamError(
-                      isHttps && ipWebcamUrl.startsWith('http://')
-                        ? 'Mixed Content: Browser blocked HTTP stream on Vercel HTTPS. Allow Insecure Content in Chrome site settings or switch to Device Cam.'
-                        : `Could not connect to ${ipWebcamUrl}. Ensure phone server is active and on same Wi-Fi.`
-                    );
-                  } else if (ipStreamMode === 'direct') {
-                    setIpStreamMode('proxy');
-                  } else {
-                    setIpCamConnected(false);
-                    setIpCamError(`Could not connect to ${ipWebcamUrl}. Ensure IP Webcam server is running.`);
-                  }
+                  setIpCamConnected(false);
+                  const failMsg = (isCloud && isHttps && ipWebcamUrl.startsWith('http://'))
+                    ? 'Browser blocked HTTP stream on Vercel HTTPS. Auto-switched to laptop camera.'
+                    : `Phone IP (${ipWebcamUrl.replace(/https?:\/\//, '').split('/')[0]}) unreachable. Auto-switched to laptop camera.`;
+                  triggerAutoFallbackToDeviceCamera(failMsg);
                 }}
                 alt="Mobile IP Webcam Feed"
                 className="w-full h-full object-cover"

@@ -129,10 +129,11 @@ export default function LiveCameraFeed({
 
   // IP Webcam support
   const [feedSource, setFeedSource] = useState<'device' | 'ip_webcam'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [showIpInput, setShowIpInput] = useState<boolean>(false);
   const [showInsecureHelp, setShowInsecureHelp] = useState<boolean>(false);
+  const [fellBackToDevice, setFellBackToDevice] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -142,9 +143,9 @@ export default function LiveCameraFeed({
       
       let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedUrl) {
-        // Auto-upgrade obsolete IPs (.52 or .247) to current active phone IP .163
-        if (savedUrl.includes('10.35.147.52') || savedUrl.includes('10.35.147.247')) {
-          savedUrl = savedUrl.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+        // Auto-upgrade obsolete IPs (.52, .247, or .163) to current active phone IP .216
+        if (savedUrl.includes('10.35.147.')) {
+          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.216');
           localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
         }
         setIpWebcamUrl(savedUrl);
@@ -227,6 +228,27 @@ export default function LiveCameraFeed({
       setCameraError(err.message || 'Camera permission denied');
     }
   }, [unitCode]);
+
+  // Automatic Failover: If Phone IP camera is unreachable or blocked, fallback to Laptop Camera!
+  const triggerAutoFallbackToDeviceCamera = useCallback((reason: string) => {
+    console.warn('[LiveCameraFeed] Phone IP unreachable. Auto-falling back to laptop webcam:', reason);
+    setFeedSource('device');
+    setFellBackToDevice(true);
+    setCameraError(null);
+    startDeviceCamera();
+  }, [startDeviceCamera]);
+
+  // Watchdog timer: If IP camera feed does not load within 3.5s, auto-switch to laptop camera
+  useEffect(() => {
+    if (feedSource === 'ip_webcam' && !hasCamera) {
+      const timer = setTimeout(() => {
+        if (!hasCamera) {
+          triggerAutoFallbackToDeviceCamera('Phone camera took too long to respond. Switched to laptop webcam.');
+        }
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [feedSource, hasCamera, triggerAutoFallbackToDeviceCamera]);
 
   useEffect(() => {
     if (feedSource === 'device') {
@@ -629,23 +651,34 @@ export default function LiveCameraFeed({
             const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
             const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
 
-            if (isCloud && isLocalIp) {
-              setIpStreamMode('direct');
-              if (isHttps && ipWebcamUrl.startsWith('http://')) {
-                setCameraError('Mixed Content: Vercel (HTTPS) blocks local HTTP streams by default.');
-              } else if (isHttps && ipWebcamUrl.startsWith('https://')) {
-                setCameraError('SSL Certificate untrusted. Open stream URL in a new tab once to accept.');
-              } else {
-                setCameraError('Could not connect to phone IP. Confirm phone is on same Wi-Fi and server is active.');
-              }
-            } else if (ipStreamMode === 'direct') {
-              console.warn('[LiveCameraFeed] Direct IP stream failed, falling back to proxy');
-              setIpStreamMode('proxy');
-            } else {
-              setCameraError('Failed to load IP Webcam stream. Check if phone server is running.');
-            }
+            // Automatic failover to Laptop Webcam!
+            triggerAutoFallbackToDeviceCamera(
+              isCloud && isLocalIp && isHttps
+                ? 'Browser blocked local HTTP stream on Vercel. Auto-switched to laptop webcam.'
+                : 'Phone camera unreachable. Auto-switched to laptop webcam.'
+            );
           }}
         />
+      )}
+
+      {/* Active Fallback Notification Banner */}
+      {fellBackToDevice && feedSource === 'device' && (
+        <div className="absolute top-10 inset-x-2 z-30 flex items-center justify-between bg-black/85 border border-amber-500/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] font-mono text-amber-200 shadow-xl animate-in slide-in-from-top-1">
+          <div className="flex items-center gap-1.5 truncate">
+            <Camera size={12} className="text-amber-400 shrink-0 animate-pulse" />
+            <span className="truncate"><strong>AUTO-FALLBACK ACTIVE:</strong> Laptop Webcam in use (Phone IP unreachable)</span>
+          </div>
+          <button
+            onClick={() => {
+              setFellBackToDevice(false);
+              setFeedSource('ip_webcam');
+              setHasCamera(false);
+            }}
+            className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 font-bold shrink-0 ml-2 border border-amber-500/40"
+          >
+            RETRY PHONE CAM
+          </button>
+        </div>
       )}
 
       {/* 3. Fallback / Diagnostic & One-Click Control Overlay when camera is not streaming */}
@@ -713,7 +746,7 @@ export default function LiveCameraFeed({
               <span className="text-foreground/40 font-bold">PRESETS:</span>
               <button
                 onClick={() => {
-                  const url = 'http://10.35.147.163:8080/video';
+                  const url = 'http://10.35.147.216:8080/video';
                   setIpWebcamUrl(url);
                   setCameraError(null);
                   setFeedSource('ip_webcam');
@@ -721,21 +754,21 @@ export default function LiveCameraFeed({
                 }}
                 className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10"
               >
-                10.35.147.163 (HTTP)
+                10.35.147.216 (HTTP)
               </button>
               <button
                 onClick={() => {
-                  const url = 'https://10.35.147.163:8080/video';
+                  const url = 'https://10.35.147.216:8080/video';
                   setIpWebcamUrl(url);
                   setCameraError(null);
                   setFeedSource('ip_webcam');
                   syncCameraSettings('ip_webcam', url, 'direct');
-                  window.open('https://10.35.147.163:8080', '_blank');
+                  window.open('https://10.35.147.216:8080', '_blank');
                 }}
                 className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 flex items-center gap-0.5"
                 title="Opens phone HTTPS in new tab to trust SSL certificate"
               >
-                <span>10.35.147.163 (HTTPS)</span>
+                <span>10.35.147.216 (HTTPS)</span>
                 <ExternalLink size={9} />
               </button>
               <button
@@ -837,7 +870,7 @@ export default function LiveCameraFeed({
           <div className="flex gap-1.5">
             <input
               type="text"
-              placeholder="e.g. http://10.35.147.163:8080 or 10.35.147.163:8080"
+              placeholder="e.g. http://10.35.147.216:8080 or 10.35.147.216:8080"
               value={ipWebcamUrl}
               onChange={e => setIpWebcamUrl(e.target.value)}
               className="flex-1 bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-white text-[9px] focus:outline-none focus:border-cyan-400"
@@ -865,27 +898,27 @@ export default function LiveCameraFeed({
             <span className="text-foreground/50 font-bold">PRESETS:</span>
             <button
               onClick={() => {
-                const url = 'http://10.35.147.163:8080/video';
+                const url = 'http://10.35.147.216:8080/video';
                 setIpWebcamUrl(url);
                 setFeedSource('ip_webcam');
                 syncCameraSettings('ip_webcam', url, ipStreamMode);
               }}
               className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
             >
-              10.35.147.163 (HTTP)
+              10.35.147.216 (HTTP)
             </button>
             <button
               onClick={() => {
-                const url = 'https://10.35.147.163:8080/video';
+                const url = 'https://10.35.147.216:8080/video';
                 setIpWebcamUrl(url);
                 setFeedSource('ip_webcam');
                 syncCameraSettings('ip_webcam', url, ipStreamMode);
-                window.open('https://10.35.147.163:8080', '_blank');
+                window.open('https://10.35.147.216:8080', '_blank');
               }}
               className="px-1.5 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-0.5"
               title="Open phone HTTPS in tab to trust cert"
             >
-              <span>10.35.147.163 (HTTPS ↗)</span>
+              <span>10.35.147.216 (HTTPS ↗)</span>
             </button>
             <button
               onClick={() => {

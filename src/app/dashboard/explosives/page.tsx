@@ -94,7 +94,7 @@ export default function ExplosivesSensorPage() {
   const serialPortRef = useRef<any>(null);
   const lastAutoCaptureTimeRef = useRef<number>(0);
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.163:8080/video');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.216:8080/video');
   const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
   const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
   const ipImgRef = useRef<HTMLImageElement | null>(null);
@@ -178,8 +178,8 @@ export default function ExplosivesSensorPage() {
 
       let savedUrl = localStorage.getItem('vikrant_ip_webcam_url');
       if (savedUrl) {
-        if (savedUrl.includes('10.35.147.52') || savedUrl.includes('10.35.147.247')) {
-          savedUrl = savedUrl.replace('10.35.147.52', '10.35.147.163').replace('10.35.147.247', '10.35.147.163');
+        if (savedUrl.includes('10.35.147.')) {
+          savedUrl = savedUrl.replace(/10\.35\.147\.\d+/, '10.35.147.216');
           localStorage.setItem('vikrant_ip_webcam_url', savedUrl);
         }
         setIpWebcamUrl(savedUrl);
@@ -234,6 +234,18 @@ export default function ExplosivesSensorPage() {
       }
     };
   }, [cameraSource]);
+
+  // Auto-fallback watchdog: if cameraSource is ip_webcam and phone stream unreachable after 3.5s, switch to device camera
+  useEffect(() => {
+    if (cameraSource !== 'ip_webcam') return;
+    const timer = setTimeout(() => {
+      if (!ipCamConnected) {
+        console.warn('[Explosives] IP camera timed out, falling back to laptop camera');
+        setCameraSource('device');
+      }
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [cameraSource, ipCamConnected]);
 
   // Trigger Camera Snapshot on Spike
   const triggerAutoCapture = useCallback(
@@ -500,16 +512,9 @@ export default function ExplosivesSensorPage() {
           className="hidden"
           onLoad={() => setIpCamConnected(true)}
           onError={() => {
-            const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-            const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
-            if (isCloud && isLocalIp) {
-              setIpCamConnected(false);
-            } else if (ipStreamMode === 'direct') {
-              console.warn('[Explosives] Direct IP stream failed, falling back to proxy');
-              setIpStreamMode('proxy');
-            } else {
-              setIpCamConnected(false);
-            }
+            console.warn('[Explosives] IP stream failed, auto-falling back to laptop camera');
+            setIpCamConnected(false);
+            setCameraSource('device');
           }}
         />
       )}
