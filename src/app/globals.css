@@ -1,25 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* Command Center Dark Theme - Deep Onyx */
-  --background: #08090c;
-  --foreground: #f8fafc;
+  /* Ghost Luma App Color System */
+  --background: #03040a;
+  --foreground: #f0f0f0;
   
+  /* Ghost Void & Surface Colors */
+  --ghost-void: #020202;
+  --ghost-bg: #03040a;
+  --ghost-surface: #0a0a0a;
+  --ghost-elevated: #0f0f0f;
+  --ghost-card: #111111;
+
+  /* Ghost Accent — Ice Blue */
+  --ghost-ice: #b8d4f0;
+  --ghost-ice-dim: rgba(184, 212, 240, 0.15);
+  --ghost-ice-glow: rgba(184, 212, 240, 0.08);
+
   /* Transparent Liquid Glass Panels */
-  --panel-bg: rgba(255, 255, 255, 0.02);
+  --panel-bg: rgba(255, 255, 255, 0.03);
   --panel-border: rgba(255, 255, 255, 0.08);
-  --panel-border-glow: rgba(255, 255, 255, 0.15);
-  
-  /* Accent: High-Tech Cyber Blue & Cyan */
-  --accent: #0284c7;
-  --accent-cyan: #38bdf8;
-  --accent-foreground: #ffffff;
+  --panel-border-glow: rgba(184, 212, 240, 0.25);
   
   /* Status Colors */
-  --status-info: #38bdf8;
-  --status-success: #10b981;
-  --status-warning: #f59e0b;
-  --status-destructive: #ef4444;
+  --status-info: #b8d4f0;
+  --status-success: #6ee7b7;
+  --status-warning: #fbbf24;
+  --status-destructive: #f87171;
   --status-offline: #64748b;
 }
 
@@ -28,8 +35,7 @@
   --color-foreground: var(--foreground);
   --color-panel: var(--panel-bg);
   --color-panel-border: var(--panel-border);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-ghost-ice: var(--ghost-ice);
   --color-info: var(--status-info);
   --color-success: var(--status-success);
   --color-warning: var(--status-warning);
@@ -47,28 +53,70 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Modern Transparent Liquid Glass Panel */
+::selection {
+  background: rgba(184, 212, 240, 0.25);
+  color: #ffffff;
+}
+
+/* ── Liquid Glass Design System (Ghost App Theme) ── */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.02) !important;
-  backdrop-filter: blur(5px) !important;
-  -webkit-backdrop-filter: blur(5px) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(8, 12, 22, 0.4) !important;
+  backdrop-filter: blur(12px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 
-    0 12px 32px -6px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15) !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 20px 0 rgba(184, 212, 240, 0.04),
+    0 12px 36px 0 rgba(0, 0, 0, 0.35) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-panel-hover:hover,
-.glass-panel:hover {
-  background: rgba(255, 255, 255, 0.045) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
+.glass-panel:hover,
+.glass-panel-hover:hover {
+  border-color: rgba(184, 212, 240, 0.3) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(10, 14, 26, 0.5) !important;
   box-shadow: 
-    0 16px 40px -6px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 24px 0 rgba(184, 212, 240, 0.08),
+    0 16px 48px 0 rgba(0, 0, 0, 0.45) !important;
 }
 
-/* Modern Liquid Glass Button - Secondary */
+.glass-liquid {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(10, 14, 26, 0.3);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 20px 0 rgba(184, 212, 240, 0.04),
+    0 12px 36px 0 rgba(0, 0, 0, 0.35);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-liquid:hover {
+  border-color: rgba(184, 212, 240, 0.35);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(10, 14, 26, 0.45);
+  box-shadow: 
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 24px 0 rgba(184, 212, 240, 0.08),
+    0 16px 48px 0 rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.glass-liquid-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%), rgba(8, 12, 22, 0.35);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px 0 rgba(184, 212, 240, 0.05),
+    0 16px 40px 0 rgba(0, 0, 0, 0.45);
+  border-radius: 1.25rem;
+}
+
+/* Modern Liquid Glass Button - Ghost Theme */
 .liquid-btn {
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(16px);
@@ -84,8 +132,8 @@ body {
 }
 
 .liquid-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(184, 212, 240, 0.3);
   box-shadow: 
     0 8px 24px -2px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
@@ -93,47 +141,36 @@ body {
   transform: translateY(-1px);
 }
 
-.liquid-btn:active {
-  transform: translateY(0px) scale(0.98);
-}
-
-/* Modern Liquid Glass Button - Primary (No Color Gradient) */
 .liquid-btn-primary {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(184, 212, 240, 0.15);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(184, 212, 240, 0.35);
   box-shadow: 
     0 8px 24px -4px rgba(0, 0, 0, 0.6),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
   color: #ffffff;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-  overflow: hidden;
 }
 
 .liquid-btn-primary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(184, 212, 240, 0.25);
+  border-color: rgba(184, 212, 240, 0.55);
   box-shadow: 
     0 12px 32px -4px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 0 20px rgba(184, 212, 240, 0.2);
   transform: translateY(-1px);
 }
 
-.liquid-btn-primary:active {
-  transform: translateY(0px) scale(0.98);
-  background: rgba(255, 255, 255, 0.14);
-}
-
-/* Glass Pill Badge - Pure Modern Neutral */
+/* Glass Pill Badge */
 .glass-pill {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(184, 212, 240, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
+  border: 1px solid rgba(184, 212, 240, 0.2);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  color: #b8d4f0;
 }
 
 /* Custom Scrollbars */
@@ -142,17 +179,17 @@ body {
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(184, 212, 240, 0.2);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(56, 189, 248, 0.4);
+  background: rgba(184, 212, 240, 0.4);
 }
 
-/* Leaflet Dark mode overrides with transparency for background visibility */
+/* Leaflet Dark mode overrides */
 .leaflet-container {
   background: transparent !important;
   font-family: var(--font-sans) !important;
@@ -167,23 +204,15 @@ body {
   opacity: 0.55 !important;
 }
 
-/* Tactical Background Animations */
+/* Animations */
 @keyframes radar-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes grid-scroll {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 0 48px;
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: 0 48px; }
 }
 
 @keyframes hologram-pulse {
@@ -197,15 +226,6 @@ body {
   }
 }
 
-.animate-radar-spin {
-  animation: radar-spin 8s linear infinite;
-}
-
-.animate-grid-scroll {
-  animation: grid-scroll 3s linear infinite;
-}
-
-.animate-hologram-pulse {
-  animation: hologram-pulse 6s ease-in-out infinite;
-}
-
+.animate-radar-spin { animation: radar-spin 8s linear infinite; }
+.animate-grid-scroll { animation: grid-scroll 3s linear infinite; }
+.animate-hologram-pulse { animation: hologram-pulse 6s ease-in-out infinite; }

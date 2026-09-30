@@ -1,94 +1,162 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Map, Video, List, BarChart3, Settings, Radio, Scan, Pill, Flame, ScanFace } from 'lucide-react';
+import { 
+  Activity, 
+  Map, 
+  Video, 
+  List, 
+  BarChart3, 
+  Settings, 
+  Radio, 
+  Scan, 
+  Pill, 
+  Flame, 
+  ScanFace,
+  Ghost,
+  Shield,
+  Search,
+  Bell
+} from 'lucide-react';
 import VikrantLogo from '@/components/VikrantLogo';
 import DashboardBackground from '@/components/DashboardBackground';
+
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Main Ops', icon: Map },
+  { href: '/dashboard/watchlist', label: 'Watchlist', icon: ScanFace, isNew: true },
+  { href: '/dashboard/narcotics', label: 'Narcotics', icon: Pill, isNew: true },
+  { href: '/dashboard/explosives', label: 'Explosives', icon: Flame, isNew: true },
+  { href: '/dashboard/captures', label: 'AI Captures', icon: Scan },
+  { href: '/dashboard/video', label: 'Live Video', icon: Video },
+  { href: '/dashboard/fleet', label: 'Fleet Status', icon: Radio },
+  { href: '/dashboard/alerts', label: 'Alerts Log', icon: List },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/dashboard/system', label: 'System', icon: Activity },
+];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // Get readable active page title
+  const activeNavItem = NAV_ITEMS.find(item => item.href === pathname);
+  const activeTitle = activeNavItem ? activeNavItem.label : pathname.split('/').pop() || 'Overview';
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground relative">
-      {/* Tactical Satellite Recon & NAVIC Hex Grid Background */}
+    <div className="flex h-screen w-screen overflow-hidden bg-[#03040a] text-foreground relative font-sans">
+      {/* Ghost Luma 3D WebGL Particle Wave & Ambient Orbs Background */}
       <DashboardBackground />
 
-      {/* Side Navigation Rail - Transparent Liquid Glass Aesthetic */}
-      <nav className="w-24 flex-shrink-0 flex flex-col items-center py-4 glass-panel border-r border-white/10 border-y-0 border-l-0 rounded-none z-40 backdrop-blur-md">
-        {/* Brand Tactical Logo */}
-        <Link href="/dashboard" className="mb-6 hover:scale-105 transition-transform flex flex-col items-center gap-1" title="IR Vikrant Command Center">
-          <VikrantLogo size={36} />
-          <span className="text-[9px] font-mono font-bold tracking-widest text-zinc-300 mt-1">
-            VIKRANT
-          </span>
-        </Link>
-        
-        {/* Navigation Actions */}
-        <div className="flex flex-col gap-1.5 w-full px-1.5 overflow-y-auto">
-          <NavItem href="/dashboard" icon={<Map size={18} />} title="Main Ops" active={pathname === '/dashboard'} />
-          <NavItem href="/dashboard/watchlist" icon={<ScanFace size={18} />} title="Watchlist" active={pathname === '/dashboard/watchlist'} isNew={true} />
-          <NavItem href="/dashboard/narcotics" icon={<Pill size={18} />} title="Narcotics" active={pathname === '/dashboard/narcotics'} isNew={true} />
-          <NavItem href="/dashboard/explosives" icon={<Flame size={18} />} title="Explosives" active={pathname === '/dashboard/explosives'} isNew={true} />
-          <NavItem href="/dashboard/captures" icon={<Scan size={18} />} title="AI Captures" active={pathname === '/dashboard/captures'} />
-          <NavItem href="/dashboard/video" icon={<Video size={18} />} title="Live Video" active={pathname === '/dashboard/video'} />
-          <NavItem href="/dashboard/fleet" icon={<Radio size={18} />} title="Fleet Status" active={pathname === '/dashboard/fleet'} />
-          <NavItem href="/dashboard/alerts" icon={<List size={18} />} title="Alerts & Log" active={pathname === '/dashboard/alerts'} />
-          <NavItem href="/dashboard/analytics" icon={<BarChart3 size={18} />} title="Analytics" active={pathname === '/dashboard/analytics'} />
-          <NavItem href="/dashboard/system" icon={<Activity size={18} />} title="System" active={pathname === '/dashboard/system'} />
+      {/* Ghost Side Navigation Rail */}
+      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-black/60 backdrop-blur-2xl border-r border-white/10 z-40 relative">
+        {/* Brand Logo & Ghost Header */}
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/10">
+          <Link href="/dashboard" className="flex items-center gap-3 group" title="IR Vikrant Ghost Command Center">
+            <div className="w-9 h-9 rounded-xl bg-white/10 border border-[#b8d4f0]/30 flex items-center justify-center shadow-[0_0_15px_rgba(184,212,240,0.15)] group-hover:border-[#b8d4f0]/60 transition-all">
+              <VikrantLogo size={22} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold tracking-[0.18em] text-base bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-200 to-[#b8d4f0]">
+                VIKRANT
+              </span>
+              <span className="text-[9px] font-mono text-[#b8d4f0]/70 tracking-widest uppercase">
+                GHOST RECON AI
+              </span>
+            </div>
+          </Link>
         </div>
 
-        {/* Bottom Utility */}
-        <div className="mt-auto flex flex-col gap-2 w-full px-1.5">
-          <NavItem href="/dashboard/settings" icon={<Settings size={18} />} title="Settings" active={pathname === '/dashboard/settings'} />
+        {/* Navigation Items */}
+        <div className="flex-1 overflow-y-auto py-5 px-3 flex flex-col gap-1.5">
+          {NAV_ITEMS.map(item => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-mono transition-all group relative
+                  ${
+                    isActive
+                      ? 'bg-white/10 text-white border-l-2 border-[#b8d4f0] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] font-semibold'
+                      : 'text-zinc-400 hover:bg-white/[0.04] hover:text-white'
+                  }
+                `}
+              >
+                <Icon
+                  className={`w-4 h-4 transition-colors ${
+                    isActive ? 'text-[#b8d4f0]' : 'text-zinc-500 group-hover:text-zinc-300'
+                  }`}
+                />
+                <span className="truncate">{item.label}</span>
+
+                {item.isNew && (
+                  <span className="ml-auto flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#b8d4f0] animate-pulse shadow-[0_0_6px_#b8d4f0]" />
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Bottom Utility / Settings */}
+        <div className="p-3 border-t border-white/10 flex flex-col gap-1.5">
+          <Link
+            href="/dashboard/settings"
+            className={`
+              flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-mono transition-all group
+              ${
+                pathname === '/dashboard/settings'
+                  ? 'bg-white/10 text-white border-l-2 border-[#b8d4f0] font-semibold'
+                  : 'text-zinc-400 hover:bg-white/[0.04] hover:text-white'
+              }
+            `}
+          >
+            <Settings
+              className={`w-4 h-4 transition-colors ${
+                pathname === '/dashboard/settings' ? 'text-[#b8d4f0]' : 'text-zinc-500 group-hover:text-zinc-300'
+              }`}
+            />
+            <span>Settings</span>
+          </Link>
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-hidden flex flex-col z-10 bg-transparent">
-        {children}
-      </main>
-    </div>
-  );
-}
+      {/* Main Content Area with Ghost Top Header */}
+      <div className="flex-1 relative overflow-hidden flex flex-col z-10 bg-transparent min-w-0">
+        {/* Top Header */}
+        <header className="h-20 bg-black/40 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-8 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold tracking-tight uppercase text-white font-mono flex items-center gap-2">
+              <span className="text-[#b8d4f0]">/</span> {activeTitle}
+            </h1>
+          </div>
 
-function NavItem({
-  href,
-  icon,
-  title,
-  active,
-  isNew,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  active: boolean;
-  isNew?: boolean;
-}) {
-  return (
-    <Link 
-      href={href} 
-      className={`relative flex flex-col items-center justify-center py-2.5 px-1 rounded-xl transition-all group liquid-btn ${
-        active 
-          ? 'bg-white/[0.12] text-white border-white/25 shadow-lg shadow-black/40' 
-          : 'text-foreground/50 hover:text-white hover:border-white/20'
-      }`}
-      title={title}
-    >
-      <div className="relative">
-        {icon}
-        {isNew && (
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-white animate-pulse" />
-        )}
+          <div className="flex items-center gap-4">
+            {/* Live System Status Pill */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#b8d4f0]/10 border border-[#b8d4f0]/20 rounded-xl text-xs font-mono text-[#b8d4f0]">
+              <div className="w-2 h-2 rounded-full bg-[#b8d4f0] shadow-[0_0_8px_#b8d4f0] animate-pulse" />
+              <span className="hidden sm:inline text-zinc-400">GHOST NODE:</span>
+              <span className="font-bold">ACTIVE</span>
+            </div>
+
+            {/* Defense Shield Badge */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs font-mono text-emerald-400">
+              <Shield className="w-3.5 h-3.5" />
+              <span>ISRO NAVIC SECURE</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 relative overflow-y-auto p-6 bg-transparent">
+          {children}
+        </main>
       </div>
-      <span className={`text-[9px] font-mono mt-1 tracking-tight text-center truncate ${active ? 'font-semibold text-white' : 'text-foreground/60'}`}>
-        {title}
-      </span>
-      {/* Active side indicator bar */}
-      {active && (
-        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-white shadow-[0_0_8px_#ffffff]" />
-      )}
-    </Link>
+    </div>
   );
 }

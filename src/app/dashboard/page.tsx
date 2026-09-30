@@ -572,14 +572,14 @@ export default function DashboardPage() {
 
 function KpiCard({ title, value, icon }: { title: string; value: string | number; icon?: React.ReactNode }) {
   return (
-    <div className="flex-1 glass-panel rounded-xl p-4 flex flex-col justify-center relative overflow-hidden group">
-      <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500">
+    <div className="flex-1 glass-liquid p-4 flex flex-col justify-center relative overflow-hidden group border border-white/10 hover:border-[#b8d4f0]/30 transition-all duration-300">
+      <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-25 group-hover:scale-110 transition-all duration-500 text-[#b8d4f0]">
         {icon}
       </div>
-      <div className="text-[10px] text-foreground/50 font-mono tracking-widest uppercase mb-1">{title}</div>
-      <div className="text-3xl font-light tracking-tight flex items-center gap-3">
-        {value}
-        {icon && <span className="opacity-80">{icon}</span>}
+      <div className="text-[10px] text-zinc-400 font-mono tracking-widest uppercase mb-1">{title}</div>
+      <div className="text-3xl font-mono font-bold tracking-tight text-white flex items-center justify-between">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-200 to-[#b8d4f0]">{value}</span>
+        {icon && <span className="opacity-90 text-[#b8d4f0]">{icon}</span>}
       </div>
     </div>
   );
