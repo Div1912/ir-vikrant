@@ -751,18 +751,18 @@ void loop() {
       )}
 
       {/* Top Header Rail */}
-      <div className="glass-liquid p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-slate-200/80 shadow-xs">
+      <div className="glass-panel p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-slate-200/90 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-700 shadow-sm">
             <FlaskConical size={26} />
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-mono text-base font-bold text-slate-900 tracking-wider uppercase">
+              <h1 className="font-sans text-base font-bold text-slate-900 tracking-tight">
                 NARCOTICS MONITORING & CHEMICAL SENSOR TELEMETRY
               </h1>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 border ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase flex items-center gap-1.5 border ${
                   isSerialConnected
                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     : 'bg-sky-50 text-sky-800 border-sky-200'
@@ -772,7 +772,7 @@ void loop() {
                 {isSerialConnected ? 'ARDUINO USB CONNECTED' : 'SYNTHETIC TELEMETRY STREAM'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-600 mt-1">
+            <div className="flex items-center gap-2 text-xs font-sans text-slate-600 mt-1 font-medium">
               <MapPin size={13} className="text-sky-600" />
               <span>{stationName}</span>
               <span className="text-slate-300">•</span>
@@ -782,19 +782,19 @@ void loop() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Camera Source Badge */}
           <Link
             href="/dashboard/settings"
-            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all border ${
+            className={`px-3 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-2 transition-all border shadow-xs ${
               cameraSource === 'ip_webcam'
                 ? ipCamConnected
-                  ? 'bg-[#b8d4f0]/10 text-[#b8d4f0] border-[#b8d4f0]/30 hover:bg-[#b8d4f0]/20'
-                  : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                : 'bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                  ? 'bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100'
+                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                : 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100'
             }`}
           >
-            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-[#b8d4f0]' : ''} />
+            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-sky-600' : ''} />
             <span>
               {cameraSource === 'ip_webcam'
                 ? ipCamConnected ? 'PHONE CAM LIVE' : 'PHONE CAM CONNECTING'
@@ -805,10 +805,10 @@ void loop() {
           {/* Connect USB Serial */}
           <button
             onClick={() => (isSerialConnected ? disconnectArduinoSerial() : connectArduinoSerial())}
-            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all liquid-btn ${
+            className={`px-3 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 transition-all border shadow-xs ${
               isSerialConnected
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-red-500/20 hover:text-red-300'
-                : 'bg-[#b8d4f0]/15 text-white border-[#b8d4f0]/30 hover:bg-[#b8d4f0]/25'
+                ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-red-600'
+                : 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800'
             }`}
           >
             <Usb size={14} />
@@ -818,9 +818,9 @@ void loop() {
           {/* Arduino Code */}
           <button
             onClick={() => setShowArduinoModal(true)}
-            className="px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 glass-liquid text-zinc-300 hover:text-white border border-white/10"
+            className="px-3 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-2 bg-white/80 hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-xs"
           >
-            <Code size={14} />
+            <Code size={14} className="text-slate-600" />
             <span>SKETCH CODE</span>
           </button>
 
@@ -828,19 +828,19 @@ void loop() {
           <div className="flex items-center gap-1">
             <button
               onClick={handleCalibrateBaseline}
-              className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all border ${
+              className={`px-3 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-2 transition-all border shadow-xs ${
                 baselineOffset > 0
-                  ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] border-[#b8d4f0]/40'
-                  : 'glass-liquid text-zinc-300 hover:text-white border-white/10'
+                  ? 'bg-sky-100 text-sky-900 border-sky-300'
+                  : 'bg-white/80 hover:bg-slate-100 text-slate-800 border border-slate-300'
               }`}
             >
-              <Sliders size={14} className={baselineOffset > 0 ? 'text-[#b8d4f0]' : ''} />
+              <Sliders size={14} className={baselineOffset > 0 ? 'text-sky-700' : 'text-slate-600'} />
               <span>{baselineOffset > 0 ? `TRIM: -${baselineOffset} PPM` : 'CALIBRATE ZERO'}</span>
             </button>
             {baselineOffset > 0 && (
               <button
                 onClick={handleResetBaseline}
-                className="p-2 rounded-xl glass-liquid text-zinc-400 hover:text-white border border-white/10"
+                className="p-1.5 rounded-xl bg-white/80 hover:bg-slate-100 text-slate-600 border border-slate-300 shadow-xs"
                 title="Reset zero trim calibration"
               >
                 <RotateCcw size={13} />
@@ -851,7 +851,7 @@ void loop() {
           {/* Test Spike Trigger */}
           <button
             onClick={handleForceTestSpike}
-            className="px-4 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all shadow-[0_0_15px_rgba(239,68,68,0.15)]"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 transition-all shadow-sm active:scale-95"
           >
             <Zap size={14} />
             <span>TEST SPIKE TRIGGER</span>
@@ -861,8 +861,8 @@ void loop() {
           <button
             onClick={() => setIsUsingMockData(v => !v)}
             disabled={isSerialConnected}
-            className={`p-2 rounded-xl border text-xs font-mono transition-all ${
-              isUsingMockData ? 'bg-white/10 text-white border-white/20' : 'bg-black/40 text-zinc-500 border-white/10'
+            className={`p-2 rounded-xl border text-xs font-sans transition-all shadow-xs ${
+              isUsingMockData ? 'bg-white text-slate-800 border-slate-300' : 'bg-slate-100 text-slate-400 border-slate-200'
             }`}
             title="Toggle simulation stream"
           >
@@ -900,24 +900,24 @@ void loop() {
       {/* Telemetry Dials Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
         {/* 1. MQ-3 Alcohol & Vapor Sensor */}
-        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-sky-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>MQ-3 ALCOHOL / VAPOR</span>
-            <span className="text-[#b8d4f0] font-bold">PIN A0</span>
+            <span className="text-sky-700 font-bold">PIN A0</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-white">{mq3Ppm}</span>
-            <span className="text-xs font-mono text-[#b8d4f0]">PPM</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{mq3Ppm}</span>
+            <span className="text-xs font-sans font-semibold text-sky-700">PPM</span>
           </div>
-          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden border border-slate-300/60">
             <div
-              className="h-full bg-gradient-to-r from-[#b8d4f0]/60 to-[#b8d4f0] transition-all duration-300"
+              className="h-full bg-sky-600 transition-all duration-300"
               style={{ width: `${Math.min(100, (mq3Ppm / 80) * 100)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             <span>C₂H₅OH • RAW: {mq3Raw}</span>
-            <span className={isSerialConnected ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+            <span className={isSerialConnected ? 'text-emerald-700 font-bold' : 'text-slate-500'}>
               {isSerialConnected ? 'HARDWARE' : 'SIMULATED'}
             </span>
           </div>
@@ -925,26 +925,26 @@ void loop() {
 
         {/* 2. Target Proximity Distance */}
         <div
-          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all ${
+          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all shadow-[0_4px_16px_rgba(0,0,0,0.03)] ${
             distanceStatus === 'contact'
-              ? 'border-red-500/60 bg-red-950/20'
+              ? 'border-red-400 bg-red-50/60'
               : distanceStatus === 'proximity'
-              ? 'border-amber-500/40 bg-amber-500/10'
-              : 'border-white/10 hover:border-[#b8d4f0]/30'
+              ? 'border-amber-400 bg-amber-50/60'
+              : 'border-white/90 hover:border-sky-300'
           }`}
         >
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span className="flex items-center gap-1.5">
-              <Radar size={13} className={isUltrasonicActive ? 'text-[#b8d4f0] animate-spin' : 'text-zinc-500'} />
+              <Radar size={14} className={isUltrasonicActive ? 'text-sky-600 animate-spin' : 'text-slate-500'} />
               <span>PROXIMITY (HC-SR04)</span>
             </span>
             <span
-              className={`font-bold text-[9px] px-2 py-0.5 rounded-full border ${
+              className={`font-bold text-[10px] px-2 py-0.5 rounded-full border ${
                 distanceStatus === 'contact'
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+                  ? 'bg-red-100 text-red-800 border-red-300 animate-pulse'
                   : distanceStatus === 'proximity'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  ? 'bg-amber-100 text-amber-800 border-amber-300'
+                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
               }`}
             >
               {distanceStatus === 'contact' ? 'CRITICAL' : distanceStatus === 'proximity' ? 'PROXIMITY' : 'CLEAR'}
@@ -952,121 +952,123 @@ void loop() {
           </div>
           <div className="flex items-baseline gap-2">
             <span
-              className={`text-3xl font-mono font-bold ${
-                distanceStatus === 'contact' ? 'text-red-400' : distanceStatus === 'proximity' ? 'text-amber-300' : 'text-[#b8d4f0]'
+              className={`text-3xl font-sans font-bold ${
+                distanceStatus === 'contact' ? 'text-red-600' : distanceStatus === 'proximity' ? 'text-amber-700' : 'text-slate-950'
               }`}
             >
               {distanceM.toFixed(2)}
             </span>
-            <span className="text-xs font-mono text-zinc-400">meters</span>
+            <span className="text-xs font-sans text-slate-500 font-medium">meters</span>
           </div>
-          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden border border-slate-300/60">
             <div
               className={`h-full transition-all duration-300 ${
-                distanceStatus === 'contact' ? 'bg-red-500' : distanceStatus === 'proximity' ? 'bg-amber-400' : 'bg-[#b8d4f0]'
+                distanceStatus === 'contact' ? 'bg-red-600' : distanceStatus === 'proximity' ? 'bg-amber-500' : 'bg-sky-600'
               }`}
               style={{ width: `${Math.max(5, Math.min(100, (distanceM / 4.0) * 100))}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             <span>{distanceCm} cm RANGE</span>
-            <span className={isUltrasonicActive ? 'text-[#b8d4f0] font-bold' : 'text-zinc-500'}>
+            <span className={isUltrasonicActive ? 'text-sky-700 font-bold' : 'text-slate-500'}>
               {isUltrasonicActive ? 'ACTIVE' : 'STANDBY'}
             </span>
           </div>
         </div>
 
         {/* 3. MQ-135 Air Quality Sensor */}
-        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-sky-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>MQ-135 AIR QUALITY</span>
-            <span className="text-sky-400 font-bold">PIN A1</span>
+            <span className="text-teal-700 font-bold">PIN A1</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-white">{mq135Ppm}</span>
-            <span className="text-xs font-mono text-sky-300">PPM</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{mq135Ppm}</span>
+            <span className="text-xs font-sans font-semibold text-teal-700">PPM</span>
           </div>
-          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden border border-slate-300/60">
             <div
-              className="h-full bg-gradient-to-r from-sky-400/60 to-sky-400 transition-all duration-300"
+              className="h-full bg-teal-600 transition-all duration-300"
               style={{ width: `${Math.min(100, (mq135Ppm / 65) * 100)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             <span>NH₃ / CO₂ • RAW: {mq135Raw}</span>
-            <span>{((mq135Raw / 1023) * 5.0).toFixed(2)}V</span>
+            <span className="font-semibold text-slate-700">{((mq135Raw / 1023) * 5.0).toFixed(2)}V</span>
           </div>
         </div>
 
         {/* 4. Composite Risk Index */}
         <div
-          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all ${
-            isAlarmActive ? 'border-red-500/60 bg-red-950/20' : 'border-white/10 hover:border-[#b8d4f0]/30'
+          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all shadow-[0_4px_16px_rgba(0,0,0,0.03)] ${
+            isAlarmActive ? 'border-red-400 bg-red-50/60' : 'border-white/90 hover:border-sky-300'
           }`}
         >
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>COMPOSITE VAPOR RISK</span>
-            <span className={isAlarmActive ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
+            <span className={isAlarmActive ? 'text-red-700 font-bold' : 'text-emerald-700 font-bold'}>
               {isAlarmActive ? 'SPIKE EXCEEDED' : 'NORMAL'}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-3xl font-mono font-bold ${isAlarmActive ? 'text-red-400' : 'text-white'}`}>
+            <span className={`text-3xl font-sans font-bold ${isAlarmActive ? 'text-red-600' : 'text-slate-950'}`}>
               {compositeIndex}
             </span>
-            <span className="text-xs font-mono text-zinc-400">PPM eq</span>
+            <span className="text-xs font-sans text-slate-500 font-medium">PPM eq</span>
           </div>
-          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden border border-slate-300/60">
             <div
-              className={`h-full transition-all duration-300 ${isAlarmActive ? 'bg-red-500' : 'bg-emerald-400'}`}
+              className={`h-full transition-all duration-300 ${isAlarmActive ? 'bg-red-600' : 'bg-emerald-500'}`}
               style={{ width: `${Math.min(100, (compositeIndex / threshold) * 100)}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             <span>ALARM LEVEL</span>
-            <span className="text-white font-bold">{threshold.toFixed(0)} PPM</span>
+            <span className="text-slate-950 font-bold">{threshold.toFixed(0)} PPM</span>
           </div>
         </div>
 
         {/* 5. Auto-Captures Counter */}
-        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-sky-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>INCIDENT CAPTURES</span>
-            <Camera size={14} className="text-[#b8d4f0]" />
+            <Camera size={14} className="text-sky-600" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-mono font-bold text-white">{captures.length}</span>
-            <span className="text-xs font-mono text-zinc-400">frames</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{captures.length}</span>
+            <span className="text-xs font-sans text-slate-500 font-medium">frames</span>
           </div>
-          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
-            <div className="h-full bg-[#b8d4f0]" style={{ width: `${Math.min(100, (captures.length / 10) * 100)}%` }} />
+          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden border border-slate-300/60">
+            <div className="h-full bg-sky-600" style={{ width: `${Math.min(100, (captures.length / 10) * 100)}%` }} />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5 truncate">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80 truncate">
             <span>{lastSpikeTime ? `LAST: ${lastSpikeTime}` : 'MONITORING ACTIVE'}</span>
           </div>
         </div>
       </div>
 
       {/* Main Interactive Telemetry Graph */}
-      <div className="glass-liquid rounded-2xl p-5 flex flex-col gap-4 border border-white/10 hover:border-[#b8d4f0]/20 transition-all">
+      <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4 border border-slate-200/90 shadow-sm">
         {/* Chart Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-white/10">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-200/80">
           <div className="flex items-center gap-3">
-            <Activity size={18} className="text-[#b8d4f0]" />
+            <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700">
+              <Activity size={20} />
+            </div>
             <div>
-              <h2 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
+              <h2 className="font-sans text-sm font-bold text-slate-900 tracking-tight">
                 REAL-TIME GAS CONCENTRATION WAVEFORM (PPM)
               </h2>
-              <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+              <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
                 Multi-channel e-Nose telemetry stream & threshold alert monitoring
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
             {/* Threshold Slider */}
-            <div className="flex items-center gap-2.5 font-mono text-xs bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/10">
-              <span className="text-[10px] text-zinc-400 uppercase">ALARM THRESHOLD:</span>
+            <div className="flex items-center gap-2.5 font-sans text-xs bg-white/90 px-3.5 py-1.5 rounded-xl border border-slate-300 shadow-xs text-slate-800 font-semibold">
+              <span className="text-xs text-slate-500 font-medium uppercase">ALARM THRESHOLD:</span>
               <input
                 type="range"
                 min="20"
@@ -1074,19 +1076,19 @@ void loop() {
                 step="1"
                 value={threshold}
                 onChange={e => setThreshold(Number(e.target.value))}
-                className="w-28 accent-[#b8d4f0] cursor-pointer"
+                className="w-28 accent-sky-600 cursor-pointer"
               />
-              <span className="text-xs font-bold text-[#b8d4f0]">{threshold.toFixed(0)} PPM</span>
+              <span className="text-xs font-bold text-sky-700">{threshold.toFixed(0)} PPM</span>
             </div>
 
             {/* Time Filter Buttons */}
-            <div className="flex items-center bg-black/40 rounded-xl p-1 border border-white/10 text-xs font-mono">
+            <div className="flex items-center bg-slate-200/70 rounded-xl p-0.5 border border-slate-300/80 text-xs font-sans">
               {(['5m', '15m', '1h', '24h'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setTimeRange(t)}
-                  className={`px-3 py-1 rounded-lg transition-all uppercase ${
-                    timeRange === t ? 'bg-white/15 text-white font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
+                  className={`px-3 py-1 rounded-lg transition-all uppercase font-semibold ${
+                    timeRange === t ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {t}
@@ -1097,31 +1099,31 @@ void loop() {
         </div>
 
         {/* Recharts Interactive Area Chart */}
-        <div className="w-full h-[320px]">
+        <div className="w-full h-[360px] pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={readings} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
+            <AreaChart data={readings} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="mq3Grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#b8d4f0" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#b8d4f0" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#0284c7" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#0284c7" stopOpacity={0.01} />
                 </linearGradient>
                 <linearGradient id="mq135Grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="time" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
-              <YAxis stroke="#71717a" domain={[0, 90]} tick={{ fontSize: 10, fill: '#a1a1aa' }} unit=" PPM" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.25)" />
+              <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155', fontFamily: 'sans-serif', fontWeight: 600 }} />
+              <YAxis stroke="#64748b" domain={[0, Math.max(45, Math.ceil(threshold * 1.15))]} tick={{ fontSize: 11, fill: '#334155', fontFamily: 'sans-serif', fontWeight: 600 }} unit=" PPM" />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="glass-liquid p-3.5 rounded-xl border border-[#b8d4f0]/30 text-xs font-mono shadow-2xl bg-black/90">
-                        <div className="text-zinc-400 mb-1.5 font-bold">{label}</div>
-                        <div className="text-[#b8d4f0] font-bold">MQ-3 Alcohol Vapor: {payload[0]?.value} PPM</div>
-                        <div className="text-sky-300 font-bold">MQ-135 Precursors: {payload[1]?.value} PPM</div>
-                        <div className="text-emerald-400 font-bold">Composite Index: {payload[2]?.value} PPM</div>
+                      <div className="glass-panel p-3.5 rounded-xl border border-slate-300/90 text-xs font-sans shadow-xl bg-white/95 text-slate-900">
+                        <div className="text-slate-500 mb-1.5 font-bold">{label}</div>
+                        <div className="text-sky-700 font-bold">MQ-3 Alcohol Vapor: {payload[0]?.value} PPM</div>
+                        <div className="text-teal-700 font-bold">MQ-135 Precursors: {payload[1]?.value} PPM</div>
+                        <div className="text-rose-600 font-bold">Composite Index: {payload[2]?.value} PPM</div>
                       </div>
                     );
                   }
@@ -1130,29 +1132,31 @@ void loop() {
               />
               <ReferenceLine
                 y={threshold}
-                stroke="#f87171"
+                stroke="#dc2626"
                 strokeDasharray="4 4"
                 strokeWidth={2}
-                label={{ value: `ALARM THRESHOLD: ${threshold} PPM`, fill: '#f87171', fontSize: 10, position: 'insideTopRight' }}
+                label={{ value: `ALARM THRESHOLD: ${threshold} PPM`, fill: '#dc2626', fontSize: 11, fontFamily: 'sans-serif', fontWeight: 'bold', position: 'insideTopRight' }}
               />
-              <Area type="monotone" dataKey="mq3" stroke="#b8d4f0" strokeWidth={2.5} fillOpacity={1} fill="url(#mq3Grad)" name="MQ-3 Vapor" />
-              <Area type="monotone" dataKey="mq135" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#mq135Grad)" name="MQ-135 Precursors" />
-              <Line type="monotone" dataKey="composite" stroke="#34d399" strokeWidth={2} dot={false} name="Composite Index" />
+              <Area type="monotone" dataKey="mq3" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#mq3Grad)" name="MQ-3 Vapor" />
+              <Area type="monotone" dataKey="mq135" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#mq135Grad)" name="MQ-135 Precursors" />
+              <Line type="monotone" dataKey="composite" stroke="#e11d48" strokeWidth={2.5} dot={false} name="Composite Index" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Auto-Captured Incident Gallery */}
-      <div className="glass-liquid rounded-2xl p-5 flex flex-col gap-4 border border-white/10 hover:border-[#b8d4f0]/20 transition-all">
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+      <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
           <div className="flex items-center gap-3">
-            <Camera size={18} className="text-[#b8d4f0]" />
+            <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700">
+              <Camera size={20} />
+            </div>
             <div>
-              <h3 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
+              <h3 className="font-sans text-sm font-bold text-slate-900 tracking-tight">
                 AUTO-CAPTURED INCIDENT RECORDS
               </h3>
-              <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+              <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
                 Optical frames captured automatically when chemical gas spikes exceed threshold
               </p>
             </div>
@@ -1162,7 +1166,7 @@ void loop() {
               <button
                 onClick={handleClearLogs}
                 disabled={isClearingLogs}
-                className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 flex items-center gap-1.5 transition-all"
+                className="px-3 py-1.5 rounded-xl font-sans text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5 transition-all shadow-xs"
               >
                 <Trash2 size={13} />
                 <span>{isClearingLogs ? 'CLEARING...' : 'CLEAR RECORDS'}</span>
@@ -1172,8 +1176,8 @@ void loop() {
         </div>
 
         {captures.length === 0 ? (
-          <div className="p-10 text-center font-mono text-xs text-zinc-500 flex flex-col items-center justify-center gap-2">
-            <Camera size={32} className="opacity-30 text-[#b8d4f0]" />
+          <div className="p-10 text-center font-sans text-xs text-slate-500 font-medium flex flex-col items-center justify-center gap-2">
+            <Camera size={32} className="opacity-40 text-sky-600" />
             <span>No chemical spike records logged. Click &quot;TEST SPIKE TRIGGER&quot; above to simulate an incident capture.</span>
           </div>
         ) : (
@@ -1182,16 +1186,16 @@ void loop() {
               <div
                 key={cap.id || i}
                 onClick={() => setInspectCapture(cap)}
-                className="group relative rounded-xl overflow-hidden glass-liquid border border-white/10 hover:border-[#b8d4f0]/50 cursor-pointer transition-all aspect-video"
+                className="group relative rounded-xl overflow-hidden glass-panel border border-slate-200 hover:border-sky-400 cursor-pointer transition-all aspect-video shadow-xs"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={cap.photo_url} alt="Spike frame" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute bottom-2 left-2.5 right-2.5 flex justify-between items-center text-[9px] font-mono text-white">
-                  <span className="truncate max-w-[90px] font-bold text-[#b8d4f0]">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute bottom-2 left-2.5 right-2.5 flex justify-between items-center text-[10px] font-sans font-semibold text-white">
+                  <span className="truncate max-w-[90px] font-bold text-sky-300">
                     {cap.substance_name?.split(':')[1]?.split('(')[0]?.trim() || 'Spike'}
                   </span>
-                  <span className="text-zinc-400">
+                  <span className="text-slate-300 font-mono text-[9px]">
                     {isMounted ? new Date(cap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>
