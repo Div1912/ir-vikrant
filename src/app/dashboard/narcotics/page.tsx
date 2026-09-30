@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,14 +22,12 @@ import {
   Zap,
   RotateCcw,
   Sliders,
-  Sparkles,
   ExternalLink,
   MapPin,
   Clock,
   CheckCircle2,
   Usb,
   Code,
-  Scan,
   ShieldAlert,
   Radio,
   Play,
@@ -39,13 +36,16 @@ import {
   Trash2,
   Radar,
   Target,
-  Crosshair,
+  FlaskConical,
+  Gauge,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { findNearestRailwayStation } from '@/lib/railwayStations';
 import { clearDetectionEvents } from '@/lib/logService';
 
-// Synthesize camera shutter beep
+// Camera Shutter Audio Feedback
 function playShutterSound() {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -74,6 +74,7 @@ export default function NarcoticsSensorPage() {
   const [isUsingMockData, setIsUsingMockData] = useState<boolean>(true);
   const [showArduinoModal, setShowArduinoModal] = useState<boolean>(false);
   const [serialError, setSerialError] = useState<string | null>(null);
+  const [sketchTab, setSketchTab] = useState<'single_mq3' | 'raw_analog' | 'dual' | 'python_bridge'>('single_mq3');
 
   // Live Telemetry Streams
   const [readings, setReadings] = useState<any[]>([]);
@@ -94,10 +95,31 @@ export default function NarcoticsSensorPage() {
   const distanceMRef = useRef<number>(1.25);
   const distanceCmRef = useRef<number>(125);
 
-  // Precision Calibration Baseline Offset (Ambient Clean Air Trim)
+  // Baseline Calibration Offset (Ambient Clean Air Trim)
   const [baselineOffset, setBaselineOffset] = useState<number>(0);
 
-  // Load saved baseline offset from localStorage
+  // Captures & Modal State
+  const [captures, setCaptures] = useState<any[]>([]);
+  const [inspectCapture, setInspectCapture] = useState<any | null>(null);
+  const [shutterFlash, setShutterFlash] = useState<boolean>(false);
+  const [spikeNotification, setSpikeNotification] = useState<string | null>(null);
+  const [isClearingLogs, setIsClearingLogs] = useState<boolean>(false);
+
+  // Geo Location & Station Info
+  const [currentCoords, setCurrentCoords] = useState<[number, number]>([22.59548, 88.45420]);
+  const [stationName, setStationName] = useState<string>('Bidhan Nagar Road (BNR) • Eastern Railway');
+
+  const serialPortRef = useRef<any>(null);
+  const serialReaderRef = useRef<any>(null);
+  const lastAutoCaptureTimeRef = useRef<number>(0);
+  const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
+  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
+  const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
+  const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
+  const ipImgRef = useRef<HTMLImageElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Load saved baseline offset
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('vikrant_mq3_baseline_offset');
@@ -106,7 +128,6 @@ export default function NarcoticsSensorPage() {
   }, []);
 
   const handleCalibrateBaseline = () => {
-    // Current ambient air target is 15.0 PPM
     const currentUncal = mq3Ppm + baselineOffset;
     const newOffset = Math.max(0, Number((currentUncal - 15.0).toFixed(1)));
     setBaselineOffset(newOffset);
@@ -127,12 +148,10 @@ export default function NarcoticsSensorPage() {
   };
 
   const updateDistance = (meters: number, cm?: number) => {
-    // Ignore physical anomalies or timeout glitches (< 2cm or > 4.5m)
     if (meters < 0.02 || meters > 4.5) return;
 
     const prevM = distanceMRef.current;
     let m = meters;
-    // Anti-jitter low-pass smoothing when stationary or moving smoothly
     if (prevM > 0.05 && Math.abs(meters - prevM) < 0.35) {
       m = Number((0.75 * meters + 0.25 * prevM).toFixed(2));
     } else {
@@ -149,37 +168,7 @@ export default function NarcoticsSensorPage() {
     if (m < 0.5) setDistanceStatus('contact');
     else if (m < 1.5) setDistanceStatus('proximity');
     else setDistanceStatus('clear');
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('vikrant:distance_update', {
-          detail: { distance_m: m, distance_cm: c },
-        })
-      );
-    }
   };
-
-  // Auto-Capture State
-  const [captures, setCaptures] = useState<any[]>([]);
-  const [inspectCapture, setInspectCapture] = useState<any | null>(null);
-  const [shutterFlash, setShutterFlash] = useState<boolean>(false);
-  const [spikeNotification, setSpikeNotification] = useState<string | null>(null);
-  const [isClearingLogs, setIsClearingLogs] = useState<boolean>(false);
-  const [sketchTab, setSketchTab] = useState<'single_mq3' | 'raw_analog' | 'dual' | 'python_bridge'>('single_mq3');
-
-  // Geo Location & Station Info
-  const [currentCoords, setCurrentCoords] = useState<[number, number]>([22.59548, 88.45420]);
-  const [stationName, setStationName] = useState<string>('Bidhan Nagar Road (BNR) • Eastern Railway');
-
-  const serialPortRef = useRef<any>(null);
-  const serialReaderRef = useRef<any>(null);
-  const lastAutoCaptureTimeRef = useRef<number>(0);
-  const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
-  const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
-  const [ipStreamMode, setIpStreamMode] = useState<'direct' | 'proxy'>('direct');
-  const [ipCamConnected, setIpCamConnected] = useState<boolean>(false);
-  const ipImgRef = useRef<HTMLImageElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Detect GPS Location on mount
   useEffect(() => {
@@ -213,7 +202,6 @@ export default function NarcoticsSensorPage() {
 
     fetchCaptures();
 
-    // Listen to local capture events in 0ms
     const handleLocalCapture = (e: any) => {
       const ev = e.detail;
       if (ev.substance_category?.includes('Narcotics') || ev.substance_name?.includes('MQ-3') || ev.substance_name?.includes('MQ-135')) {
@@ -225,7 +213,28 @@ export default function NarcoticsSensorPage() {
     return () => window.removeEventListener('vikrant:new_capture', handleLocalCapture);
   }, []);
 
-  // Sync camera settings from localStorage and listen to cross-page settings updates
+  // Clear Narcotics Logs from Supabase and local state
+  const handleClearLogs = async () => {
+    if (!confirm('Clear all chemical sensor spike records from the database?')) return;
+    setIsClearingLogs(true);
+    await clearDetectionEvents({ category: 'narcotics' });
+    setCaptures([]);
+    setIsClearingLogs(false);
+  };
+
+  // Listen to cross-page log clearing events
+  useEffect(() => {
+    const handleLogsCleared = (e: any) => {
+      const cat = e.detail?.category;
+      if (cat === 'narcotics' || cat === 'all') {
+        setCaptures([]);
+      }
+    };
+    window.addEventListener('vikrant:logs_cleared', handleLogsCleared);
+    return () => window.removeEventListener('vikrant:logs_cleared', handleLogsCleared);
+  }, []);
+
+  // Sync camera settings from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
@@ -260,7 +269,7 @@ export default function NarcoticsSensorPage() {
     }
   }, []);
 
-  // Connect to device webcam ONLY if cameraSource === 'device', stopping all tracks when switched off
+  // Connect to device webcam if cameraSource === 'device'
   useEffect(() => {
     let activeStream: MediaStream | null = null;
     if (cameraSource === 'device') {
@@ -291,12 +300,11 @@ export default function NarcoticsSensorPage() {
     };
   }, [cameraSource]);
 
-  // Auto-fallback watchdog: if cameraSource is ip_webcam and phone stream unreachable after 3.5s, switch to device camera
+  // Auto-fallback watchdog if phone stream unreachable
   useEffect(() => {
     if (cameraSource !== 'ip_webcam') return;
     const timer = setTimeout(() => {
       if (!ipCamConnected) {
-        console.warn('[Narcotics] IP camera timed out, falling back to laptop camera');
         setCameraSource('device');
       }
     }, 3500);
@@ -307,16 +315,13 @@ export default function NarcoticsSensorPage() {
   const triggerAutoCapture = useCallback(
     async (peakPpm: number, triggerSensor: string) => {
       const now = Date.now();
-      // Cooldown of 8s between auto-captures to prevent flood
       if (now - lastAutoCaptureTimeRef.current < 8000) return;
       lastAutoCaptureTimeRef.current = now;
 
-      // Flash & Audio
       setShutterFlash(true);
       playShutterSound();
       setTimeout(() => setShutterFlash(false), 250);
 
-      // Create snapshot image on canvas
       const canvas = document.createElement('canvas');
       canvas.width = 640;
       canvas.height = 400;
@@ -324,559 +329,243 @@ export default function NarcoticsSensorPage() {
 
       if (ctx) {
         let drewRealFrame = false;
-        // Priority 1: Mobile Phone IP Webcam stream
-        if (
-          cameraSource === 'ip_webcam' &&
-          ipImgRef.current &&
-          (ipImgRef.current.naturalWidth > 0 || ipImgRef.current.complete)
-        ) {
+        if (cameraSource === 'ip_webcam' && ipImgRef.current && ipImgRef.current.naturalWidth > 0) {
           try {
-            ctx.drawImage(ipImgRef.current, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(ipImgRef.current, 0, 0, 640, 400);
             drewRealFrame = true;
-          } catch {
-            drewRealFrame = false;
-          }
-        }
-        // Priority 2: Laptop / USB Webcam
-        else if (cameraSource === 'device' && videoRef.current && videoRef.current.readyState >= 2) {
+          } catch {}
+        } else if (cameraSource === 'device' && videoRef.current && videoRef.current.readyState >= 2) {
           try {
-            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(videoRef.current, 0, 0, 640, 400);
             drewRealFrame = true;
-          } catch {
-            drewRealFrame = false;
-          }
+          } catch {}
         }
 
         if (!drewRealFrame) {
-          // Synthetic high-res tactical recon frame
-          ctx.fillStyle = '#090b10';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          // Grid lines
-          ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)';
+          ctx.fillStyle = '#080a12';
+          ctx.fillRect(0, 0, 640, 400);
+          ctx.strokeStyle = 'rgba(184, 212, 240, 0.2)';
           ctx.lineWidth = 1;
-          for (let x = 0; x < canvas.width; x += 40) {
+          for (let x = 0; x < 640; x += 40) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
+            ctx.lineTo(x, 400);
             ctx.stroke();
           }
-          for (let y = 0; y < canvas.height; y += 40) {
+          for (let y = 0; y < 400; y += 40) {
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.lineTo(canvas.width, y);
+            ctx.lineTo(640, y);
             ctx.stroke();
           }
         }
 
-        const currDistM = distanceMRef.current;
-        const currDistCm = distanceCmRef.current;
+        // Overlay HUD
+        ctx.fillStyle = 'rgba(3, 4, 10, 0.85)';
+        ctx.fillRect(10, 10, 340, 60);
+        ctx.strokeStyle = '#b8d4f0';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, 10, 340, 60);
 
-        // Optical Target Crosshairs & Rangefinder Overlay
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        const bSize = 20;
-        const bW = 130;
-        const bH = 90;
-
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.9)';
-        ctx.lineWidth = 2;
-        // Corner brackets
-        ctx.beginPath(); ctx.moveTo(cx - bW/2, cy - bH/2 + bSize); ctx.lineTo(cx - bW/2, cy - bH/2); ctx.lineTo(cx - bW/2 + bSize, cy - bH/2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + bW/2 - bSize, cy - bH/2); ctx.lineTo(cx + bW/2, cy - bH/2); ctx.lineTo(cx + bW/2, cy - bH/2 + bSize); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx - bW/2, cy + bH/2 - bSize); ctx.lineTo(cx - bW/2, cy + bH/2); ctx.lineTo(cx - bW/2 + bSize, cy + bH/2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + bW/2 - bSize, cy + bH/2); ctx.lineTo(cx + bW/2, cy + bH/2); ctx.lineTo(cx + bW/2, cy + bH/2 - bSize); ctx.stroke();
-
-        // Target Center Reticle Dot
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill();
-
-        // Range Tag Badge on Reticle
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(cx - 75, cy + bH/2 + 6, 150, 22);
-        ctx.strokeStyle = '#06b6d4';
-        ctx.strokeRect(cx - 75, cy + bH/2 + 6, 150, 22);
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 10px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(`⛶ TARGET: ${currDistM.toFixed(2)}m (${currDistCm}cm)`, cx, cy + bH/2 + 21);
-        ctx.textAlign = 'left';
-
-        // Stamped Tactical HUD Banner
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
-        ctx.fillRect(16, 16, canvas.width - 32, 34);
+        ctx.fillStyle = '#f87171';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(`🚨 CHEMICAL SPIKE: ${triggerSensor}`, 20, 30);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 13px monospace';
-        ctx.fillText(`🚨 NARCOTICS SPIKE: ${peakPpm} PPM [${triggerSensor}] • ${currDistM.toFixed(2)}m FROM ROBOT`, 24, 38);
+        ctx.font = '11px monospace';
+        ctx.fillText(`PEAK CONCENTRATION: ${peakPpm.toFixed(1)} PPM`, 20, 48);
 
-        // Bottom Telemetry Overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(16, canvas.height - 48, canvas.width - 32, 36);
+        ctx.fillStyle = 'rgba(3, 4, 10, 0.85)';
+        ctx.fillRect(10, 335, 620, 55);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeRect(10, 335, 620, 55);
 
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = '#b8d4f0';
         ctx.font = '10px monospace';
-        ctx.fillText(`LOC: ${currentCoords[0].toFixed(5)}° N, ${currentCoords[1].toFixed(5)}° E • ${stationName.split('•')[0].trim()}`, 24, canvas.height - 28);
-        ctx.fillText(`TIME: ${new Date().toLocaleTimeString()} • ULTRASONIC RANGE: ${currDistM.toFixed(2)}m (${currDistCm}cm) • SENSOR: MQ-3`, 24, canvas.height - 14);
+        ctx.fillText(`LOCATION: ${stationName}`, 20, 355);
+        ctx.fillText(`GPS: ${currentCoords[0].toFixed(5)}° N, ${currentCoords[1].toFixed(5)}° E`, 20, 375);
+        ctx.fillText(`TIME: ${new Date().toLocaleTimeString()}`, 400, 375);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+        const newRecord = {
+          unit_id: 'Q-01',
+          substance_category: `Narcotics (${triggerSensor})`,
+          substance_name: `${triggerSensor} Spike (${peakPpm.toFixed(1)} PPM)`,
+          confidence_tier: 'confirmed',
+          confidence_score: Number((Math.min(0.99, peakPpm / 80.0)).toFixed(2)),
+          latitude: currentCoords[0],
+          longitude: currentCoords[1],
+          station: stationName,
+          timestamp: new Date().toISOString(),
+          photo_url: dataUrl,
+          status: 'new',
+        };
+
+        setCaptures(prev => [newRecord, ...prev]);
+
+        window.dispatchEvent(
+          new CustomEvent('vikrant:new_capture', { detail: newRecord })
+        );
+
+        supabase.from('detection_events').insert([newRecord]).then();
       }
-
-      const currDistM = distanceMRef.current;
-      const photoUrl = canvas.toDataURL('image/jpeg', 0.85);
-      const timestamp = new Date().toISOString();
-
-      const newEvent = {
-        unit_id: 'c7569eb7-87ab-43db-905b-54baf7b106fc',
-        substance_category: 'Narcotics MOS (MQ-3/MQ-135)',
-        substance_name: `Narcotics Vapor Spike: ${peakPpm} ppm (${triggerSensor}) • Target at ${currDistM.toFixed(2)}m from robot`,
-        confidence_tier: 'confirmed',
-        confidence_score: 0.96,
-        latitude: currentCoords[0],
-        longitude: currentCoords[1],
-        station: stationName,
-        status: 'new',
-        timestamp,
-        photo_url: photoUrl,
-      };
-
-      // Save to Supabase
-      const { data: inserted } = await supabase.from('detection_events').insert(newEvent).select().single();
-      const finalItem = inserted || { ...newEvent, id: `local-${now}` };
-
-      setCaptures(prev => [finalItem, ...prev]);
-      setLastSpikeTime(new Date().toLocaleTimeString());
-      setSpikeNotification(`📸 AUTO-CAPTURED: ${peakPpm} PPM at ${currDistM.toFixed(2)}m distance from robot!`);
-      setTimeout(() => setSpikeNotification(null), 5000);
-
-      window.dispatchEvent(new CustomEvent('vikrant:new_capture', { detail: finalItem }));
     },
-    [currentCoords, stationName]
+    [cameraSource, currentCoords, stationName]
   );
 
-  // Disconnect cleanly from Arduino Uno to release USB COM port
-  const disconnectArduinoSerial = async () => {
-    try {
-      if (serialReaderRef.current) {
-        try {
-          await serialReaderRef.current.cancel();
-        } catch {}
-        try {
-          serialReaderRef.current.releaseLock();
-        } catch {}
-        serialReaderRef.current = null;
-      }
-      if (serialPortRef.current) {
-        try {
-          await serialPortRef.current.close();
-        } catch {}
-        serialPortRef.current = null;
-      }
-    } catch {}
-    setIsSerialConnected(false);
-    setLastRawSerialLine(null);
-    setRawSerialPacketsCount(0);
-  };
+  // Parse Serial JSON & Update State
+  const handleIncomingSensorData = useCallback(
+    (mq3PpmVal: number, mq135PpmVal: number, rawLine?: string, rawMq3Adc?: number, rawMq135Adc?: number, ultrasonicDistM?: number, ultrasonicDistCm?: number) => {
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-  // Web Serial API: Connect directly to Arduino Uno via USB (Works on Localhost & Vercel HTTPS)
-  const connectArduinoSerial = async (targetPort?: any) => {
-    // Avoid double connect if already actively streaming
-    if (serialPortRef.current && serialReaderRef.current) {
-      console.log('[IR VIKRANT] Serial already active.');
+      const finalMq3Ppm = Math.max(0, Number((mq3PpmVal - baselineOffset).toFixed(1)));
+      const finalMq135Ppm = Number(mq135PpmVal.toFixed(1));
+      const comp = Number(((finalMq3Ppm * 0.65) + (finalMq135Ppm * 0.35)).toFixed(1));
+
+      setMq3Ppm(finalMq3Ppm);
+      setMq135Ppm(finalMq135Ppm);
+      setCompositeIndex(comp);
+
+      if (rawMq3Adc !== undefined) setMq3Raw(rawMq3Adc);
+      if (rawMq135Adc !== undefined) setMq135Raw(rawMq135Adc);
+      if (rawLine) {
+        setLastRawSerialLine(rawLine);
+        setRawSerialPacketsCount(c => c + 1);
+      }
+
+      if (ultrasonicDistM !== undefined && ultrasonicDistM > 0) {
+        updateDistance(ultrasonicDistM, ultrasonicDistCm);
+      }
+
+      setReadings(prev => {
+        const next = [...prev, { time: nowStr, mq3: finalMq3Ppm, mq135: finalMq135Ppm, composite: comp }];
+        return next.slice(-40);
+      });
+
+      if (finalMq3Ppm >= threshold || finalMq135Ppm >= threshold || comp >= threshold) {
+        setLastSpikeTime(nowStr);
+        const sensorLabel = finalMq3Ppm >= threshold ? 'MQ-3 Alcohol/Vapor' : 'MQ-135 Gas Precursor';
+        setSpikeNotification(`⚠ High Gas Concentration Detected! ${sensorLabel}: ${Math.max(finalMq3Ppm, finalMq135Ppm)} PPM`);
+        triggerAutoCapture(Math.max(finalMq3Ppm, finalMq135Ppm), sensorLabel);
+      } else {
+        setSpikeNotification(null);
+      }
+    },
+    [baselineOffset, threshold, triggerAutoCapture]
+  );
+
+  // Web Serial API (Arduino USB Serial Connection)
+  const connectArduinoSerial = async () => {
+    setSerialError(null);
+    if (typeof navigator === 'undefined' || !('serial' in navigator)) {
+      setSerialError('Web Serial API is not supported by your browser. Please use Google Chrome or Edge.');
       return;
     }
 
     try {
-      if (!('serial' in navigator)) {
-        setSerialError('Web Serial API is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Brave on desktop.');
-        return;
-      }
-
-      setSerialError(null);
-
-      // Verify that targetPort is an actual SerialPort instance with open() method (not a React click event!)
-      let port: any = null;
-      if (targetPort && typeof targetPort.open === 'function') {
-        port = targetPort;
-      } else {
-        // Request user to pick the Arduino port from browser dialog
-        port = await (navigator as any).serial.requestPort();
-      }
-
-      if (!port || typeof port.open !== 'function') {
-        throw new Error('Valid serial port was not found or selected.');
-      }
-
-      // Check if port is already open
-      if (!port.readable) {
-        await port.open({ baudRate: 9600 });
-      }
-
+      const port = await (navigator as any).serial.requestPort();
+      await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       setIsSerialConnected(true);
-      setIsUsingMockData(false); // Disable mock data immediately on hardware connection!
+      setIsUsingMockData(false);
 
-      // If readable stream is currently locked, wait or release
-      if (port.readable.locked) {
-        console.warn('[IR VIKRANT] Port readable is already locked.');
-        return;
-      }
-
-      const reader = port.readable.getReader();
+      const textDecoder = new TextDecoderStream();
+      port.readable.pipeTo(textDecoder.writable);
+      const reader = textDecoder.readable.getReader();
       serialReaderRef.current = reader;
-      const textDecoder = new TextDecoder();
+
       let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          buffer += value;
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            buffer += textDecoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
+            try {
+              if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                const parsed = JSON.parse(trimmed);
+                const ppm3 = parsed.ppm !== undefined ? Number(parsed.ppm) : parsed.mq3 !== undefined ? Number(parsed.mq3) : 20.0;
+                const ppm135 = parsed.mq135 !== undefined ? Number(parsed.mq135) : 15.0;
+                const raw3 = parsed.mq3_raw !== undefined ? Number(parsed.mq3_raw) : Math.round((ppm3 / 85.0) * 1023);
+                const raw135 = parsed.mq135_raw !== undefined ? Number(parsed.mq135_raw) : Math.round((ppm135 / 65.0) * 1023);
+                const distM = parsed.distance_m !== undefined ? Number(parsed.distance_m) : undefined;
+                const distCm = parsed.distance_cm !== undefined ? Number(parsed.distance_cm) : undefined;
 
-          setLastRawSerialLine(trimmed);
-          setRawSerialPacketsCount(c => c + 1);
-
-          try {
-            let parsedMq3: number | null = null;
-            let parsedMq135: number | null = null;
-            let parsedDistM: number | null = null;
-            let parsedDistCm: number | null = null;
-            let raw3: number | undefined = undefined;
-            let raw135: number | undefined = undefined;
-
-            // Pattern 1: JSON format (e.g. {"mq3": 45.2, "distance_m": 1.25, "distance_cm": 125})
-            if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-              const data = JSON.parse(trimmed);
-              // Gas / MQ-3: Check explicit PPM keys first for high precision
-              if (data.ppm !== undefined || data.mq3_ppm !== undefined) {
-                const p = Number(data.ppm ?? data.mq3_ppm);
-                if (!isNaN(p)) {
-                  parsedMq3 = Number(p.toFixed(1));
-                  raw3 = data.mq3_raw !== undefined ? Number(data.mq3_raw) : Math.round((parsedMq3 / 85) * 1023);
-                }
-              } else {
-                const rawVal = data.mq3 ?? data.mq3_raw ?? data.val ?? data.raw ?? data.gas;
-                if (rawVal !== undefined && rawVal !== null) {
-                  const val = Number(rawVal);
-                  if (val > 85) {
-                    raw3 = Math.round(val);
-                    parsedMq3 = Number(((val / 1023) * 85).toFixed(1));
-                  } else {
-                    parsedMq3 = Number(val.toFixed(1));
-                    raw3 = Math.round((val / 85) * 1023);
-                  }
-                }
-              }
-
-              // MQ-135
-              if (data.mq135_ppm !== undefined) {
-                const p135 = Number(data.mq135_ppm);
-                if (!isNaN(p135)) {
-                  parsedMq135 = Number(p135.toFixed(1));
-                  raw135 = data.mq135_raw !== undefined ? Number(data.mq135_raw) : Math.round((parsedMq135 / 65) * 1023);
-                }
-              } else if (data.mq135 !== undefined) {
-                const val135 = Number(data.mq135);
-                if (val135 > 65) {
-                  raw135 = Math.round(val135);
-                  parsedMq135 = Number(((val135 / 1023) * 65).toFixed(1));
-                } else {
-                  parsedMq135 = Number(val135.toFixed(1));
-                  raw135 = Math.round((val135 / 65) * 1023);
-                }
-              }
-              // Ultrasonic Distance
-              const rawDist = data.distance_m ?? data.dist_m ?? data.distance ?? data.dist ?? data.distance_cm ?? data.dist_cm ?? data.cm ?? data.m ?? data.range ?? data.d;
-              if (rawDist !== undefined && rawDist !== null) {
-                const dNum = Number(rawDist);
-                if (!isNaN(dNum)) {
-                  if (data.distance_cm !== undefined || data.dist_cm !== undefined || data.cm !== undefined || dNum > 15) {
-                    parsedDistCm = Math.round(dNum);
-                    parsedDistM = Number((dNum / 100).toFixed(2));
-                  } else {
-                    parsedDistM = Number(dNum.toFixed(2));
-                    parsedDistCm = Math.round(dNum * 100);
-                  }
-                }
-              }
-            }
-            // Pattern 2: Key-value / text regex
-            else {
-              // Check distance keywords: Distance: 1.25m or Dist: 125cm or Range: 1.3
-              const distMatch = trimmed.match(/(?:dist(?:ance)?|range|d)[\s:=]+([0-9.]+)\s*(cm|m(?:eter)?s?)?/i) ||
-                                trimmed.match(/([0-9.]+)\s*(cm|m(?:eter)?s?)\b/i);
-              if (distMatch) {
-                const num = parseFloat(distMatch[1]);
-                const unit = (distMatch[2] || '').toLowerCase();
-                if (!isNaN(num)) {
-                  if (unit.startsWith('m') && !unit.startsWith('cm')) {
-                    parsedDistM = Number(num.toFixed(2));
-                    parsedDistCm = Math.round(num * 100);
-                  } else if (unit.startsWith('cm') || num > 15) {
-                    parsedDistCm = Math.round(num);
-                    parsedDistM = Number((num / 100).toFixed(2));
-                  } else {
-                    parsedDistM = Number(num.toFixed(2));
-                    parsedDistCm = Math.round(num * 100);
-                  }
-                }
-              }
-
-              // Check MQ-3 keywords: PPM: 45.2 vs MQ3: 450 / A0: 420
-              const ppmMatch = trimmed.match(/(?:ppm)[\s:=]+([0-9.]+)/i);
-              const mq3Match = trimmed.match(/(?:mq-?3|a0|gas)[\s:=]+([0-9.]+)/i);
-
-              if (ppmMatch) {
-                const val = parseFloat(ppmMatch[1]);
-                if (!isNaN(val)) {
-                  parsedMq3 = Number(val.toFixed(1));
-                  raw3 = Math.round((val / 85) * 1023);
-                }
-              } else if (mq3Match) {
-                const val = parseFloat(mq3Match[1]);
-                if (!isNaN(val)) {
-                  if (val > 85) {
-                    raw3 = Math.round(val);
-                    parsedMq3 = Number(((val / 1023) * 85).toFixed(1));
-                  } else {
-                    parsedMq3 = Number(val.toFixed(1));
-                    raw3 = Math.round((val / 85) * 1023);
-                  }
-                }
-              } else if (trimmed.includes(',')) {
-                // Comma-separated: "450, 125" (MQ3 raw ADC, distance cm)
-                const parts = trimmed.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-                if (parts.length >= 2) {
-                  const v1 = parts[0];
-                  const v2 = parts[1];
-                  if (v1 > 85) {
-                    raw3 = Math.round(v1);
-                    parsedMq3 = Number(((v1 / 1023) * 85).toFixed(1));
-                  } else {
-                    parsedMq3 = Number(v1.toFixed(1));
-                    raw3 = Math.round((v1 / 85) * 1023);
-                  }
-                  if (v2 > 15) {
-                    parsedDistCm = Math.round(v2);
-                    parsedDistM = Number((v2 / 100).toFixed(2));
-                  } else {
-                    parsedDistM = Number(v2.toFixed(2));
-                    parsedDistCm = Math.round(v2 * 100);
-                  }
-                }
+                handleIncomingSensorData(ppm3, ppm135, trimmed, raw3, raw135, distM, distCm);
               } else if (!isNaN(Number(trimmed))) {
-                // Single bare number
-                const val = Number(trimmed);
-                if (val > 100) {
-                  raw3 = val;
-                  parsedMq3 = Number(((val / 1023) * 85).toFixed(1));
-                } else {
-                  parsedMq3 = val;
-                  raw3 = Math.round((val / 85) * 1023);
-                }
+                const raw = Number(trimmed);
+                const ppm = (raw / 1023.0) * 85.0;
+                handleIncomingSensorData(ppm, 14.0, `RAW ANALOG: ${raw}`, raw, 180);
               }
+            } catch {
+              console.warn('[Arduino Serial] Frame parse skipped:', trimmed);
             }
-
-            // If distance was found, update rangefinder immediately
-            if (parsedDistM !== null) {
-              updateDistance(parsedDistM, parsedDistCm ?? undefined);
-            }
-
-            // If MQ-3 was found, process narcotics packet
-            if (parsedMq3 !== null) {
-              const finalMq3 = Math.max(0, Math.min(100, parsedMq3));
-              const finalMq135 = parsedMq135 !== null ? Math.max(0, Math.min(100, parsedMq135)) : Number((finalMq3 * 0.7).toFixed(1));
-              handleIncomingSensorData(finalMq3, finalMq135, 'ARDUINO_UNO', raw3, raw135, parsedDistM, parsedDistCm);
-            }
-          } catch {}
+          }
         }
       }
-    }
-  } finally {
-    try {
-      reader.releaseLock();
-    } catch {}
-    serialReaderRef.current = null;
-  }
-} catch (err: any) {
-      if (err.name === 'NotFoundError') {
-        // User closed the port picker without selecting
-      } else if (err.name === 'NetworkError' || err.message?.includes('Failed to open') || err.message?.includes('access')) {
-        setSerialError('COM Port is BUSY or LOCKED! Please close the Arduino IDE "Serial Monitor" window, then click Connect.');
-      } else {
-        setSerialError(`Serial Connection Error: ${err.message}`);
-      }
+    } catch (err: any) {
+      console.warn('[Arduino Serial] Connection cancelled or error:', err.message);
+      setSerialError(`Serial Connection Error: ${err.message || 'Cancelled'}`);
       setIsSerialConnected(false);
     }
   };
 
-  // Auto-connect to previously authorized Arduino Uno port on mount or when USB is plugged in
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('serial' in navigator)) return;
-    let isCancelled = false;
-
-    // Check for previously paired Arduino port
-    (navigator as any).serial
-      .getPorts()
-      .then((ports: any[]) => {
-        if (!isCancelled && ports && ports.length > 0 && !serialPortRef.current) {
-          console.log('[IR VIKRANT] Auto-connecting to authorized Arduino Uno USB port...');
-          connectArduinoSerial(ports[0]);
-        }
-      })
-      .catch(() => {});
-
-    // Listen for USB connection events
-    const handleConnect = (e: any) => {
-      console.log('[IR VIKRANT] USB device plugged in:', e);
-      const port = e?.port || (e?.target && typeof e.target.open === 'function' ? e.target : null);
-      if (port && typeof port.open === 'function' && !serialPortRef.current) {
-        connectArduinoSerial(port);
+  const disconnectArduinoSerial = async () => {
+    try {
+      if (serialReaderRef.current) {
+        await serialReaderRef.current.cancel();
+        serialReaderRef.current = null;
       }
-    };
-
-    const handleDisconnect = () => {
-      console.log('[IR VIKRANT] USB device disconnected');
-      disconnectArduinoSerial();
-    };
-
-    (navigator as any).serial.addEventListener('connect', handleConnect);
-    (navigator as any).serial.addEventListener('disconnect', handleDisconnect);
-
-    return () => {
-      isCancelled = true;
-      if ('serial' in navigator) {
-        (navigator as any).serial.removeEventListener('connect', handleConnect);
-        (navigator as any).serial.removeEventListener('disconnect', handleDisconnect);
+      if (serialPortRef.current) {
+        await serialPortRef.current.close();
+        serialPortRef.current = null;
       }
-    };
-  }, []);
-
-  // Clear Narcotics Detection Logs from Supabase and local state
-  const handleClearLogs = async () => {
-    if (!confirm('Clear all narcotics spike records from the database? This frees database storage and cannot be undone.')) return;
-    setIsClearingLogs(true);
-    await clearDetectionEvents({ category: 'narcotics' });
-    setCaptures([]);
-    setIsClearingLogs(false);
+    } catch {}
+    setIsSerialConnected(false);
   };
 
-  // Listen to cross-page log clearing events
-  useEffect(() => {
-    const handleLogsCleared = (e: any) => {
-      const cat = e.detail?.category;
-      if (cat === 'narcotics' || cat === 'all') {
-        setCaptures([]);
-      }
-    };
-    window.addEventListener('vikrant:logs_cleared', handleLogsCleared);
-    return () => window.removeEventListener('vikrant:logs_cleared', handleLogsCleared);
-  }, []);
-
-  // Process incoming sensor packet (hardware or simulation)
-  const handleIncomingSensorData = (
-    mq3: number,
-    mq135: number,
-    source: string,
-    raw3?: number,
-    raw135?: number,
-    distM?: number | null,
-    distCm?: number | null
-  ) => {
-    const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    // Apply user clean air baseline calibration trim
-    const netMq3 = Math.max(0, Number((mq3 - baselineOffset).toFixed(1)));
-    const composite = Number((0.6 * netMq3 + 0.4 * mq135).toFixed(1));
-
-    setMq3Ppm(netMq3);
-    setMq135Ppm(mq135);
-    setCompositeIndex(composite);
-    if (raw3) setMq3Raw(raw3);
-    if (raw135) setMq135Raw(raw135);
-
-    if (distM !== undefined && distM !== null) {
-      updateDistance(distM, distCm ?? undefined);
-    }
-
-    const currentDist = distM !== undefined && distM !== null ? distM : distanceMRef.current;
-
-    const newPoint = {
-      time: timeLabel,
-      mq3: netMq3,
-      mq135,
-      composite,
-      distance: currentDist,
-      threshold,
-      source,
-    };
-
-    setReadings(prev => [...prev.slice(-30), newPoint]);
-
-    // Check spike condition
-    if (composite >= threshold || netMq3 >= threshold || mq135 >= threshold) {
-      const trigger = netMq3 >= threshold ? 'MQ-3 Alcohol/Vapor' : mq135 >= threshold ? 'MQ-135 Precursors' : 'Composite e-Nose';
-      triggerAutoCapture(Math.max(netMq3, mq135, composite), trigger);
-    }
-  };
-
-  // Mock Data Generator: Runs only when isUsingMockData is true
+  // Synthetic Mock Telemetry Loop
   useEffect(() => {
     if (!isUsingMockData || isSerialConnected) return;
 
-    // Seed initial 15 points
-    const now = Date.now();
-    const initPoints = [];
-    for (let i = 14; i >= 0; i--) {
-      const t = new Date(now - i * 4000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const base3 = Number((18 + Math.sin(i * 0.4) * 4 + (Math.random() * 2)).toFixed(1));
-      const base135 = Number((14 + Math.cos(i * 0.3) * 3 + (Math.random() * 1.5)).toFixed(1));
-      initPoints.push({
-        time: t,
-        mq3: base3,
-        mq135: base135,
-        composite: Number((0.6 * base3 + 0.4 * base135).toFixed(1)),
-        distance: 1.25,
-        threshold: 40.0,
-        source: 'SIMULATOR',
-      });
-    }
-    setReadings(initPoints);
-
     const interval = setInterval(() => {
-      const rand = Math.random();
-      const willSpike = rand > 0.88; // 12% chance of natural spike during patrol
-      const mq3 = willSpike ? Number((48 + Math.random() * 28).toFixed(1)) : Number((19 + Math.sin(Date.now() / 6000) * 5 + (Math.random() * 3)).toFixed(1));
-      const mq135 = willSpike ? Number((42 + Math.random() * 22).toFixed(1)) : Number((15 + Math.cos(Date.now() / 7000) * 4 + (Math.random() * 2)).toFixed(1));
+      const base3 = 18.0 + Math.sin(Date.now() / 2500) * 4.5;
+      const noise3 = (Math.random() - 0.5) * 2.0;
+      const val3 = Number((base3 + noise3).toFixed(1));
 
-      const raw3 = Math.round((mq3 / 80) * 1023);
-      const raw135 = Math.round((mq135 / 60) * 1023);
+      const base135 = 14.0 + Math.cos(Date.now() / 3200) * 3.0;
+      const val135 = Number((base135 + (Math.random() - 0.5) * 1.5).toFixed(1));
 
-      const mockDist = Number((1.25 + Math.sin(Date.now() / 8000) * 0.6 + (Math.random() * 0.15)).toFixed(2));
-      updateDistance(mockDist);
+      const mockAdc3 = Math.round((val3 / 85.0) * 1023);
+      const mockAdc135 = Math.round((val135 / 65.0) * 1023);
 
-      handleIncomingSensorData(mq3, mq135, 'SIMULATOR', raw3, raw135, mockDist);
-    }, 3500);
+      const mockDistM = Number((1.25 + Math.sin(Date.now() / 4000) * 0.45).toFixed(2));
+      const mockDistCm = Math.round(mockDistM * 100);
+
+      handleIncomingSensorData(val3, val135, `{"ppm":${val3},"mq3_raw":${mockAdc3},"distance_m":${mockDistM},"distance_cm":${mockDistCm}}`, mockAdc3, mockAdc135, mockDistM, mockDistCm);
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [isUsingMockData, isSerialConnected, threshold, triggerAutoCapture]);
+  }, [isUsingMockData, isSerialConnected, handleIncomingSensorData]);
 
-  // Force Test Spike manually
   const handleForceTestSpike = () => {
-    const spikeMq3 = Number((68 + Math.random() * 15).toFixed(1));
-    const spikeMq135 = Number((54 + Math.random() * 12).toFixed(1));
-    handleIncomingSensorData(spikeMq3, spikeMq135, 'FORCED_TEST', 880, 760);
+    const spikeMq3 = 68.5;
+    const spikeMq135 = 45.2;
+    handleIncomingSensorData(spikeMq3, spikeMq135, '{"FORCED_SPIKE_TEST": true}', 820, 680);
   };
 
   const isAlarmActive = compositeIndex >= threshold || mq3Ppm >= threshold;
 
   return (
-    <div className="flex flex-col h-full w-full p-4 gap-4 overflow-y-auto bg-transparent">
-      {/* Hidden video / IP webcam stream for genuine snapshot capture */}
+    <div className="flex flex-col h-full w-full p-5 gap-5 overflow-y-auto bg-transparent font-sans">
+      {/* Hidden camera stream for auto-capture */}
       <video ref={videoRef} className="hidden" playsInline muted />
       {cameraSource === 'ip_webcam' && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -888,7 +577,6 @@ export default function NarcoticsSensorPage() {
           className="hidden"
           onLoad={() => setIpCamConnected(true)}
           onError={() => {
-            console.warn('[Narcotics] IP stream failed, auto-falling back to laptop camera');
             setIpCamConnected(false);
             setCameraSource('device');
           }}
@@ -897,186 +585,113 @@ export default function NarcoticsSensorPage() {
 
       {/* Screen Shutter Flash Overlay */}
       {shutterFlash && (
-        <div className="fixed inset-0 z-50 bg-white/35 pointer-events-none transition-opacity duration-150" />
+        <div className="fixed inset-0 z-50 bg-white/30 pointer-events-none transition-opacity duration-150" />
       )}
 
-      {/* Spike Alert Banner */}
+      {/* Spike Alert Notification */}
       {spikeNotification && (
-        <div className="fixed top-4 right-4 z-50 bg-red-950/90 border border-red-500 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top duration-200">
-          <Camera size={18} className="text-red-400 animate-pulse" />
+        <div className="fixed top-5 right-5 z-50 bg-red-950/90 border border-red-500 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top duration-200 backdrop-blur-md">
+          <AlertTriangle size={18} className="text-red-400 animate-bounce" />
           <span className="font-mono text-xs font-bold">{spikeNotification}</span>
         </div>
       )}
 
-      {/* High-Resolution Capture Inspector Modal */}
+      {/* Frame Inspector Modal */}
       {inspectCapture && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-          <div className="glass-panel p-5 rounded-2xl border border-cyan-400 max-w-2xl w-full flex flex-col gap-4 shadow-2xl relative">
-            <div className="flex justify-between items-center pb-3 border-b border-panel-border">
-              <div className="flex items-center gap-2">
-                <Scan size={18} className="text-cyan-400" />
-                <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-                  SPIKE RECON PASSPORT • NARCOTICS MOS
+          <div className="glass-liquid-panel p-6 max-w-2xl w-full flex flex-col gap-4 shadow-2xl relative border border-[#b8d4f0]/30">
+            <div className="flex justify-between items-center pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2 text-[#b8d4f0]">
+                <FlaskConical size={18} />
+                <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-white">
+                  CHEMICAL DETECTION RECON FRAME
                 </h3>
               </div>
               <button
                 onClick={() => setInspectCapture(null)}
-                className="text-foreground/50 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 text-sm font-mono"
+                className="text-zinc-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 text-xs font-mono"
               >
                 ✕ CLOSE
               </button>
             </div>
 
-            <div className="w-full aspect-video rounded-xl bg-black overflow-hidden relative border border-panel-border">
+            <div className="w-full aspect-video rounded-xl bg-black overflow-hidden relative border border-white/15">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={inspectCapture.photo_url} alt="Spike frame" className="w-full h-full object-cover" />
-              <div className="absolute top-2 left-2 px-2 py-1 rounded bg-red-950/80 font-mono text-xs text-red-300 border border-red-500/50">
-                {inspectCapture.substance_name}
+              <img src={inspectCapture.photo_url} alt="Captured frame" className="w-full h-full object-cover" />
+              <div className="absolute top-3 left-3 px-3 py-1 rounded-lg bg-black/80 font-mono text-xs text-[#b8d4f0] border border-[#b8d4f0]/30 font-bold">
+                {inspectCapture.substance_name || 'Chemical Spike Trigger'}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-              <div className="p-2.5 rounded-xl bg-black/50 border border-panel-border flex flex-col">
-                <span className="text-[10px] text-foreground/40 uppercase">GPS STAMP</span>
-                <span className="text-foreground/90 font-bold">
-                  {(inspectCapture.latitude || currentCoords[0]).toFixed(6)}° N, {(inspectCapture.longitude || currentCoords[1]).toFixed(6)}° E
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col">
+                <span className="text-[10px] text-zinc-400 uppercase">GPS Location</span>
+                <span className="text-white font-bold">
+                  {(inspectCapture.latitude || 22.59548).toFixed(5)}° N, {(inspectCapture.longitude || 88.45420).toFixed(5)}° E
                 </span>
-                <span className="text-[10px] text-foreground/60">{inspectCapture.station || stationName}</span>
+                <span className="text-[10px] text-zinc-400">{inspectCapture.station || stationName}</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-black/50 border border-panel-border flex flex-col">
-                <span className="text-[10px] text-foreground/40 uppercase">RECORDED TIMESTAMP</span>
-                <span className="text-foreground/90 font-bold">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col">
+                <span className="text-[10px] text-zinc-400 uppercase">Timestamp</span>
+                <span className="text-white font-bold">
                   {isMounted ? new Date(inspectCapture.timestamp).toLocaleString() : ''}
                 </span>
-                <span className="text-[10px] text-emerald-400 font-bold">
-                  STATUS: CONFIRMED SPIKE LOGGED
+                <span className="text-[10px] text-[#b8d4f0] font-bold">
+                  CONFIDENCE: {Math.round((inspectCapture.confidence_score || 0.88) * 100)}%
                 </span>
               </div>
-
-              {inspectCapture.substance_name?.includes('Target at') && (
-                <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/40 flex items-center justify-between col-span-2">
-                  <div className="flex items-center gap-2 text-cyan-300">
-                    <Radar size={16} />
-                    <span className="font-bold">ULTRASONIC RANGEFINDER TELEMETRY:</span>
-                  </div>
-                  <span className="text-sm font-bold text-white bg-black/60 px-2.5 py-0.5 rounded border border-cyan-500/30">
-                    {inspectCapture.substance_name.split('Target at')[1]?.trim() || 'Detected Range'}
-                  </span>
-                </div>
-              )}
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-panel-border">
-              <Link
-                href="/dashboard/captures"
-                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5"
-              >
-                <span>View in All Captures Log</span>
-                <ExternalLink size={12} />
-              </Link>
-
+            <div className="flex justify-end pt-2 border-t border-white/10">
               <button
                 onClick={() => setInspectCapture(null)}
-                className="px-4 py-2 rounded-xl liquid-btn-primary text-xs font-mono font-bold"
+                className="px-5 py-2 rounded-xl liquid-btn-primary text-xs font-mono font-bold"
               >
-                ACKNOWLEDGE
+                CLOSE INSPECTOR
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Arduino C++ Sketch Modal */}
+      {/* Arduino Sketch Code Modal */}
       {showArduinoModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-          <div className="glass-panel p-6 rounded-2xl border border-cyan-400 max-w-3xl w-full flex flex-col gap-4 shadow-2xl relative max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center pb-3 border-b border-panel-border">
-              <div className="flex items-center gap-2 text-cyan-400">
-                <Code size={20} />
+          <div className="glass-liquid-panel p-6 max-w-3xl w-full flex flex-col gap-4 shadow-2xl relative border border-[#b8d4f0]/30 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2 text-[#b8d4f0]">
+                <Code size={18} />
                 <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-                  ARDUINO UNO C++ SKETCH (MQ-3 + ULTRASONIC RANGEFINDER)
+                  ARDUINO HARDWARE SKETCH & SERIAL GUIDE
                 </h3>
               </div>
-              <button
-                onClick={() => setShowArduinoModal(false)}
-                className="text-foreground/50 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 text-sm font-mono"
-              >
-                ✕ CLOSE
-              </button>
+              <button onClick={() => setShowArduinoModal(false)} className="text-zinc-400 hover:text-white text-sm font-mono">✕</button>
             </div>
 
-            {/* Vercel Deployment & Browser Serial Note */}
-            <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono text-cyan-300">
-              💡 <strong>Works on Vercel & Localhost:</strong> When deployed on Vercel (HTTPS), Web Serial connects directly to the USB cable on your PC. Remember to <strong>close the Arduino IDE Serial Monitor</strong> before connecting in the browser.
-            </div>
-
-            {/* Sketch Setup Selector Tabs */}
-            <div className="flex items-center gap-2 border-b border-panel-border pb-2 text-xs font-mono flex-wrap">
+            <div className="flex gap-2 font-mono text-xs border-b border-white/10 pb-2">
               <button
                 onClick={() => setSketchTab('single_mq3')}
-                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  sketchTab === 'single_mq3'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'text-foreground/50 hover:text-white'
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  sketchTab === 'single_mq3' ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                1. MQ-3 + Ultrasonic HC-SR04 (Your Setup)
-              </button>
-              <button
-                onClick={() => setSketchTab('raw_analog')}
-                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  sketchTab === 'raw_analog'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'text-foreground/50 hover:text-white'
-                }`}
-              >
-                2. Minimal Raw Analog (4 Lines)
+                MQ-3 + ULTRASONIC (RECOMMENDED)
               </button>
               <button
                 onClick={() => setSketchTab('dual')}
-                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  sketchTab === 'dual'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'text-foreground/50 hover:text-white'
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  sketchTab === 'dual' ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                3. Dual MQ-3 + MQ-135 Array
-              </button>
-              <button
-                onClick={() => setSketchTab('python_bridge')}
-                className={`px-3 py-1.5 rounded-lg transition-all font-bold ${
-                  sketchTab === 'python_bridge'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                    : 'text-foreground/50 hover:text-white'
-                }`}
-              >
-                4. Python Bridge (Vercel Background)
+                DUAL MQ-3 & MQ-135
               </button>
             </div>
 
-            {sketchTab === 'single_mq3' && (
-              <>
-                <p className="text-xs text-foreground/70 font-mono">
-                  Hardware Wiring: MQ-3: <strong>VCC → 5V</strong>, <strong>GND → GND</strong>, <strong>AOUT → A0</strong> | Ultrasonic HC-SR04: <strong>VCC → 5V</strong>, <strong>GND → GND</strong>, <strong>TRIG → Pin 9</strong>, <strong>ECHO → Pin 10</strong>.
-                </p>
-                <pre className="p-4 rounded-xl bg-black/80 border border-panel-border text-[11px] font-mono text-emerald-400 overflow-x-auto select-all">
-{`// ==============================================================
-// IR VIKRANT - Arduino Uno MQ-3 & Ultrasonic (HC-SR04) Telemetry
-// ==============================================================
-// Hardware Wiring:
-//   MQ-3 Sensor:
-//     VCC  -> Arduino 5V
-//     GND  -> Arduino GND
-//     AOUT -> Arduino Analog Pin A0
-//
-//   Ultrasonic Sensor (HC-SR04):
-//     VCC  -> Arduino 5V
-//     GND  -> Arduino GND
-//     TRIG -> Arduino Digital Pin 9
-//     ECHO -> Arduino Digital Pin 10
-// ==============================================================
-
+            <div className="p-4 rounded-xl bg-black/80 border border-white/10 font-mono text-xs text-zinc-300">
+              <pre className="overflow-x-auto text-[11px] text-[#b8d4f0] leading-relaxed select-all">
+                {sketchTab === 'single_mq3'
+                  ? `// IR VIKRANT - High-Accuracy MQ-3 & Ultrasonic Rangefinder
 const int PIN_MQ3 = A0;
 const int PIN_TRIG = 9;
 const int PIN_ECHO = 10;
@@ -1086,166 +701,48 @@ void setup() {
   pinMode(PIN_MQ3, INPUT);
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
-  delay(1000); // Sensor power-on settle
-}
-
-// 3-sample median filter eliminates ultrasonic reflection glitches & jitter
-float readUltrasonicCm() {
-  float samples[3];
-  int count = 0;
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(PIN_TRIG, LOW);
-    delayMicroseconds(2);
-    digitalWrite(PIN_TRIG, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(PIN_TRIG, LOW);
-
-    long duration = pulseIn(PIN_ECHO, HIGH, 25000); // 25ms timeout (~4m)
-    if (duration > 115 && duration < 23320) { // Valid 2cm - 400cm range
-      samples[count++] = (duration * 0.0343) / 2.0;
-    }
-    delay(4);
-  }
-  if (count == 0) return -1.0;
-  // Sort samples to find median
-  for (int i = 0; i < count - 1; i++) {
-    for (int j = i + 1; j < count; j++) {
-      if (samples[i] > samples[j]) {
-        float t = samples[i]; samples[i] = samples[j]; samples[j] = t;
-      }
-    }
-  }
-  return samples[count / 2];
-}
-
-void loop() {
-  // 1. Read MQ-3 Gas Sensor (4-sample oversampling cancels 5V ADC ripple)
-  int raw_sum = 0;
-  for (int i = 0; i < 4; i++) {
-    raw_sum += analogRead(PIN_MQ3);
-    delay(2);
-  }
-  int raw_mq3 = raw_sum / 4;
-  float ppm = (raw_mq3 / 1023.0) * 85.0; // Calibrated 0-85 PPM
-
-  // 2. Read Ultrasonic Distance with Anti-Jitter Median Filtering
-  float dist_cm = readUltrasonicCm();
-  float dist_m = (dist_cm > 0) ? (dist_cm / 100.0) : -1.0;
-
-  // 3. Emit clean JSON telemetry over USB Serial
-  Serial.print("{\\"ppm\\":");
-  Serial.print(ppm, 1);
-  Serial.print(",\\"mq3_raw\\":");
-  Serial.print(raw_mq3);
-  if (dist_cm > 0) {
-    Serial.print(",\\"distance_m\\":");
-    Serial.print(dist_m, 2);
-    Serial.print(",\\"distance_cm\\":");
-    Serial.print(dist_cm, 1);
-  }
-  Serial.println("}");
-
-  delay(250); // 4 Hz update rate
-}`}
-                </pre>
-              </>
-            )}
-
-            {sketchTab === 'raw_analog' && (
-              <>
-                <p className="text-xs text-foreground/70 font-mono">
-                  Ultra-simple 4-line sketch. Connect MQ-3 analog pin to <strong>A0</strong>.
-                </p>
-                <pre className="p-4 rounded-xl bg-black/80 border border-panel-border text-[11px] font-mono text-emerald-400 overflow-x-auto select-all">
-{`// IR VIKRANT - Bare Minimum MQ-3 Analog Sketch
-// Works with zero libraries! Connect MQ-3 AOUT to A0
-
-void setup() {
-  Serial.begin(9600);
-}
-
-void loop() {
-  Serial.println(analogRead(A0));
-  delay(500);
-}`}
-                </pre>
-              </>
-            )}
-
-            {sketchTab === 'dual' && (
-              <>
-                <p className="text-xs text-foreground/70 font-mono">
-                  Dual Array: Connect MQ-3 to <strong>A0</strong> and MQ-135 to <strong>A1</strong>.
-                </p>
-                <pre className="p-4 rounded-xl bg-black/80 border border-panel-border text-[11px] font-mono text-emerald-400 overflow-x-auto select-all">
-{`// IR VIKRANT - Dual MQ-3 + MQ-135 Telemetry Array
-const int PIN_MQ3 = A0;
-const int PIN_MQ135 = A1;
-
-void setup() {
-  Serial.begin(9600);
-  pinMode(PIN_MQ3, INPUT);
-  pinMode(PIN_MQ135, INPUT);
   delay(1000);
 }
 
+float readUltrasonicCm() {
+  digitalWrite(PIN_TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(PIN_TRIG, LOW);
+  long d = pulseIn(PIN_ECHO, HIGH, 25000);
+  if (d > 115 && d < 23320) return (d * 0.0343) / 2.0;
+  return -1.0;
+}
+
 void loop() {
-  int raw3 = analogRead(PIN_MQ3);
-  int raw135 = analogRead(PIN_MQ135);
+  int raw_mq3 = analogRead(PIN_MQ3);
+  float ppm = (raw_mq3 / 1023.0) * 85.0;
+  float dist_cm = readUltrasonicCm();
+  float dist_m = (dist_cm > 0) ? (dist_cm / 100.0) : -1.0;
 
-  float ppm3 = (raw3 / 1023.0) * 85.0;
-  float ppm135 = (raw135 / 1023.0) * 65.0;
-
-  Serial.print("{\\"mq3\\":");
-  Serial.print(ppm3, 1);
-  Serial.print(",\\"mq135\\":");
-  Serial.print(ppm135, 1);
+  Serial.print("{\\"ppm\\":"); Serial.print(ppm, 1);
+  Serial.print(",\\"mq3_raw\\":"); Serial.print(raw_mq3);
+  if (dist_cm > 0) {
+    Serial.print(",\\"distance_m\\":"); Serial.print(dist_m, 2);
+    Serial.print(",\\"distance_cm\\":"); Serial.print(dist_cm, 1);
+  }
   Serial.println("}");
-
-  delay(500);
+  delay(300);
+}`
+                  : `const int PIN_MQ3 = A0; const int PIN_MQ135 = A1;
+void setup() { Serial.begin(9600); }
+void loop() {
+  float ppm3 = (analogRead(PIN_MQ3) / 1023.0) * 85.0;
+  float ppm135 = (analogRead(PIN_MQ135) / 1023.0) * 65.0;
+  Serial.print("{\\"mq3\\":"); Serial.print(ppm3, 1);
+  Serial.print(",\\"mq135\\":"); Serial.print(ppm135, 1);
+  Serial.println("}");
+  delay(400);
 }`}
-                </pre>
-              </>
-            )}
+              </pre>
+            </div>
 
-            {sketchTab === 'python_bridge' && (
-              <>
-                <p className="text-xs text-foreground/70 font-mono">
-                  Prefer running a background daemon or using Firefox/Safari? Run our pre-built Python bridge script to forward Arduino COM port telemetry straight to your Vercel deployment:
-                </p>
-                <div className="p-4 rounded-xl bg-black/80 border border-panel-border space-y-3 text-xs font-mono">
-                  <div className="text-foreground/60 text-[11px]">Step 1: Install Python prerequisites</div>
-                  <pre className="text-emerald-400 select-all bg-black/60 p-2.5 rounded border border-white/5">pip install pyserial requests</pre>
-                  <div className="text-foreground/60 text-[11px]">Step 2: Run bridge with your Vercel URL (auto-detects Arduino COM port)</div>
-                  <pre className="text-cyan-300 select-all bg-black/60 p-2.5 rounded border border-white/5">python scripts/arduino_bridge.py --url https://your-project.vercel.app</pre>
-                  <div className="text-[10px] text-foreground/40">
-                    💡 The bridge auto-detects COM3/COM4, parses MQ-3 ADC readings, and calls <code className="text-white">/api/sensors/ingest</code> on Vercel.
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-end gap-3 pt-2 border-t border-panel-border">
-              <button
-                onClick={() => {
-                  const code = sketchTab === 'single_mq3'
-                    ? `// IR VIKRANT - High-Accuracy MQ-3 & Ultrasonic Rangefinder\nconst int PIN_MQ3 = A0;\nconst int PIN_TRIG = 9;\nconst int PIN_ECHO = 10;\n\nvoid setup() {\n  Serial.begin(9600);\n  pinMode(PIN_MQ3, INPUT);\n  pinMode(PIN_TRIG, OUTPUT);\n  pinMode(PIN_ECHO, INPUT);\n  delay(1000);\n}\n\nfloat readUltrasonicCm() {\n  float samples[3]; int count = 0;\n  for (int i = 0; i < 3; i++) {\n    digitalWrite(PIN_TRIG, LOW); delayMicroseconds(2);\n    digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);\n    digitalWrite(PIN_TRIG, LOW);\n    long d = pulseIn(PIN_ECHO, HIGH, 25000);\n    if (d > 115 && d < 23320) samples[count++] = (d * 0.0343) / 2.0;\n    delay(4);\n  }\n  if (count == 0) return -1.0;\n  for (int i = 0; i < count - 1; i++)\n    for (int j = i + 1; j < count; j++)\n      if (samples[i] > samples[j]) { float t = samples[i]; samples[i] = samples[j]; samples[j] = t; }\n  return samples[count / 2];\n}\n\nvoid loop() {\n  int raw_sum = 0;\n  for (int i = 0; i < 4; i++) { raw_sum += analogRead(PIN_MQ3); delay(2); }\n  int raw_mq3 = raw_sum / 4;\n  float ppm = (raw_mq3 / 1023.0) * 85.0;\n  float dist_cm = readUltrasonicCm();\n  float dist_m = (dist_cm > 0) ? (dist_cm / 100.0) : -1.0;\n  Serial.print("{\\"ppm\\":"); Serial.print(ppm, 1);\n  Serial.print(",\\"mq3_raw\\":"); Serial.print(raw_mq3);\n  if (dist_cm > 0) { Serial.print(",\\"distance_m\\":"); Serial.print(dist_m, 2); Serial.print(",\\"distance_cm\\":"); Serial.print(dist_cm, 1); }\n  Serial.println("}");\n  delay(250);\n}`
-                    : sketchTab === 'raw_analog'
-                    ? `void setup() { Serial.begin(9600); }\nvoid loop() { Serial.println(analogRead(A0)); delay(500); }`
-                    : sketchTab === 'dual'
-                    ? `const int PIN_MQ3 = A0; const int PIN_MQ135 = A1;\nvoid setup() { Serial.begin(9600); }\nvoid loop() { float ppm3 = (analogRead(PIN_MQ3) / 1023.0) * 85.0; float ppm135 = (analogRead(PIN_MQ135) / 1023.0) * 65.0; Serial.print("{\\"mq3\\":"); Serial.print(ppm3, 1); Serial.print(",\\"mq135\\":"); Serial.print(ppm135, 1); Serial.println("}"); delay(500); }`
-                    : `python scripts/arduino_bridge.py --url https://your-project.vercel.app`;
-                  navigator.clipboard.writeText(code);
-                  alert('Copied to clipboard!');
-                }}
-                className="px-4 py-2 rounded-xl liquid-btn text-xs font-mono font-bold"
-              >
-                {sketchTab === 'python_bridge' ? 'COPY COMMAND' : 'COPY ACTIVE SKETCH'}
-              </button>
-              <button
-                onClick={() => setShowArduinoModal(false)}
-                className="px-4 py-2 rounded-xl liquid-btn-primary text-xs font-mono font-bold"
-              >
+            <div className="flex justify-end pt-2 border-t border-white/10">
+              <button onClick={() => setShowArduinoModal(false)} className="px-5 py-2 rounded-xl liquid-btn-primary text-xs font-mono font-bold">
                 DONE
               </button>
             </div>
@@ -1253,127 +750,121 @@ void loop() {
         </div>
       )}
 
-      {/* Top Header & Hardware Connectivity Rail */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-cyan-500/20">
-        <div className="flex items-center gap-3.5">
-          <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-            <Pill size={24} />
+      {/* Top Header Rail */}
+      <div className="glass-liquid p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-white/10">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-[#b8d4f0]/10 border border-[#b8d4f0]/30 text-[#b8d4f0] shadow-[0_0_15px_rgba(184,212,240,0.15)]">
+            <FlaskConical size={26} />
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <h1 className="font-mono text-base font-bold text-white tracking-wider uppercase">
-                NARCOTICS & CHEMICAL MOS SENSOR ARRAY
+                NARCOTICS MONITORING & CHEMICAL SENSOR TELEMETRY
               </h1>
               <span
-                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase flex items-center gap-1.5 border ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 border ${
                   isSerialConnected
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : 'bg-[#b8d4f0]/10 text-[#b8d4f0] border-[#b8d4f0]/30'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${isSerialConnected ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400'}`} />
-                {isSerialConnected ? 'ARDUINO UNO LIVE (HARDWARE CONNECTED)' : 'MOCK SIMULATOR STREAM (STANDBY FOR ARDUINO)'}
+                <span className={`w-2 h-2 rounded-full ${isSerialConnected ? 'bg-emerald-400 animate-pulse' : 'bg-[#b8d4f0]'}`} />
+                {isSerialConnected ? 'ARDUINO USB CONNECTED' : 'SYNTHETIC TELEMETRY STREAM'}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs font-mono text-foreground/60 mt-0.5">
-              <MapPin size={12} className="text-cyan-400" />
+            <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 mt-1">
+              <MapPin size={13} className="text-[#b8d4f0]" />
               <span>{stationName}</span>
-              <span className="text-foreground/30">•</span>
-              <span>e-Nose Multi-Gas MOS Array (MQ-3 / MQ-135)</span>
+              <span className="text-zinc-600">•</span>
+              <span>e-Nose Multi-Gas Array (MQ-3 Alcohol / MQ-135 Precursors)</span>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Camera Source Indicator */}
+        {/* Action Controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Camera Source Badge */}
           <Link
             href="/dashboard/settings"
-            className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all border ${
+            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all border ${
               cameraSource === 'ip_webcam'
                 ? ipCamConnected
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                : 'bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30'
+                  ? 'bg-[#b8d4f0]/10 text-[#b8d4f0] border-[#b8d4f0]/30 hover:bg-[#b8d4f0]/20'
+                  : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                : 'bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
             }`}
-            title="Configured camera for spike auto-capture. Click to change in Settings."
           >
-            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-cyan-400' : ''} />
+            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-[#b8d4f0]' : ''} />
             <span>
               {cameraSource === 'ip_webcam'
-                ? ipCamConnected
-                  ? 'PHONE CAM (LIVE)'
-                  : 'PHONE CAM (CONNECTING)'
+                ? ipCamConnected ? 'PHONE CAM LIVE' : 'PHONE CAM CONNECTING'
                 : 'LAPTOP WEBCAM'}
             </span>
           </Link>
 
-          {/* Connect / Disconnect Arduino Button */}
+          {/* Connect USB Serial */}
           <button
             onClick={() => (isSerialConnected ? disconnectArduinoSerial() : connectArduinoSerial())}
-            className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all liquid-btn ${
+            className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all liquid-btn ${
               isSerialConnected
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/40'
-                : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-red-500/20 hover:text-red-300'
+                : 'bg-[#b8d4f0]/15 text-white border-[#b8d4f0]/30 hover:bg-[#b8d4f0]/25'
             }`}
           >
             <Usb size={14} />
-            <span>{isSerialConnected ? 'DISCONNECT ARDUINO' : 'CONNECT ARDUINO (USB)'}</span>
+            <span>{isSerialConnected ? 'DISCONNECT USB' : 'CONNECT HARDWARE (USB)'}</span>
           </button>
 
-          {/* Flash Code Modal Button */}
+          {/* Arduino Code */}
           <button
             onClick={() => setShowArduinoModal(true)}
-            className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 glass-panel text-foreground/70 hover:text-white border border-panel-border"
+            className="px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 glass-liquid text-zinc-300 hover:text-white border border-white/10"
           >
             <Code size={14} />
-            <span>ARDUINO SKETCH</span>
+            <span>SKETCH CODE</span>
           </button>
 
-          {/* Calibrate Clean Air Baseline */}
+          {/* Calibrate Baseline */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleCalibrateBaseline}
-              title={baselineOffset > 0 ? `Clean Air Offset: -${baselineOffset} PPM. Click while in fresh air to recalibrate.` : 'Click while sensor is in normal clean air to zero-calibrate baseline at 15.0 PPM.'}
-              className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all border ${
+              className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all border ${
                 baselineOffset > 0
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
-                  : 'glass-panel text-foreground/70 hover:text-white border-panel-border'
+                  ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] border-[#b8d4f0]/40'
+                  : 'glass-liquid text-zinc-300 hover:text-white border-white/10'
               }`}
             >
-              <Sliders size={14} className={baselineOffset > 0 ? 'text-cyan-400' : ''} />
+              <Sliders size={14} className={baselineOffset > 0 ? 'text-[#b8d4f0]' : ''} />
               <span>{baselineOffset > 0 ? `TRIM: -${baselineOffset} PPM` : 'CALIBRATE ZERO'}</span>
             </button>
             {baselineOffset > 0 && (
               <button
                 onClick={handleResetBaseline}
-                title="Reset zero calibration back to raw factory curve"
-                className="p-1.5 rounded-xl glass-panel text-foreground/50 hover:text-white border border-panel-border"
+                className="p-2 rounded-xl glass-liquid text-zinc-400 hover:text-white border border-white/10"
+                title="Reset zero trim calibration"
               >
                 <RotateCcw size={13} />
               </button>
             )}
           </div>
 
-          {/* Force Test Spike Button */}
+          {/* Test Spike Trigger */}
           <button
             onClick={handleForceTestSpike}
-            className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all"
+            className="px-4 py-2 rounded-xl font-mono text-xs font-bold flex items-center gap-2 bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all shadow-[0_0_15px_rgba(239,68,68,0.15)]"
           >
             <Zap size={14} />
-            <span>FORCE TEST SPIKE</span>
+            <span>TEST SPIKE TRIGGER</span>
           </button>
 
-          {/* Mock Toggle */}
+          {/* Stream Play/Pause */}
           <button
             onClick={() => setIsUsingMockData(v => !v)}
             disabled={isSerialConnected}
-            className={`p-1.5 rounded-xl border text-xs font-mono ${
-              isUsingMockData
-                ? 'bg-white/10 text-white border-white/20'
-                : 'bg-black/40 text-foreground/40 border-panel-border'
+            className={`p-2 rounded-xl border text-xs font-mono transition-all ${
+              isUsingMockData ? 'bg-white/10 text-white border-white/20' : 'bg-black/40 text-zinc-500 border-white/10'
             }`}
-            title="Toggle Synthetic Mock Stream"
+            title="Toggle simulation stream"
           >
             {isUsingMockData ? <Pause size={14} /> : <Play size={14} />}
           </button>
@@ -1381,69 +872,74 @@ void loop() {
       </div>
 
       {serialError && (
-        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-mono text-xs flex items-center gap-2">
-          <AlertTriangle size={15} />
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 font-mono text-xs flex items-center gap-2">
+          <AlertTriangle size={16} />
           <span>{serialError}</span>
         </div>
       )}
 
-      {/* Live Hardware Serial Telemetry Stream Pill */}
+      {/* Hardware Telemetry Stream Pill */}
       {isSerialConnected && (
-        <div className="glass-panel px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-950/20 flex flex-wrap items-center justify-between gap-2 font-mono text-xs animate-in fade-in">
+        <div className="glass-liquid px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
           <div className="flex items-center gap-2 text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-bold">USB SERIAL TELEMETRY RX (ARDUINO UNO):</span>
-            <span className="text-white bg-black/60 px-2 py-0.5 rounded border border-white/10 font-bold text-[10px]">
+            <span className="font-bold">USB SERIAL STREAM ACTIVE (ARDUINO UNO):</span>
+            <span className="text-white bg-black/60 px-2.5 py-0.5 rounded border border-white/10 font-bold text-[10px]">
               {rawSerialPacketsCount} PACKETS RECVD
             </span>
           </div>
           <div className="flex items-center gap-2 text-emerald-300 text-[11px] truncate max-w-lg">
-            <span className="text-foreground/50">RAW PACKET:</span>
+            <span className="text-zinc-400">RAW SERIAL:</span>
             <code className="bg-black/80 px-2.5 py-0.5 rounded border border-emerald-500/30 text-emerald-300 font-bold">
-              {lastRawSerialLine || 'Listening on COM port...'}
+              {lastRawSerialLine || 'Listening...'}
             </code>
           </div>
         </div>
       )}
 
-      {/* KPI Gauges Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 shrink-0">
-        {/* 1. MQ-3 Gauge */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
-            <span>MQ-3 NARCOTICS VAPOR</span>
-            <span className="text-cyan-400">PIN A0</span>
+      {/* Telemetry Dials Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+        {/* 1. MQ-3 Alcohol & Vapor Sensor */}
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
+          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+            <span>MQ-3 ALCOHOL / VAPOR</span>
+            <span className="text-[#b8d4f0] font-bold">PIN A0</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{mq3Ppm}</span>
-            <span className="text-xs font-mono text-cyan-300">ppm</span>
+            <span className="text-3xl font-mono font-bold text-white">{mq3Ppm}</span>
+            <span className="text-xs font-mono text-[#b8d4f0]">PPM</span>
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
-            <span>ADC: {mq3Raw} ({((mq3Raw / 1023) * 5.0).toFixed(2)}V)</span>
-            <span className={isSerialConnected ? 'text-emerald-400 font-bold' : 'text-foreground/30'}>
-              {isSerialConnected ? 'MQ-3 LIVE' : 'SIMULATED'}
-              {baselineOffset > 0 ? ` (-${baselineOffset} TRIM)` : ''}
+          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-gradient-to-r from-[#b8d4f0]/60 to-[#b8d4f0] transition-all duration-300"
+              style={{ width: `${Math.min(100, (mq3Ppm / 80) * 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+            <span>C₂H₅OH • RAW: {mq3Raw}</span>
+            <span className={isSerialConnected ? 'text-emerald-400 font-bold' : 'text-zinc-500'}>
+              {isSerialConnected ? 'HARDWARE' : 'SIMULATED'}
             </span>
           </div>
         </div>
 
-        {/* 2. Target Distance from Robot (Ultrasonic HC-SR04) */}
+        {/* 2. Target Proximity Distance */}
         <div
-          className={`glass-panel p-4 rounded-xl flex flex-col gap-1.5 border transition-all ${
+          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all ${
             distanceStatus === 'contact'
-              ? 'border-red-500 bg-red-950/25 shadow-lg shadow-red-500/10'
+              ? 'border-red-500/60 bg-red-950/20'
               : distanceStatus === 'proximity'
               ? 'border-amber-500/40 bg-amber-500/10'
-              : 'border-cyan-500/30 bg-cyan-950/10'
+              : 'border-white/10 hover:border-[#b8d4f0]/30'
           }`}
         >
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
             <span className="flex items-center gap-1.5">
-              <Radar size={13} className={isUltrasonicActive ? 'text-cyan-400 animate-spin' : 'text-foreground/40'} />
-              <span>TARGET DISTANCE</span>
+              <Radar size={13} className={isUltrasonicActive ? 'text-[#b8d4f0] animate-spin' : 'text-zinc-500'} />
+              <span>PROXIMITY (HC-SR04)</span>
             </span>
             <span
-              className={`font-bold text-[9px] px-1.5 py-0.5 rounded border ${
+              className={`font-bold text-[9px] px-2 py-0.5 rounded-full border ${
                 distanceStatus === 'contact'
                   ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
                   : distanceStatus === 'proximity'
@@ -1451,116 +947,126 @@ void loop() {
                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
               }`}
             >
-              {distanceStatus === 'contact'
-                ? 'CRITICAL (<0.5m)'
-                : distanceStatus === 'proximity'
-                ? 'PROXIMITY (<1.5m)'
-                : 'CLEAR RANGE'}
+              {distanceStatus === 'contact' ? 'CRITICAL' : distanceStatus === 'proximity' ? 'PROXIMITY' : 'CLEAR'}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
             <span
-              className={`text-2xl font-mono font-bold ${
-                distanceStatus === 'contact'
-                  ? 'text-red-400'
-                  : distanceStatus === 'proximity'
-                  ? 'text-amber-300'
-                  : 'text-cyan-300'
+              className={`text-3xl font-mono font-bold ${
+                distanceStatus === 'contact' ? 'text-red-400' : distanceStatus === 'proximity' ? 'text-amber-300' : 'text-[#b8d4f0]'
               }`}
             >
               {distanceM.toFixed(2)}
             </span>
-            <span className="text-xs font-mono text-foreground/50">meters away</span>
+            <span className="text-xs font-mono text-zinc-400">meters</span>
           </div>
-          {/* Dynamic Rangefinder Bar */}
-          <div className="w-full bg-black/50 rounded-full h-1.5 overflow-hidden mt-1 border border-white/5">
+          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
             <div
-              className={`h-full transition-all duration-200 ${
-                distanceStatus === 'contact'
-                  ? 'bg-red-500'
-                  : distanceStatus === 'proximity'
-                  ? 'bg-amber-400'
-                  : 'bg-cyan-400'
+              className={`h-full transition-all duration-300 ${
+                distanceStatus === 'contact' ? 'bg-red-500' : distanceStatus === 'proximity' ? 'bg-amber-400' : 'bg-[#b8d4f0]'
               }`}
               style={{ width: `${Math.max(5, Math.min(100, (distanceM / 4.0) * 100))}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
-            <span>{distanceCm} cm FROM ROBOT</span>
-            <span className={isUltrasonicActive ? 'text-cyan-400 font-bold' : 'text-foreground/30'}>
-              {isUltrasonicActive ? 'HC-SR04 LIVE' : 'SIMULATED'}
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+            <span>{distanceCm} cm RANGE</span>
+            <span className={isUltrasonicActive ? 'text-[#b8d4f0] font-bold' : 'text-zinc-500'}>
+              {isUltrasonicActive ? 'ACTIVE' : 'STANDBY'}
             </span>
           </div>
         </div>
 
-        {/* MQ-135 Gauge */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
-            <span>MQ-135 PRECURSORS / AIR</span>
-            <span className="text-purple-400">PIN A1</span>
+        {/* 3. MQ-135 Air Quality Sensor */}
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
+          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+            <span>MQ-135 AIR QUALITY</span>
+            <span className="text-sky-400 font-bold">PIN A1</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{mq135Ppm}</span>
-            <span className="text-xs font-mono text-purple-300">ppm</span>
+            <span className="text-3xl font-mono font-bold text-white">{mq135Ppm}</span>
+            <span className="text-xs font-mono text-sky-300">PPM</span>
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
-            <span>RAW ADC: {mq135Raw}</span>
-            <span>VOLTS: {((mq135Raw / 1023) * 5.0).toFixed(2)}V</span>
+          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-gradient-to-r from-sky-400/60 to-sky-400 transition-all duration-300"
+              style={{ width: `${Math.min(100, (mq135Ppm / 65) * 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+            <span>NH₃ / CO₂ • RAW: {mq135Raw}</span>
+            <span>{((mq135Raw / 1023) * 5.0).toFixed(2)}V</span>
           </div>
         </div>
 
-        {/* Composite e-Nose Status */}
-        <div className={`glass-panel p-4 rounded-xl flex flex-col gap-1.5 border ${
-          isAlarmActive ? 'border-red-500 bg-red-950/20' : 'border-panel-border'
-        }`}>
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
-            <span>COMPOSITE e-NOSE INDEX</span>
-            <span className={isAlarmActive ? 'text-red-400 font-bold' : 'text-emerald-400'}>
-              {isAlarmActive ? 'SPIKE DETECTED' : 'NORMAL'}
+        {/* 4. Composite Risk Index */}
+        <div
+          className={`glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border transition-all ${
+            isAlarmActive ? 'border-red-500/60 bg-red-950/20' : 'border-white/10 hover:border-[#b8d4f0]/30'
+          }`}
+        >
+          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+            <span>COMPOSITE VAPOR RISK</span>
+            <span className={isAlarmActive ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
+              {isAlarmActive ? 'SPIKE EXCEEDED' : 'NORMAL'}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-mono font-bold ${isAlarmActive ? 'text-red-400' : 'text-white'}`}>
+            <span className={`text-3xl font-mono font-bold ${isAlarmActive ? 'text-red-400' : 'text-white'}`}>
               {compositeIndex}
             </span>
-            <span className="text-xs font-mono text-foreground/50">ppm eq</span>
+            <span className="text-xs font-mono text-zinc-400">PPM eq</span>
           </div>
-          <div className="text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
-            ALARM THRESHOLD: {threshold.toFixed(1)} ppm
+          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+            <div
+              className={`h-full transition-all duration-300 ${isAlarmActive ? 'bg-red-500' : 'bg-emerald-400'}`}
+              style={{ width: `${Math.min(100, (compositeIndex / threshold) * 100)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5">
+            <span>ALARM LEVEL</span>
+            <span className="text-white font-bold">{threshold.toFixed(0)} PPM</span>
           </div>
         </div>
 
-        {/* Auto-Captures Counter */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
-            <span>SPIKE AUTO-CAPTURES</span>
-            <Camera size={13} className="text-cyan-400" />
+        {/* 5. Auto-Captures Counter */}
+        <div className="glass-liquid p-4.5 rounded-2xl flex flex-col gap-2 border border-white/10 hover:border-[#b8d4f0]/30 transition-all">
+          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
+            <span>INCIDENT CAPTURES</span>
+            <Camera size={14} className="text-[#b8d4f0]" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{captures.length}</span>
-            <span className="text-xs font-mono text-foreground/50">frames</span>
+            <span className="text-3xl font-mono font-bold text-white">{captures.length}</span>
+            <span className="text-xs font-mono text-zinc-400">frames</span>
           </div>
-          <div className="text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5 truncate">
-            {lastSpikeTime ? `LAST TRIGGER: ${lastSpikeTime}` : 'STANDBY FOR SPIKE'}
+          <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+            <div className="h-full bg-[#b8d4f0]" style={{ width: `${Math.min(100, (captures.length / 10) * 100)}%` }} />
+          </div>
+          <div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-0.5 pt-1.5 border-t border-white/5 truncate">
+            <span>{lastSpikeTime ? `LAST: ${lastSpikeTime}` : 'MONITORING ACTIVE'}</span>
           </div>
         </div>
       </div>
 
-      {/* Interactive Main Visualizer & Chart */}
-      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 min-h-[380px] border border-cyan-500/20">
-        {/* Chart Header & Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-panel-border">
+      {/* Main Interactive Telemetry Graph */}
+      <div className="glass-liquid rounded-2xl p-5 flex flex-col gap-4 border border-white/10 hover:border-[#b8d4f0]/20 transition-all">
+        {/* Chart Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <Activity size={16} className="text-cyan-400" />
-            <h2 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
-              REAL-TIME MOS SENSOR STREAM & VOLATILE CURVE
-            </h2>
+            <Activity size={18} className="text-[#b8d4f0]" />
+            <div>
+              <h2 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
+                REAL-TIME GAS CONCENTRATION WAVEFORM (PPM)
+              </h2>
+              <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                Multi-channel e-Nose telemetry stream & threshold alert monitoring
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Interactive Threshold Slider */}
-            <div className="flex items-center gap-2 font-mono text-xs">
-              <span className="text-[10px] text-foreground/50 uppercase">THRESHOLD:</span>
+          <div className="flex items-center gap-5 flex-wrap">
+            {/* Threshold Slider */}
+            <div className="flex items-center gap-2.5 font-mono text-xs bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/10">
+              <span className="text-[10px] text-zinc-400 uppercase">ALARM THRESHOLD:</span>
               <input
                 type="range"
                 min="20"
@@ -1568,19 +1074,19 @@ void loop() {
                 step="1"
                 value={threshold}
                 onChange={e => setThreshold(Number(e.target.value))}
-                className="w-24 accent-cyan-400 cursor-pointer"
+                className="w-28 accent-[#b8d4f0] cursor-pointer"
               />
-              <span className="text-xs font-bold text-cyan-400">{threshold.toFixed(0)} ppm</span>
+              <span className="text-xs font-bold text-[#b8d4f0]">{threshold.toFixed(0)} PPM</span>
             </div>
 
             {/* Time Filter Buttons */}
-            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10 text-[10px] font-mono">
+            <div className="flex items-center bg-black/40 rounded-xl p-1 border border-white/10 text-xs font-mono">
               {(['5m', '15m', '1h', '24h'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setTimeRange(t)}
-                  className={`px-2.5 py-1 rounded-md transition-all uppercase ${
-                    timeRange === t ? 'bg-white/15 text-white font-bold' : 'text-foreground/50 hover:text-white'
+                  className={`px-3 py-1 rounded-lg transition-all uppercase ${
+                    timeRange === t ? 'bg-white/15 text-white font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
                   }`}
                 >
                   {t}
@@ -1590,33 +1096,32 @@ void loop() {
           </div>
         </div>
 
-        {/* High-Fidelity Area Chart */}
-        <div className="flex-1 w-full min-h-[290px]">
+        {/* Recharts Interactive Area Chart */}
+        <div className="w-full h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={readings} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={readings} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
               <defs>
-                <linearGradient id="narcoticsGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                <linearGradient id="mq3Grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#b8d4f0" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#b8d4f0" stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="precursorGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
+                <linearGradient id="mq135Grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#22272e" />
-              <XAxis dataKey="time" stroke="#52525b" tick={{ fontSize: 10, fill: '#71717a' }} />
-              <YAxis stroke="#52525b" domain={[0, 90]} tick={{ fontSize: 10, fill: '#71717a' }} unit="ppm" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="time" stroke="#71717a" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
+              <YAxis stroke="#71717a" domain={[0, 90]} tick={{ fontSize: 10, fill: '#a1a1aa' }} unit=" PPM" />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="glass-panel p-3 rounded-xl border border-cyan-500/40 text-xs font-mono shadow-2xl bg-black/90">
-                        <div className="text-foreground/50 mb-1 font-bold">{label}</div>
-                        <div className="text-cyan-400">MQ-3 Alcohol/Narcotics: {payload[0]?.value} ppm</div>
-                        <div className="text-purple-400">MQ-135 Air/Precursor: {payload[1]?.value} ppm</div>
-                        <div className="text-emerald-400">e-Nose Composite: {payload[2]?.value} ppm</div>
-                        <div className="text-[10px] text-foreground/40 mt-1">Source: {payload[0]?.payload?.source}</div>
+                      <div className="glass-liquid p-3.5 rounded-xl border border-[#b8d4f0]/30 text-xs font-mono shadow-2xl bg-black/90">
+                        <div className="text-zinc-400 mb-1.5 font-bold">{label}</div>
+                        <div className="text-[#b8d4f0] font-bold">MQ-3 Alcohol Vapor: {payload[0]?.value} PPM</div>
+                        <div className="text-sky-300 font-bold">MQ-135 Precursors: {payload[1]?.value} PPM</div>
+                        <div className="text-emerald-400 font-bold">Composite Index: {payload[2]?.value} PPM</div>
                       </div>
                     );
                   }
@@ -1625,67 +1130,68 @@ void loop() {
               />
               <ReferenceLine
                 y={threshold}
-                stroke="#f43f5e"
+                stroke="#f87171"
                 strokeDasharray="4 4"
                 strokeWidth={2}
-                label={{ value: `ALARM THRESHOLD: ${threshold} ppm`, fill: '#f43f5e', fontSize: 10, position: 'insideTopRight' }}
+                label={{ value: `ALARM THRESHOLD: ${threshold} PPM`, fill: '#f87171', fontSize: 10, position: 'insideTopRight' }}
               />
-              <Area type="monotone" dataKey="mq3" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#narcoticsGrad)" name="MQ-3 Narcotics" />
-              <Area type="monotone" dataKey="mq135" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#precursorGrad)" name="MQ-135 Precursors" />
-              <Line type="monotone" dataKey="composite" stroke="#10b981" strokeWidth={2} dot={false} name="Composite Index" />
+              <Area type="monotone" dataKey="mq3" stroke="#b8d4f0" strokeWidth={2.5} fillOpacity={1} fill="url(#mq3Grad)" name="MQ-3 Vapor" />
+              <Area type="monotone" dataKey="mq135" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#mq135Grad)" name="MQ-135 Precursors" />
+              <Line type="monotone" dataKey="composite" stroke="#34d399" strokeWidth={2} dot={false} name="Composite Index" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Auto-Captured Recon Gallery (Spike Triggered Snapshots) */}
-      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 shrink-0 border border-cyan-500/20">
-        <div className="flex items-center justify-between pb-2 border-b border-panel-border">
-          <div className="flex items-center gap-2">
-            <Camera size={16} className="text-cyan-400" />
-            <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
-              AUTO-CAPTURED SPIKE RECON GALLERY (CAMERA & HUD PASSPORT)
-            </h3>
+      {/* Auto-Captured Incident Gallery */}
+      <div className="glass-liquid rounded-2xl p-5 flex flex-col gap-4 border border-white/10 hover:border-[#b8d4f0]/20 transition-all">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <Camera size={18} className="text-[#b8d4f0]" />
+            <div>
+              <h3 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
+                AUTO-CAPTURED INCIDENT RECORDS
+              </h3>
+              <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                Optical frames captured automatically when chemical gas spikes exceed threshold
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-foreground/50">
-              AUTO-FIRES THE INSTANT SPIKE EXCEEDS {threshold.toFixed(0)} PPM
-            </span>
             {captures.length > 0 && (
               <button
                 onClick={handleClearLogs}
                 disabled={isClearingLogs}
-                className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 flex items-center gap-1.5 transition-all active:scale-95"
-                title="Clear all narcotics spike records from database"
+                className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 flex items-center gap-1.5 transition-all"
               >
-                <Trash2 size={12} />
-                <span>{isClearingLogs ? 'CLEARING...' : 'CLEAR LOGS'}</span>
+                <Trash2 size={13} />
+                <span>{isClearingLogs ? 'CLEARING...' : 'CLEAR RECORDS'}</span>
               </button>
             )}
           </div>
         </div>
 
         {captures.length === 0 ? (
-          <div className="p-8 text-center font-mono text-xs text-foreground/40 flex flex-col items-center justify-center gap-2">
-            <Camera size={28} className="opacity-30" />
-            <span>No spike captures recorded yet. Click &quot;FORCE TEST SPIKE&quot; above to test the auto-capture pipeline.</span>
+          <div className="p-10 text-center font-mono text-xs text-zinc-500 flex flex-col items-center justify-center gap-2">
+            <Camera size={32} className="opacity-30 text-[#b8d4f0]" />
+            <span>No chemical spike records logged. Click &quot;TEST SPIKE TRIGGER&quot; above to simulate an incident capture.</span>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3.5">
             {captures.map((cap, i) => (
               <div
                 key={cap.id || i}
                 onClick={() => setInspectCapture(cap)}
-                className="group relative rounded-xl overflow-hidden glass-panel border border-panel-border hover:border-cyan-400 cursor-pointer transition-all aspect-video"
+                className="group relative rounded-xl overflow-hidden glass-liquid border border-white/10 hover:border-[#b8d4f0]/50 cursor-pointer transition-all aspect-video"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={cap.photo_url} alt="Spike frame" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute bottom-1.5 left-2 right-2 flex justify-between items-center text-[9px] font-mono text-white">
-                  <span className="truncate max-w-[90px] font-bold text-cyan-300">
+                <div className="absolute bottom-2 left-2.5 right-2.5 flex justify-between items-center text-[9px] font-mono text-white">
+                  <span className="truncate max-w-[90px] font-bold text-[#b8d4f0]">
                     {cap.substance_name?.split(':')[1]?.split('(')[0]?.trim() || 'Spike'}
                   </span>
-                  <span className="text-white/60">
+                  <span className="text-zinc-400">
                     {isMounted ? new Date(cap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>
