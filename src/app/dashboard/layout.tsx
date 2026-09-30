@@ -44,20 +44,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const activeTitle = activeNavItem ? activeNavItem.label : pathname.split('/').pop() || 'Overview';
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#FAFAFA] text-slate-900 relative font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-transparent text-slate-900 relative font-sans">
       {/* Ghost Luma 3D WebGL Particle Wave & Ambient Orbs Background */}
       <DashboardBackground />
 
-      {/* Ghost Side Navigation Rail */}
-      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/80 backdrop-blur-2xl border-r border-slate-200/80 z-40 relative shadow-sm">
+      {/* iOS Liquid Crystal Side Navigation Rail */}
+      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/45 backdrop-blur-3xl border-r border-white/60 z-40 relative shadow-[4px_0_30px_rgba(0,0,0,0.03)]">
         {/* Brand Logo & Ghost Header */}
-        <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-200/80">
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/60">
           <Link href="/dashboard" className="flex items-center gap-3 group" title="IR Vikrant Ghost Command Center">
-            <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center shadow-sm group-hover:border-sky-400 group-hover:bg-sky-100/80 transition-all">
+            <div className="w-9.5 h-9.5 rounded-2xl bg-gradient-to-b from-white/90 to-white/50 border border-white/80 flex items-center justify-center shadow-sm group-hover:scale-105 transition-all">
               <VikrantLogo size={22} />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold tracking-[0.18em] text-base text-slate-900">
+              <span className="font-bold tracking-[0.18em] text-base text-slate-900">
                 VIKRANT
               </span>
               <span className="text-[9px] font-mono text-sky-700 font-bold tracking-widest uppercase">
@@ -78,24 +78,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-mono transition-all group relative
+                  flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group relative
                   ${
                     isActive
-                      ? 'bg-sky-500/10 text-sky-900 border-l-2 border-sky-600 font-semibold shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                      ? 'bg-gradient-to-r from-sky-500/20 to-sky-600/10 text-sky-950 font-bold border border-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_rgba(2,132,199,0.15)]'
+                      : 'text-slate-700 hover:bg-white/40 hover:text-slate-950'
                   }
                 `}
               >
                 <Icon
                   className={`w-4 h-4 transition-colors ${
-                    isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-700'
+                    isActive ? 'text-sky-600' : 'text-slate-500 group-hover:text-slate-800'
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
 
                 {item.isNew && (
                   <span className="ml-auto flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse shadow-[0_0_6px_#0284c7]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse shadow-[0_0_8px_#0284c7]" />
                   </span>
                 )}
               </Link>
@@ -104,21 +104,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Bottom Utility / Settings */}
-        <div className="p-3 border-t border-slate-200/80 flex flex-col gap-1.5">
+        <div className="p-3 border-t border-white/60 flex flex-col gap-1.5">
           <Link
             href="/dashboard/settings"
             className={`
-              flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-mono transition-all group
+              flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group
               ${
                 pathname === '/dashboard/settings'
-                  ? 'bg-sky-500/10 text-sky-900 border-l-2 border-sky-600 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
+                  ? 'bg-gradient-to-r from-sky-500/20 to-sky-600/10 text-sky-950 font-bold border border-white/80 shadow-sm'
+                  : 'text-slate-700 hover:bg-white/40 hover:text-slate-950'
               }
             `}
           >
             <Settings
               className={`w-4 h-4 transition-colors ${
-                pathname === '/dashboard/settings' ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-700'
+                pathname === '/dashboard/settings' ? 'text-sky-600' : 'text-slate-500 group-hover:text-slate-800'
               }`}
             />
             <span>Settings</span>
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area with Ghost Top Header */}
       <div className="flex-1 relative overflow-hidden flex flex-col z-10 bg-transparent min-w-0">
         {/* Top Header */}
-        <header className="h-20 bg-white/75 backdrop-blur-2xl border-b border-slate-200/80 flex items-center justify-between px-8 sticky top-0 z-30 shadow-xs">
+        <header className="h-20 bg-white/40 backdrop-blur-3xl border-b border-white/60 flex items-center justify-between px-8 sticky top-0 z-30 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight uppercase text-slate-900 font-mono flex items-center gap-2">
               <span className="text-sky-600">/</span> {activeTitle}
@@ -138,14 +138,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-4">
             {/* Live System Status Pill */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-sky-50 border border-sky-200/80 rounded-xl text-xs font-mono text-sky-900 shadow-xs">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-white/60 border border-white/80 rounded-full text-xs font-mono text-slate-900 shadow-sm backdrop-blur-md">
               <div className="w-2 h-2 rounded-full bg-sky-600 shadow-[0_0_8px_#0284c7] animate-pulse" />
               <span className="hidden sm:inline text-slate-600">GHOST NODE:</span>
               <span className="font-bold text-sky-700">ACTIVE</span>
             </div>
 
             {/* Defense Shield Badge */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs font-mono text-emerald-800 shadow-xs">
+            <div className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-400/40 rounded-full text-xs font-mono text-emerald-900 shadow-sm backdrop-blur-md font-semibold">
               <Shield className="w-3.5 h-3.5 text-emerald-600" />
               <span>ISRO NAVIC SECURE</span>
             </div>

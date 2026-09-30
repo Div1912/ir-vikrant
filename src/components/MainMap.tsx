@@ -481,41 +481,41 @@ export default function MainMap() {
 
         {/* Floating Top-Right GPS Status HUD */}
         <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2 pointer-events-auto">
-          <div className="glass-panel px-3 py-2 rounded-lg text-xs font-mono flex items-center gap-2.5 border border-panel-border bg-black/75 backdrop-blur-md shadow-lg">
+          <div className="glass-panel px-3.5 py-2 rounded-2xl text-xs font-mono flex items-center gap-2.5 border border-white/80 bg-white/70 backdrop-blur-xl shadow-md">
             {gpsStatus === 'locked' && deviceCoords ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shadow-[0_0_8px_#059669]" />
                 <div className="flex flex-col text-left">
-                  <span className="text-[10px] text-success font-bold tracking-wider flex items-center gap-1">
-                    <CheckCircle2 size={11} /> GPS LOCKED
+                  <span className="text-[10px] text-emerald-800 font-bold tracking-wider flex items-center gap-1">
+                    <CheckCircle2 size={11} className="text-emerald-600" /> GPS LOCKED
                   </span>
-                  <span className="text-[9px] text-foreground/60">
+                  <span className="text-[9px] text-slate-600 font-medium">
                     {deviceCoords.latitude.toFixed(4)}°, {deviceCoords.longitude.toFixed(4)}° (±{Math.round(deviceCoords.accuracy)}m)
                   </span>
                 </div>
               </>
             ) : gpsStatus === 'acquiring' ? (
               <>
-                <RefreshCw size={12} className="animate-spin text-warning" />
-                <span className="text-warning text-[10px] tracking-wider uppercase">Acquiring Live GPS...</span>
+                <RefreshCw size={12} className="animate-spin text-amber-600" />
+                <span className="text-amber-700 font-bold text-[10px] tracking-wider uppercase">Acquiring Live GPS...</span>
               </>
             ) : (
               <>
-                <AlertCircle size={13} className="text-destructive" />
+                <AlertCircle size={13} className="text-red-600" />
                 <div className="flex flex-col text-left">
-                  <span className="text-destructive text-[10px] font-bold tracking-wider uppercase">GPS Offline</span>
-                  <span className="text-[9px] text-foreground/60 max-w-[180px] truncate" title={gpsErrorMsg || ''}>
+                  <span className="text-red-700 text-[10px] font-bold tracking-wider uppercase">GPS Offline</span>
+                  <span className="text-[9px] text-slate-600 max-w-[180px] truncate" title={gpsErrorMsg || ''}>
                     {gpsErrorMsg || 'Position unavailable'}
                   </span>
                 </div>
               </>
             )}
 
-            <div className="flex items-center gap-1.5 ml-2 border-l border-white/10 pl-2">
+            <div className="flex items-center gap-1.5 ml-2 border-l border-slate-300/80 pl-2">
               {gpsStatus === 'error' && (
                 <button
                   onClick={() => startGeolocation(activeUnitId)}
-                  className="px-2 py-1 bg-white/10 hover:bg-white/20 text-[9px] text-white rounded transition-colors"
+                  className="liquid-btn px-2.5 py-1 text-[9px] font-bold rounded-full"
                 >
                   Retry
                 </button>
@@ -523,7 +523,7 @@ export default function MainMap() {
               {deviceCoords && (
                 <button
                   onClick={() => setFollowDevice(!followDevice)}
-                  className={`p-1.5 rounded transition-colors ${followDevice ? 'bg-accent text-white' : 'bg-white/5 hover:bg-white/10 text-foreground/60'}`}
+                  className={`p-1.5 rounded-full transition-all ${followDevice ? 'liquid-btn-primary text-white' : 'liquid-btn text-slate-700'}`}
                   title={followDevice ? 'Lock Camera to Unit' : 'Free Camera'}
                 >
                   <Crosshair size={13} />
@@ -534,34 +534,34 @@ export default function MainMap() {
         </div>
 
         {/* Corner Brackets */}
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-accent opacity-50 z-10 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-accent opacity-50 z-10 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-sky-600 opacity-60 z-10 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-sky-600 opacity-60 z-10 pointer-events-none" />
       </div>
 
       {/* Real-time Location Bar & Coordinate Log Tray */}
-      <div className="glass-panel border-x-0 border-b-0 border-t border-panel-border bg-black/85 backdrop-blur-md z-20 flex flex-col shrink-0">
+      <div className="glass-panel border-x-0 border-b-0 border-t border-white/80 bg-white/60 backdrop-blur-2xl z-20 flex flex-col shrink-0 shadow-md">
         {/* Strip: Coordinates, Station, Distance & Expand Toggle */}
         <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-4 flex-wrap">
             {/* Coordinates */}
-            <div className="flex items-center gap-1.5 text-foreground/90">
-              <Compass size={14} className="text-accent" />
-              <span className="font-bold tracking-wider">
+            <div className="flex items-center gap-1.5 text-slate-900 font-bold">
+              <Compass size={14} className="text-sky-600" />
+              <span className="tracking-wider">
                 {currentPoint.lat.toFixed(5)}° N, {currentPoint.lon.toFixed(5)}° E
               </span>
             </div>
 
             {/* Station / Zone */}
-            <div className="flex items-center gap-1.5 text-foreground/60 border-l border-white/10 pl-3">
-              <Route size={14} className="text-success" />
-              <span className="truncate max-w-[260px]">{currentStationName}</span>
+            <div className="flex items-center gap-1.5 text-slate-700 border-l border-slate-300/80 pl-3">
+              <Route size={14} className="text-emerald-600" />
+              <span className="truncate max-w-[260px] font-medium">{currentStationName}</span>
             </div>
 
             {/* Total Distance Traveled */}
-            <div className="flex items-center gap-1.5 text-foreground/60 border-l border-white/10 pl-3">
-              <Activity size={13} className="text-cyan-400" />
-              <span>SESSION PATROL:</span>
-              <strong className="text-cyan-300">
+            <div className="flex items-center gap-1.5 text-slate-700 border-l border-slate-300/80 pl-3">
+              <Activity size={13} className="text-sky-600" />
+              <span className="font-semibold">SESSION PATROL:</span>
+              <strong className="text-sky-700">
                 {totalDistanceMeters >= 1000
                   ? `${(totalDistanceMeters / 1000).toFixed(2)} km`
                   : `${totalDistanceMeters} m`}
@@ -571,7 +571,7 @@ export default function MainMap() {
 
           <div className="flex items-center gap-3">
             {/* Live Clock */}
-            <div className="flex items-center gap-1.5 text-[10px] text-foreground/50">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
               <Clock size={12} />
               <span>{liveClock || 'SYNCING...'}</span>
             </div>
@@ -579,7 +579,7 @@ export default function MainMap() {
             {/* Toggle Coordinate Graph Drawer */}
             <button
               onClick={() => setShowTelemetryTray(v => !v)}
-              className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-foreground/80 border border-white/10 text-[10px] flex items-center gap-1 transition-colors"
+              className="liquid-btn px-3 py-1 text-slate-900 font-bold text-[10px] flex items-center gap-1 transition-all"
             >
               <span>COORDINATE LOGS</span>
               {showTelemetryTray ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
@@ -587,61 +587,61 @@ export default function MainMap() {
           </div>
         </div>
 
-        {/* Collapsible Coordinate Log Graphs (Lat vs Time, Lon vs Time, Cumulative Distance) */}
+        {/* Collapsible Coordinate Log Graphs */}
         {showTelemetryTray && (
-          <div className="p-4 border-t border-panel-border/60 grid grid-cols-1 md:grid-cols-3 gap-3 bg-black/60 animate-in slide-in-from-bottom-2">
+          <div className="p-4 border-t border-white/60 grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/40 animate-in slide-in-from-bottom-2">
             {/* Latitude vs Time */}
-            <div className="glass-panel p-2.5 rounded-lg border border-panel-border bg-black/40 flex flex-col">
-              <div className="text-[10px] font-mono text-foreground/60 mb-1 flex justify-between">
+            <div className="glass-panel p-3 rounded-xl border border-white/70 flex flex-col bg-white/50 shadow-xs">
+              <div className="text-[10px] font-mono text-slate-600 mb-1 flex justify-between font-bold">
                 <span>LATITUDE VARIATION</span>
-                <span className="text-accent">{currentPoint.lat.toFixed(5)}°</span>
+                <span className="text-sky-700">{currentPoint.lat.toFixed(5)}°</span>
               </div>
               <div className="h-20 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={telemetryChartData.slice(-25)}>
-                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <YAxis domain={['dataMin - 0.0005', 'dataMax + 0.0005']} stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '10px' }} />
-                    <Line type="monotone" dataKey="lat" stroke="#38bdf8" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={8} tickLine={false} />
+                    <YAxis domain={['dataMin - 0.0005', 'dataMax + 0.0005']} stroke="#64748b" fontSize={8} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '6px', fontSize: '10px', color: '#0f172a' }} />
+                    <Line type="monotone" dataKey="lat" stroke="#0284c7" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Longitude vs Time */}
-            <div className="glass-panel p-2.5 rounded-lg border border-panel-border bg-black/40 flex flex-col">
-              <div className="text-[10px] font-mono text-foreground/60 mb-1 flex justify-between">
+            <div className="glass-panel p-3 rounded-xl border border-white/70 flex flex-col bg-white/50 shadow-xs">
+              <div className="text-[10px] font-mono text-slate-600 mb-1 flex justify-between font-bold">
                 <span>LONGITUDE VARIATION</span>
-                <span className="text-accent">{currentPoint.lon.toFixed(5)}°</span>
+                <span className="text-sky-700">{currentPoint.lon.toFixed(5)}°</span>
               </div>
               <div className="h-20 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={telemetryChartData.slice(-25)}>
-                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <YAxis domain={['dataMin - 0.0005', 'dataMax + 0.0005']} stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '10px' }} />
-                    <Line type="monotone" dataKey="lon" stroke="#818cf8" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={8} tickLine={false} />
+                    <YAxis domain={['dataMin - 0.0005', 'dataMax + 0.0005']} stroke="#64748b" fontSize={8} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '6px', fontSize: '10px', color: '#0f172a' }} />
+                    <Line type="monotone" dataKey="lon" stroke="#6366f1" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Distance Traveled Over Time */}
-            <div className="glass-panel p-2.5 rounded-lg border border-panel-border bg-black/40 flex flex-col">
-              <div className="text-[10px] font-mono text-foreground/60 mb-1 flex justify-between">
+            <div className="glass-panel p-3 rounded-xl border border-white/70 flex flex-col bg-white/50 shadow-xs">
+              <div className="text-[10px] font-mono text-slate-600 mb-1 flex justify-between font-bold">
                 <span>CUMULATIVE DISTANCE</span>
-                <span className="text-cyan-400">{totalDistanceMeters} m</span>
+                <span className="text-emerald-700">{totalDistanceMeters} m</span>
               </div>
               <div className="h-20 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={telemetryChartData.slice(-25)}>
-                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={8} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '10px' }} />
-                    <Line type="monotone" dataKey="distance" name="Meters" stroke="#2dd4bf" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                    <XAxis dataKey="time" stroke="#64748b" fontSize={8} tickLine={false} />
+                    <YAxis stroke="#64748b" fontSize={8} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '6px', fontSize: '10px', color: '#0f172a' }} />
+                    <Line type="monotone" dataKey="distance" name="Meters" stroke="#059669" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

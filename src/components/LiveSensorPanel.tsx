@@ -205,15 +205,15 @@ export default function LiveSensorPanel({
   }, [readings]);
 
   return (
-    <div className="glass-panel rounded-xl p-4 border border-panel-border flex flex-col gap-3">
+    <div className="glass-panel rounded-2xl p-4 border border-white/70 flex flex-col gap-3 shadow-sm">
       {/* Header with Title, Time Range Toggle & Manual Spike Trigger */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-panel-border/60 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/60 pb-3">
         <div className="flex items-center gap-2">
-          <Activity size={16} className="text-accent" />
-          <h3 className="text-xs font-mono font-bold tracking-widest text-foreground/90 uppercase">
+          <Activity size={16} className="text-sky-600" />
+          <h3 className="text-xs font-mono font-bold tracking-widest text-slate-900 uppercase">
             LIVE SENSOR ARRAY TELEMETRY
           </h3>
-          <span className="text-[10px] font-mono text-foreground/50">
+          <span className="text-[10px] font-mono text-slate-500 font-semibold">
             • {unitCode} (Realtime Stream)
           </span>
         </div>
@@ -221,16 +221,16 @@ export default function LiveSensorPanel({
         <div className="flex items-center gap-2">
           {/* Ultrasonic Live Distance Pill */}
           {liveDistance !== null && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-mono text-[10px] animate-pulse">
-              <Radar size={12} className="text-cyan-400" />
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-300 text-sky-900 font-mono text-[10px] font-bold animate-pulse">
+              <Radar size={12} className="text-sky-600" />
               <span>RANGE: {liveDistance.m.toFixed(2)}m ({liveDistance.cm}cm)</span>
             </div>
           )}
 
           {/* Threshold alert pill */}
           {lastThresholdAlert && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-destructive/20 border border-destructive text-destructive font-mono text-[10px] animate-pulse">
-              <ShieldAlert size={12} />
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-300 text-red-800 font-mono text-[10px] font-bold animate-pulse">
+              <ShieldAlert size={12} className="text-red-600" />
               <span>{lastThresholdAlert}</span>
             </div>
           )}
@@ -238,21 +238,21 @@ export default function LiveSensorPanel({
           {/* Spike Test Button */}
           <button
             onClick={triggerManualSpike}
-            className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-mono text-[10px] flex items-center gap-1 transition-all active:scale-95"
+            className="liquid-btn px-3 py-1 text-slate-900 font-mono text-[10px] font-bold flex items-center gap-1 shadow-xs"
             title="Inject real-time trace detection spike into sensor readings & trigger live alert"
           >
-            <Sparkles size={11} />
+            <Sparkles size={11} className="text-amber-600" />
             <span>TEST SPIKE</span>
           </button>
 
           {/* Time Range Filter Buttons */}
-          <div className="flex items-center bg-black/40 rounded border border-panel-border p-0.5 text-[10px] font-mono">
+          <div className="flex items-center bg-slate-200/60 rounded-full border border-slate-300/60 p-0.5 text-[10px] font-mono">
             {(['5m', '1h', '24h'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTimeRange(t)}
-                className={`px-2 py-0.5 rounded transition-colors ${
-                  timeRange === t ? 'bg-white/20 text-white font-bold' : 'text-foreground/50 hover:text-foreground'
+                className={`px-2.5 py-0.5 rounded-full transition-colors font-bold ${
+                  timeRange === t ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {t.toUpperCase()}
@@ -265,80 +265,80 @@ export default function LiveSensorPanel({
       {/* Grid of 4 Interactive Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Chart 1: Narcotics e-Nose MOS Array */}
-        <div className="glass-panel rounded-lg p-3 border border-panel-border/70 flex flex-col bg-black/30">
+        <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <Link href="/dashboard/narcotics" className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-foreground/80 hover:text-cyan-400 group transition-colors">
-              <Pill size={13} className="text-blue-400 group-hover:text-cyan-400" />
+            <Link href="/dashboard/narcotics" className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900 hover:text-sky-700 group transition-colors">
+              <Pill size={13} className="text-sky-600 group-hover:text-sky-700" />
               <span>NARCOTICS MOS ARRAY (e-NOSE)</span>
               <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            <span className="text-[10px] font-mono text-blue-400 font-bold">
+            <span className="text-[10px] font-mono text-sky-700 font-bold">
               THRESHOLD: 40.0 ppm
             </span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} />
-                <YAxis domain={[0, 85]} stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} unit="ppm" />
+                <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                <XAxis dataKey="time" stroke="#64748b" fontSize={9} tickLine={false} />
+                <YAxis domain={[0, 85]} stroke="#64748b" fontSize={9} tickLine={false} unit="ppm" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '8px', fontSize: '11px', color: '#0f172a' }}
                 />
-                <Area type="monotone" dataKey="narcotics" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.12} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="narcotics" stroke="#0284c7" fill="#0284c7" fillOpacity={0.15} strokeWidth={2} dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Chart 2: Explosives Trace MEMS / DSC */}
-        <div className="glass-panel rounded-lg p-3 border border-panel-border/70 flex flex-col bg-black/30">
+        <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <Link href="/dashboard/explosives" className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-foreground/80 hover:text-rose-400 group transition-colors">
-              <Flame size={13} className="text-rose-400 group-hover:text-rose-400" />
+            <Link href="/dashboard/explosives" className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900 hover:text-rose-700 group transition-colors">
+              <Flame size={13} className="text-rose-600 group-hover:text-rose-700" />
               <span>EXPLOSIVES TRACE (MEMS / DSC)</span>
               <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            <span className="text-[10px] font-mono text-rose-400 font-bold">
+            <span className="text-[10px] font-mono text-rose-700 font-bold">
               THRESHOLD: 50.0 ng/L
             </span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} />
-                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} unit="ng" />
+                <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                <XAxis dataKey="time" stroke="#64748b" fontSize={9} tickLine={false} />
+                <YAxis domain={[0, 100]} stroke="#64748b" fontSize={9} tickLine={false} unit="ng" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '8px', fontSize: '11px', color: '#0f172a' }}
                 />
-                <Line type="monotone" dataKey="explosives" stroke="#ef4444" strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="explosives" stroke="#e11d48" strokeWidth={2} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Chart 3: Environmental Atmosphere (Temp / Humidity / PM2.5) */}
-        <div className="glass-panel rounded-lg p-3 border border-panel-border/70 flex flex-col bg-black/30">
+        <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-foreground/80">
-              <Thermometer size={13} className="text-emerald-400" />
+            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900">
+              <Thermometer size={13} className="text-emerald-600" />
               <span>ENVIRONMENT (TEMP / RH / PM2.5)</span>
             </div>
-            <span className="text-[10px] font-mono text-foreground/50">MULTI-CHANNEL</span>
+            <span className="text-[10px] font-mono text-slate-500 font-semibold">MULTI-CHANNEL</span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} />
+                <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                <XAxis dataKey="time" stroke="#64748b" fontSize={9} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={9} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '8px', fontSize: '11px', color: '#0f172a' }}
                 />
-                <Line type="monotone" dataKey="temp" name="Temp (°C)" stroke="#10b981" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                <Line type="monotone" dataKey="humidity" name="RH (%)" stroke="#06b6d4" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                <Line type="monotone" dataKey="dust" name="PM2.5 (µg)" stroke="#f59e0b" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="temp" name="Temp (°C)" stroke="#059669" strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="humidity" name="RH (%)" stroke="#0284c7" strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="dust" name="PM2.5 (µg)" stroke="#d97706" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                 <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'monospace' }} />
               </LineChart>
             </ResponsiveContainer>
@@ -346,24 +346,24 @@ export default function LiveSensorPanel({
         </div>
 
         {/* Chart 4: Battery Drain Session Curve */}
-        <div className="glass-panel rounded-lg p-3 border border-panel-border/70 flex flex-col bg-black/30">
+        <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-foreground/80">
-              <Battery size={13} className="text-cyan-400" />
+            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900">
+              <Battery size={13} className="text-sky-600" />
               <span>BATTERY DRAIN CURVE (SESSION)</span>
             </div>
-            <span className="text-[10px] font-mono text-cyan-400 font-bold">DISCHARGE RATE NOMINAL</span>
+            <span className="text-[10px] font-mono text-sky-700 font-bold">DISCHARGE RATE NOMINAL</span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} />
-                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} unit="%" />
+                <CartesianGrid strokeDasharray="2 2" stroke="rgba(0,0,0,0.06)" vertical={false} />
+                <XAxis dataKey="time" stroke="#64748b" fontSize={9} tickLine={false} />
+                <YAxis domain={[0, 100]} stroke="#64748b" fontSize={9} tickLine={false} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'rgba(9,9,11,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(226,232,240,0.9)', borderRadius: '8px', fontSize: '11px', color: '#0f172a' }}
                 />
-                <Area type="monotone" dataKey="battery" name="Battery %" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.1} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="battery" name="Battery %" stroke="#0284c7" fill="#0284c7" fillOpacity={0.12} strokeWidth={1.8} dot={false} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

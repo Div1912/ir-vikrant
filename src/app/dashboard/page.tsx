@@ -396,10 +396,10 @@ export default function DashboardPage() {
         {/* Right Col: Alert Feed & Facial Matches */}
         <div className="w-96 flex flex-col gap-4 overflow-hidden shrink-0">
           {/* Alert Feed Panel */}
-          <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-panel-border flex items-center justify-between bg-transparent">
-              <h2 className="text-xs font-mono tracking-widest text-foreground/70 flex items-center gap-2">
-                <AlertTriangle size={14} /> LIVE ALERT FEED
+          <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-white/60 flex items-center justify-between bg-transparent">
+              <h2 className="text-xs font-mono font-bold tracking-widest text-slate-800 flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-600" /> LIVE ALERT FEED
               </h2>
               <div className="flex items-center gap-2">
                 <button
@@ -408,18 +408,18 @@ export default function DashboardPage() {
                       await clearDetectionEvents({ category: 'all' });
                     }
                   }}
-                  className="text-[9px] font-mono text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2 py-0.5 rounded border border-red-500/20 transition-all flex items-center gap-1"
+                  className="liquid-btn text-[9px] font-mono text-red-600 hover:text-red-700 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-300 transition-all flex items-center gap-1 font-bold"
                   title="Clear detection logs from database"
                 >
                   <Trash2 size={10} />
                   CLEAR
                 </button>
-                <span className="text-[10px] bg-destructive/20 text-destructive px-2 py-0.5 rounded-full font-mono animate-pulse">
+                <span className="text-[10px] bg-red-500/15 text-red-700 border border-red-300 px-2.5 py-0.5 rounded-full font-mono font-bold animate-pulse">
                   {stats.pendingAlerts} PENDING
                 </span>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
               <AnimatePresence>
                 {alerts.map((alert: any) => {
                   const isAiTrigger = alert.substance_category === 'AI Visual Trigger (Demo)';
@@ -429,21 +429,21 @@ export default function DashboardPage() {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       onClick={() => alert.photo_url && setInspectCapture(alert)}
-                      className={`p-2.5 rounded-lg border-l-4 glass-panel glass-panel-hover cursor-pointer ${
-                        alert.confidence_tier === 'confirmed' ? 'border-destructive' :
-                        alert.confidence_tier === 'presumptive' ? 'border-warning' : 'border-info'
+                      className={`p-3 rounded-2xl border glass-panel glass-panel-hover cursor-pointer transition-all ${
+                        alert.confidence_tier === 'confirmed' ? 'border-l-4 border-l-red-500 border-white/80' :
+                        alert.confidence_tier === 'presumptive' ? 'border-l-4 border-l-amber-500 border-white/80' : 'border-l-4 border-l-sky-500 border-white/80'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-mono font-bold">{alert.unit_code || alert.unit_id?.slice(0, 6) || 'Q-01'}</span>
+                          <span className="text-xs font-mono font-bold text-slate-900">{alert.unit_code || alert.unit_id?.slice(0, 6) || 'Q-01'}</span>
                           {isAiTrigger && (
-                            <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[8px] font-mono font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-800 border border-sky-300 text-[8px] font-mono font-bold">
                               AI VISUAL
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] font-mono text-foreground/50">
+                        <span className="text-[10px] font-mono text-slate-500 font-medium">
                           {isMounted ? new Date(alert.timestamp).toLocaleTimeString() : ''}
                         </span>
                       </div>
@@ -454,22 +454,22 @@ export default function DashboardPage() {
                           <img
                             src={alert.photo_url}
                             alt="Snapshot"
-                            className="w-10 h-10 object-cover rounded-md border border-cyan-500/30 bg-black shrink-0"
+                            className="w-10 h-10 object-cover rounded-xl border border-white/80 bg-slate-100 shrink-0 shadow-xs"
                           />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-medium truncate text-foreground/90">{alert.substance_name || alert.substance_category}</div>
+                          <div className="text-xs font-bold truncate text-slate-900">{alert.substance_name || alert.substance_category}</div>
                           {isAiTrigger && (
-                            <div className="text-[9px] font-mono text-cyan-400">AI Visual Trigger (Demo)</div>
+                            <div className="text-[9px] font-mono text-sky-700 font-semibold">AI Visual Trigger (Demo)</div>
                           )}
                         </div>
                       </div>
 
-                      <div className="text-[9px] uppercase tracking-wider text-foreground/60 flex justify-between items-center mt-1">
-                        <span className="truncate max-w-[140px]">{alert.station || 'NDLS Sector'}</span>
+                      <div className="text-[9px] uppercase tracking-wider text-slate-600 flex justify-between items-center mt-1">
+                        <span className="truncate max-w-[140px] font-medium">{alert.station || 'NDLS Sector'}</span>
                         <span className={`font-mono font-bold ${
-                          alert.confidence_tier === 'confirmed' ? 'text-destructive' :
-                          alert.confidence_tier === 'presumptive' ? 'text-warning' : 'text-info'
+                          alert.confidence_tier === 'confirmed' ? 'text-red-600' :
+                          alert.confidence_tier === 'presumptive' ? 'text-amber-600' : 'text-sky-700'
                         }`}>
                           {alert.confidence_tier} {alert.confidence_score ? `(${Math.round(alert.confidence_score * 100)}%)` : ''}
                         </span>
@@ -482,31 +482,31 @@ export default function DashboardPage() {
           </div>
 
           {/* Facial Recognition / Watchlist Matches Panel */}
-          <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden border-accent/20 border">
-            <div className="p-4 border-b border-panel-border bg-transparent flex flex-col gap-2">
+          <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden border-white/60 border shadow-sm">
+            <div className="p-4 border-b border-white/60 bg-transparent flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-mono tracking-widest text-accent flex items-center gap-2">
-                  <ScanFace size={14} /> WATCHLIST MATCHES
+                <h2 className="text-xs font-mono font-bold tracking-widest text-slate-900 flex items-center gap-2">
+                  <ScanFace size={14} className="text-sky-600" /> WATCHLIST MATCHES
                 </h2>
-                <div className="text-[9px] font-mono bg-accent/20 text-accent px-1.5 py-0.5 rounded">
+                <div className="text-[9px] font-mono bg-sky-500/15 text-sky-800 border border-sky-300 px-2 py-0.5 rounded-full font-bold">
                   {faceMatches.filter(m => m.status === 'new').length} NEW
                 </div>
               </div>
-              <div className="text-[9px] font-mono text-foreground/40 bg-white/[0.03] p-1.5 rounded flex items-start gap-1.5 border border-white/5">
-                <ShieldAlert size={10} className="shrink-0 mt-0.5" />
+              <div className="text-[9px] font-mono text-slate-600 bg-white/50 p-2 rounded-xl flex items-start gap-1.5 border border-white/70 shadow-xs">
+                <ShieldAlert size={11} className="shrink-0 mt-0.5 text-sky-600" />
                 Watchlist-only matching, on-device processing. No raw biometric data stored unencrypted.
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-2">
               <AnimatePresence>
                 {faceMatches.map(match => (
                   <motion.div
                     key={match.id}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`p-3 rounded-lg border border-panel-border transition-colors ${
-                      match.status === 'new' ? 'bg-accent/5' : 'bg-transparent opacity-60'
+                    className={`p-3 rounded-2xl border transition-all ${
+                      match.status === 'new' ? 'glass-panel border-sky-300 bg-sky-50/40' : 'glass-panel opacity-70 border-white/60'
                     }`}
                   >
                     <div 
@@ -514,12 +514,12 @@ export default function DashboardPage() {
                       onClick={() => setExpandedFaceMatch(expandedFaceMatch === match.id ? null : match.id)}
                     >
                       <div className="flex flex-col">
-                        <span className="text-xs font-mono font-bold text-accent">Unit: {match.unit_id}</span>
-                        <span className="text-[10px] text-foreground/70">{match.station}</span>
+                        <span className="text-xs font-mono font-bold text-slate-900">Unit: {match.unit_id}</span>
+                        <span className="text-[10px] text-slate-600">{match.station}</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-[10px] text-foreground/50">{isMounted ? new Date(match.timestamp).toLocaleTimeString() : ''}</span>
-                        <span className={`text-[10px] font-mono mt-1 ${match.confidence > 0.85 ? 'text-destructive' : 'text-warning'}`}>
+                        <span className="text-[10px] text-slate-500 font-mono">{isMounted ? new Date(match.timestamp).toLocaleTimeString() : ''}</span>
+                        <span className={`text-[10px] font-mono font-bold mt-1 ${match.confidence > 0.85 ? 'text-red-600' : 'text-amber-600'}`}>
                           {(match.confidence * 100).toFixed(1)}% MATCH
                         </span>
                       </div>
@@ -529,29 +529,29 @@ export default function DashboardPage() {
                       <motion.div 
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
-                        className="mt-3 pt-3 border-t border-panel-border overflow-hidden"
+                        className="mt-3 pt-3 border-t border-white/60 overflow-hidden"
                       >
                         <div className="flex gap-3 mb-3">
-                          <div className="w-16 h-16 bg-black rounded border border-panel-border flex items-center justify-center relative overflow-hidden">
-                            <ScanFace className="text-foreground/20 absolute" size={24} />
-                            <div className="absolute inset-0 bg-accent/20 mix-blend-overlay"></div>
+                          <div className="w-16 h-16 bg-white/80 rounded-2xl border border-white flex items-center justify-center relative overflow-hidden shadow-xs">
+                            <ScanFace className="text-slate-400 absolute" size={24} />
+                            <div className="absolute inset-0 bg-sky-500/10 mix-blend-overlay"></div>
                           </div>
                           <div className="flex flex-col justify-center flex-1">
-                            <div className="text-[10px] font-mono text-foreground/50 mb-1">LOCAL DB REF</div>
-                            <div className="text-xs font-mono">WL-9381A</div>
+                            <div className="text-[10px] font-mono text-slate-500 mb-1 font-bold">LOCAL DB REF</div>
+                            <div className="text-xs font-mono font-bold text-slate-900">WL-9381A</div>
                           </div>
                         </div>
                         {match.status === 'new' && (
                           <div className="flex gap-2">
                             <button 
                               onClick={() => updateFaceMatchStatus(match.id, 'dismissed')}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors font-mono text-[10px]"
+                              className="flex-1 liquid-btn flex items-center justify-center gap-1 py-1.5 font-mono text-[10px]"
                             >
                               <X size={12} /> DISMISS
                             </button>
                             <button 
                               onClick={() => updateFaceMatchStatus(match.id, 'reviewed')}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded bg-destructive/20 text-destructive hover:bg-destructive hover:text-white transition-colors font-mono text-[10px] border border-destructive/30"
+                              className="flex-1 liquid-btn-primary flex items-center justify-center gap-1 py-1.5 font-mono text-[10px]"
                             >
                               <Check size={12} /> CONFIRM THREAT
                             </button>
@@ -572,13 +572,13 @@ export default function DashboardPage() {
 
 function KpiCard({ title, value, icon }: { title: string; value: string | number; icon?: React.ReactNode }) {
   return (
-    <div className="flex-1 glass-liquid p-4 flex flex-col justify-center relative overflow-hidden group border border-slate-200/80 hover:border-sky-300 transition-all duration-300 shadow-xs">
-      <div className="absolute -right-4 -top-4 opacity-15 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500 text-sky-600">
+    <div className="flex-1 glass-liquid p-4.5 flex flex-col justify-center relative overflow-hidden group border border-white/80 hover:border-sky-300/80 transition-all duration-300 shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.95),0_8px_24px_rgba(0,0,0,0.04)] rounded-2xl">
+      <div className="absolute -right-4 -top-4 opacity-20 group-hover:opacity-35 group-hover:scale-110 transition-all duration-500 text-sky-600">
         {icon}
       </div>
-      <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase mb-1 font-semibold">{title}</div>
+      <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase mb-1 font-bold">{title}</div>
       <div className="text-3xl font-mono font-bold tracking-tight text-slate-900 flex items-center justify-between">
-        <span className="text-slate-900">{value}</span>
+        <span className="text-slate-950 font-bold">{value}</span>
         {icon && <span className="opacity-90 text-sky-600">{icon}</span>}
       </div>
     </div>
