@@ -75,18 +75,18 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: false,
       alpha: true,
       powerPreference: "high-performance"
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.setSize(winWidth, winHeight);
     renderer.setClearColor(0x000000, 0);
 
-    // Dense grid of wave particles
-    const gap = 0.32;
-    const amountX = 160;
-    const amountY = 160;
+    // Optimized grid of wave particles (90x90 = 8,100 points for 60fps performance)
+    const gap = 0.52;
+    const amountX = 90;
+    const amountY = 90;
     const particleNum = amountX * amountY;
     const particlePositions = new Float32Array(particleNum * 3);
     const particleScales = new Float32Array(particleNum);

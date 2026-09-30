@@ -210,10 +210,10 @@ export default function LiveSensorPanel({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/60 pb-3">
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-sky-600" />
-          <h3 className="text-xs font-mono font-bold tracking-widest text-slate-900 uppercase">
+          <h3 className="text-xs font-sans font-bold tracking-tight text-slate-900">
             LIVE SENSOR ARRAY TELEMETRY
           </h3>
-          <span className="text-[10px] font-mono text-slate-500 font-semibold">
+          <span className="text-[10px] font-sans text-slate-500 font-semibold">
             • {unitCode} (Realtime Stream)
           </span>
         </div>
@@ -267,13 +267,13 @@ export default function LiveSensorPanel({
         {/* Chart 1: Narcotics e-Nose MOS Array */}
         <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <Link href="/dashboard/narcotics" className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900 hover:text-sky-700 group transition-colors">
+            <Link href="/dashboard/narcotics" className="flex items-center gap-1.5 text-xs font-sans font-bold text-slate-900 hover:text-sky-700 group transition-colors">
               <Pill size={13} className="text-sky-600 group-hover:text-sky-700" />
-              <span>NARCOTICS MOS ARRAY (e-NOSE)</span>
+              <span>Narcotics MOS Array (e-Nose)</span>
               <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            <span className="text-[10px] font-mono text-sky-700 font-bold">
-              THRESHOLD: 40.0 ppm
+            <span className="text-[10px] font-sans text-sky-700 font-semibold">
+              Threshold: 40.0 ppm
             </span>
           </div>
           <div className="h-32 w-full">
@@ -294,13 +294,13 @@ export default function LiveSensorPanel({
         {/* Chart 2: Explosives Trace MEMS / DSC */}
         <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <Link href="/dashboard/explosives" className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900 hover:text-rose-700 group transition-colors">
+            <Link href="/dashboard/explosives" className="flex items-center gap-1.5 text-xs font-sans font-bold text-slate-900 hover:text-rose-700 group transition-colors">
               <Flame size={13} className="text-rose-600 group-hover:text-rose-700" />
-              <span>EXPLOSIVES TRACE (MEMS / DSC)</span>
+              <span>Explosives Trace (MEMS / DSC)</span>
               <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
-            <span className="text-[10px] font-mono text-rose-700 font-bold">
-              THRESHOLD: 50.0 ng/L
+            <span className="text-[10px] font-sans text-rose-700 font-semibold">
+              Threshold: 50.0 ng/L
             </span>
           </div>
           <div className="h-32 w-full">
@@ -321,11 +321,11 @@ export default function LiveSensorPanel({
         {/* Chart 3: Environmental Atmosphere (Temp / Humidity / PM2.5) */}
         <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900">
+            <div className="flex items-center gap-1.5 text-xs font-sans font-bold text-slate-900">
               <Thermometer size={13} className="text-emerald-600" />
-              <span>ENVIRONMENT (TEMP / RH / PM2.5)</span>
+              <span>Environment (Temp / RH / PM2.5)</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-500 font-semibold">MULTI-CHANNEL</span>
+            <span className="text-[10px] font-sans text-slate-500 font-semibold">Multi-Channel</span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -339,7 +339,7 @@ export default function LiveSensorPanel({
                 <Line type="monotone" dataKey="temp" name="Temp (°C)" stroke="#059669" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                 <Line type="monotone" dataKey="humidity" name="RH (%)" stroke="#0284c7" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                 <Line type="monotone" dataKey="dust" name="PM2.5 (µg)" stroke="#d97706" strokeWidth={1.8} dot={false} isAnimationActive={false} />
-                <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'monospace' }} />
+                <Legend wrapperStyle={{ fontSize: '9px', fontFamily: 'sans-serif' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -348,11 +348,11 @@ export default function LiveSensorPanel({
         {/* Chart 4: Battery Drain Session Curve */}
         <div className="glass-panel rounded-xl p-3 border border-white/70 flex flex-col bg-white/30 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-900">
+            <div className="flex items-center gap-1.5 text-xs font-sans font-bold text-slate-900">
               <Battery size={13} className="text-sky-600" />
-              <span>BATTERY DRAIN CURVE (SESSION)</span>
+              <span>Battery Drain Curve</span>
             </div>
-            <span className="text-[10px] font-mono text-sky-700 font-bold">DISCHARGE RATE NOMINAL</span>
+            <span className="text-[10px] font-sans text-sky-700 font-semibold">Nominal Rate</span>
           </div>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">

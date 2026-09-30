@@ -261,27 +261,27 @@ export default function DashboardPage() {
           </div>
 
           {/* Bottom Dual Operations Tray with Mode Selector */}
-          <div className="h-[360px] flex flex-col gap-2 shrink-0 overflow-hidden">
+          <div className="min-h-[420px] flex-1 flex flex-col gap-2 overflow-hidden">
             {/* Tray Header & Tab Selector */}
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-bold tracking-wider text-slate-800 uppercase flex items-center gap-1.5">
+                <span className="text-xs font-sans font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
                   <Activity size={14} className="text-sky-600" />
                   OPERATIONAL FEEDS & RECON
                 </span>
-                <div className="flex items-center bg-slate-200/60 rounded-lg p-0.5 border border-slate-300/60 text-[10px] font-mono">
+                <div className="flex items-center bg-slate-200/60 rounded-lg p-0.5 border border-slate-300/60 text-[10px] font-sans">
                   <button
                     onClick={() => setBottomView('split')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      bottomView === 'split' ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                      bottomView === 'split' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     COMBINED SPLIT
                   </button>
                   <button
                     onClick={() => setBottomView('captures')}
-                    className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-                      bottomView === 'captures' ? 'bg-sky-600 text-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 font-semibold ${
+                      bottomView === 'captures' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Scan size={11} />
@@ -289,8 +289,8 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => setBottomView('sensors')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      bottomView === 'sensors' ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    className={`px-2.5 py-1 rounded-md transition-all font-semibold ${
+                      bottomView === 'sensors' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     SENSORS ONLY
@@ -301,7 +301,7 @@ export default function DashboardPage() {
               {/* Link to Dedicated Page */}
               <Link
                 href="/dashboard/captures"
-                className="liquid-btn px-3 py-1 rounded-lg text-[10px] font-mono text-sky-700 font-bold border border-sky-300/80 flex items-center gap-1.5 shadow-xs"
+                className="liquid-btn px-3 py-1 rounded-lg text-[10px] font-sans text-sky-700 font-bold border border-sky-300/80 flex items-center gap-1.5 shadow-xs"
               >
                 <span>OPEN DEDICATED CAPTURES PAGE</span>
                 <ChevronRight size={13} />
@@ -312,12 +312,12 @@ export default function DashboardPage() {
             {bottomView === 'split' ? (
               <div className="flex-1 flex gap-4 overflow-hidden">
                 {/* 1. Live Video Feeds with Operator Phone Camera */}
-                <div className="w-1/3 glass-panel rounded-xl p-3 flex flex-col overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xs font-mono tracking-widest text-foreground/70 flex items-center gap-2">
-                      <Camera size={14} /> CAMERA EYE (AUTO-CAPTURE ON)
+                <div className="w-2/5 glass-panel rounded-xl p-2.5 flex flex-col overflow-hidden">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <h2 className="text-xs font-sans font-bold text-slate-800 flex items-center gap-2">
+                      <Camera size={14} className="text-sky-600" /> Live Feed
                     </h2>
-                    <span className="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                    <span className="text-[10px] font-sans font-semibold text-sky-700 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-300">
                       SUB-SECOND AI
                     </span>
                   </div>
@@ -576,8 +576,8 @@ function KpiCard({ title, value, icon }: { title: string; value: string | number
       <div className="absolute -right-4 -top-4 opacity-20 group-hover:opacity-35 group-hover:scale-110 transition-all duration-500 text-sky-600">
         {icon}
       </div>
-      <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase mb-1 font-bold">{title}</div>
-      <div className="text-3xl font-mono font-bold tracking-tight text-slate-900 flex items-center justify-between">
+      <div className="text-xs text-slate-500 font-sans font-medium mb-1">{title}</div>
+      <div className="text-3xl font-sans font-bold tracking-tight text-slate-900 flex items-center justify-between">
         <span className="text-slate-950 font-bold">{value}</span>
         {icon && <span className="opacity-90 text-sky-600">{icon}</span>}
       </div>

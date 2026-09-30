@@ -607,7 +607,7 @@ export default function LiveCameraFeed({
   };
 
   return (
-    <div className={`relative bg-black rounded-xl overflow-hidden border border-panel-border flex items-center justify-center group ${className}`}>
+    <div className={`relative flex flex-col bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-md ${className}`}>
       {/* Hidden processing canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
@@ -616,143 +616,269 @@ export default function LiveCameraFeed({
         <div className="absolute inset-0 bg-white/90 z-50 pointer-events-none transition-opacity duration-150 animate-out fade-out" />
       )}
 
-      {/* 1. Video Feed (Device Webcam) */}
-      {feedSource === 'device' && (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className={`w-full h-full object-cover transition-all duration-300 ${
-            hasCamera ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
-          } ${mode === 'thermal' ? 'filter contrast-150 hue-rotate-180 saturate-200' : 'grayscale-0'}`}
-        />
-      )}
+      {/* Video Display Container */}
+      <div className="relative flex-1 min-h-0 w-full overflow-hidden bg-black flex items-center justify-center">
+        {/* 1. Video Feed (Device Webcam) */}
+        {feedSource === 'device' && (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className={`w-full h-full object-cover transition-all duration-300 ${
+              hasCamera ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+            } ${mode === 'thermal' ? 'filter contrast-150 hue-rotate-180 saturate-200' : 'grayscale-0'}`}
+          />
+        )}
 
-      {/* 2. IP Webcam Stream */}
-      {feedSource === 'ip_webcam' && ipWebcamUrl && !cameraError && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          ref={ipImgRef}
-          key={`${ipWebcamUrl}-${ipStreamMode}`}
-          src={ipStreamMode === 'proxy' ? `/api/camera/proxy?url=${encodeURIComponent(ipWebcamUrl)}` : ipWebcamUrl}
-          crossOrigin="anonymous"
-          alt="IP Webcam Stream"
-          className={`w-full h-full object-cover transition-all duration-300 ${
-            hasCamera ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
-          } ${mode === 'thermal' ? 'filter contrast-150 hue-rotate-180 saturate-200' : 'grayscale-0'}`}
-          onLoad={() => {
-            setHasCamera(true);
-            setCameraError(null);
-          }}
-          onError={() => {
-            setHasCamera(false);
-            const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-            const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-            const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
-
-            // Automatic failover to Laptop Webcam!
-            triggerAutoFallbackToDeviceCamera(
-              isCloud && isLocalIp && isHttps
-                ? 'Browser blocked local HTTP stream on Vercel. Auto-switched to laptop webcam.'
-                : 'Phone camera unreachable. Auto-switched to laptop webcam.'
-            );
-          }}
-        />
-      )}
-
-      {/* Active Fallback Notification Banner */}
-      {fellBackToDevice && feedSource === 'device' && (
-        <div className="absolute top-10 inset-x-2 z-30 flex items-center justify-between bg-black/85 border border-amber-500/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] font-mono text-amber-200 shadow-xl animate-in slide-in-from-top-1">
-          <div className="flex items-center gap-1.5 truncate">
-            <Camera size={12} className="text-amber-400 shrink-0 animate-pulse" />
-            <span className="truncate"><strong>AUTO-FALLBACK ACTIVE:</strong> Laptop Webcam in use (Phone IP unreachable)</span>
-          </div>
-          <button
-            onClick={() => {
-              setFellBackToDevice(false);
-              setFeedSource('ip_webcam');
-              setHasCamera(false);
+        {/* 2. IP Webcam Stream */}
+        {feedSource === 'ip_webcam' && ipWebcamUrl && !cameraError && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            ref={ipImgRef}
+            key={`${ipWebcamUrl}-${ipStreamMode}`}
+            src={ipStreamMode === 'proxy' ? `/api/camera/proxy?url=${encodeURIComponent(ipWebcamUrl)}` : ipWebcamUrl}
+            crossOrigin="anonymous"
+            alt="IP Webcam Stream"
+            className={`w-full h-full object-cover transition-all duration-300 ${
+              hasCamera ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+            } ${mode === 'thermal' ? 'filter contrast-150 hue-rotate-180 saturate-200' : 'grayscale-0'}`}
+            onLoad={() => {
+              setHasCamera(true);
+              setCameraError(null);
             }}
-            className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 font-bold shrink-0 ml-2 border border-amber-500/40"
-          >
-            RETRY PHONE CAM
-          </button>
-        </div>
-      )}
+            onError={() => {
+              setHasCamera(false);
+              const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+              const isCloud = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+              const isLocalIp = ipWebcamUrl.includes('10.') || ipWebcamUrl.includes('192.168.') || ipWebcamUrl.includes('127.0.0.1') || ipWebcamUrl.includes('localhost');
 
-      {/* 3. Fallback / Diagnostic & One-Click Control Overlay when camera is not streaming */}
-      {(!hasCamera || cameraError) && (
-        <div className="w-full h-full relative flex flex-col items-center justify-center bg-zinc-950 p-4 text-center z-10 overflow-y-auto">
-          <div className="relative z-20 flex flex-col items-center max-w-sm w-full gap-2 text-center">
-            <Radio size={24} className="text-cyan-400 animate-pulse" />
+              // Automatic failover to Laptop Webcam!
+              triggerAutoFallbackToDeviceCamera(
+                isCloud && isLocalIp && isHttps
+                  ? 'Browser blocked local HTTP stream on Vercel. Auto-switched to laptop webcam.'
+                  : 'Phone camera unreachable. Auto-switched to laptop webcam.'
+              );
+            }}
+          />
+        )}
 
-            <div className="text-[11px] font-mono font-bold tracking-widest text-white uppercase flex items-center gap-1.5 justify-center">
-              <span>{feedSource === 'ip_webcam' ? 'PHONE IP WEBCAM STREAM' : 'LAPTOP / DEVICE WEBCAM'}</span>
-              <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                DISCONNECTED
-              </span>
+        {/* Active Fallback Notification Banner */}
+        {fellBackToDevice && feedSource === 'device' && (
+          <div className="absolute top-2 inset-x-2 z-30 flex items-center justify-between bg-slate-900/90 border border-amber-500/60 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-sans text-amber-200 shadow-xl animate-in slide-in-from-top-1">
+            <div className="flex items-center gap-1.5 truncate">
+              <Camera size={13} className="text-amber-400 shrink-0 animate-pulse" />
+              <span className="truncate"><strong>AUTO-FALLBACK:</strong> Laptop Webcam active</span>
             </div>
+            <button
+              onClick={() => {
+                setFellBackToDevice(false);
+                setFeedSource('ip_webcam');
+                setHasCamera(false);
+              }}
+              className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 font-semibold shrink-0 ml-2 border border-amber-500/40 text-[10px]"
+            >
+              RETRY PHONE CAM
+            </button>
+          </div>
+        )}
 
-            {/* Diagnostic Box */}
-            <div className="text-[10px] font-mono text-white/80 bg-black/70 border border-white/10 rounded-xl p-2.5 w-full text-left flex flex-col gap-1.5 shadow-xl">
-              <div className="flex items-center justify-between text-foreground/50 text-[9px]">
-                <span>STREAM TARGET:</span>
-                <span className="text-cyan-300 truncate max-w-[170px] font-bold">{ipWebcamUrl}</span>
+        {/* 3. Fallback / Diagnostic & One-Click Control Overlay when camera is not streaming */}
+        {(!hasCamera || cameraError) && (
+          <div className="w-full h-full relative flex flex-col items-center justify-center bg-slate-950 p-4 text-center z-10 overflow-y-auto">
+            <div className="relative z-20 flex flex-col items-center max-w-sm w-full gap-2 text-center">
+              <Radio size={24} className="text-sky-400 animate-pulse" />
+
+              <div className="text-xs font-sans font-bold tracking-tight text-white flex items-center gap-1.5 justify-center">
+                <span>{feedSource === 'ip_webcam' ? 'PHONE IP WEBCAM STREAM' : 'LAPTOP / DEVICE WEBCAM'}</span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                  DISCONNECTED
+                </span>
               </div>
 
-              {cameraError && (
-                <div className="text-amber-300 font-bold text-[9px] flex items-start gap-1.5 bg-amber-500/15 p-1.5 rounded-lg border border-amber-500/25">
-                  <AlertCircle size={13} className="shrink-0 mt-0.5 text-amber-400" />
-                  <span>{cameraError}</span>
+              {/* Diagnostic Box */}
+              <div className="text-xs font-sans text-slate-300 bg-slate-900/90 border border-slate-800 rounded-xl p-3 w-full text-left flex flex-col gap-2 shadow-xl">
+                <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                  <span>STREAM TARGET:</span>
+                  <span className="text-sky-400 truncate max-w-[170px] font-mono font-semibold">{ipWebcamUrl}</span>
                 </div>
-              )}
 
-              {/* Vercel HTTPS Notice */}
-              {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
-                <div className="text-[8.5px] text-cyan-200/90 bg-cyan-950/50 p-1.5 rounded-lg border border-cyan-500/30 flex flex-col gap-0.5">
-                  <div className="font-bold text-cyan-300 flex items-center gap-1">
-                    <ShieldAlert size={11} />
-                    <span>VERCEL (HTTPS) MIXED CONTENT NOTICE</span>
+                {cameraError && (
+                  <div className="text-amber-300 font-medium text-[11px] flex items-start gap-1.5 bg-amber-500/15 p-2 rounded-lg border border-amber-500/25">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                    <span>{cameraError}</span>
                   </div>
-                  <div>Browsers block local HTTP camera streams on secure sites. Choose a quick fix below:</div>
-                </div>
-              )}
+                )}
+
+                {/* Vercel HTTPS Notice */}
+                {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
+                  <div className="text-[10px] text-sky-200 bg-sky-950/60 p-2 rounded-lg border border-sky-500/30 flex flex-col gap-1">
+                    <div className="font-semibold text-sky-300 flex items-center gap-1">
+                      <ShieldAlert size={12} />
+                      <span>VERCEL (HTTPS) MIXED CONTENT NOTICE</span>
+                    </div>
+                    <div>Browsers block local HTTP camera streams on secure sites. Choose a quick fix below:</div>
+                  </div>
+                )}
+              </div>
+
+              {/* 1-Click Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 w-full text-xs font-sans font-semibold">
+                <button
+                  onClick={startDeviceCamera}
+                  className="px-3 py-2 liquid-btn text-sky-300 rounded-lg hover:bg-sky-500/20 transition-all flex items-center justify-center gap-1.5 shadow-md"
+                  title="Use laptop / phone built-in webcam directly via WebRTC"
+                >
+                  <Camera size={13} />
+                  <span>USE WEBCAM</span>
+                </button>
+
+                <button
+                  onClick={() => setShowInsecureHelp(true)}
+                  className="px-3 py-2 liquid-btn-primary text-white rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-md"
+                  title="Allow Insecure Content in Chrome site settings"
+                >
+                  <Settings size={13} />
+                  <span>CHROME FIX</span>
+                </button>
+              </div>
+
+              {/* Quick presets */}
+              <div className="flex flex-wrap items-center justify-center gap-1.5 text-[10px] font-sans text-slate-400 w-full pt-1">
+                <span className="font-semibold text-slate-500">PRESETS:</span>
+                <button
+                  onClick={() => {
+                    const url = 'http://10.35.147.105:8080/video';
+                    setIpWebcamUrl(url);
+                    setCameraError(null);
+                    setFeedSource('ip_webcam');
+                    syncCameraSettings('ip_webcam', url, 'direct');
+                  }}
+                  className="px-2 py-0.5 rounded-full bg-slate-800 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700 font-mono text-[9px]"
+                >
+                  10.35.147.105 (HTTP)
+                </button>
+                <button
+                  onClick={() => {
+                    const url = 'https://10.35.147.105:8080/video';
+                    setIpWebcamUrl(url);
+                    setCameraError(null);
+                    setFeedSource('ip_webcam');
+                    syncCameraSettings('ip_webcam', url, 'direct');
+                    window.open('https://10.35.147.105:8080', '_blank');
+                  }}
+                  className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 border border-sky-500/30 flex items-center gap-1 font-mono text-[9px]"
+                  title="Opens phone HTTPS in new tab to trust SSL certificate"
+                >
+                  <span>10.35.147.105 (HTTPS)</span>
+                  <ExternalLink size={10} />
+                </button>
+                <button
+                  onClick={() => {
+                    setCameraError(null);
+                    setShowIpInput(true);
+                  }}
+                  className="px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium text-[9px]"
+                >
+                  ENTER IP...
+                </button>
+              </div>
             </div>
+          </div>
+        )}
 
-            {/* 1-Click Action Buttons */}
-            <div className="grid grid-cols-2 gap-1.5 w-full text-[9px] font-mono font-bold">
-              <button
-                onClick={startDeviceCamera}
-                className="px-2.5 py-2 liquid-btn text-cyan-300 rounded-lg hover:bg-cyan-500/20 transition-all flex items-center justify-center gap-1 shadow-lg"
-                title="Use laptop / phone built-in webcam directly via WebRTC"
-              >
-                <Camera size={12} />
-                <span>USE WEBCAM</span>
-              </button>
+        {/* Live AI Bounding Box Overlay Canvas */}
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        />
 
+        {/* Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+
+        {/* Top Header Information */}
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 z-20">
+          <span className="text-[10px] font-sans font-bold bg-slate-950/80 px-2 py-0.5 rounded-md text-white border border-slate-700 backdrop-blur-md">
+            {unitCode}
+          </span>
+          <span className="text-[10px] font-sans bg-slate-950/60 px-2 py-0.5 rounded-md text-slate-300 backdrop-blur-md font-medium">
+            {location}
+          </span>
+        </div>
+
+        {/* AI Vision Status Pill */}
+        <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950/80 border border-sky-500/30 text-[10px] font-sans backdrop-blur-md">
+            <Scan size={11} className={isAiActive ? 'text-sky-400 animate-spin' : 'text-slate-500'} />
+            <span className={isAiActive ? 'text-sky-400 font-semibold tracking-tight' : 'text-slate-400'}>
+              {isAiLoading ? 'INITIALIZING AI...' : isAiActive ? 'AUTO-DETECTION ARMED' : 'AI STANDBY'}
+            </span>
+          </div>
+        </div>
+
+        {/* Simulated Thermal Overlay Compliance Label */}
+        {mode === 'thermal' && (
+          <div className="absolute top-8 left-2 z-20">
+            <span className="text-[9px] font-sans font-semibold tracking-tight text-amber-300 bg-slate-950/90 px-2 py-0.5 rounded border border-amber-500/40">
+              SIMULATED THERMAL OVERLAY
+            </span>
+          </div>
+        )}
+
+        {/* Instant Notification Toast */}
+        {triggerNotification && (
+          <div className="absolute top-9 inset-x-2 z-30 flex items-center justify-center pointer-events-none animate-in fade-in slide-in-from-top-2">
+            <div className="glass-panel px-3 py-1.5 rounded-lg border border-sky-400 bg-slate-950/95 text-sky-300 font-sans text-xs flex items-center gap-2 shadow-2xl shadow-sky-500/30">
+              <Sparkles size={14} className="text-sky-400 animate-bounce" />
+              <span className="font-semibold">{triggerNotification}</span>
+            </div>
+          </div>
+        )}
+
+        {/* IP Webcam Stream Config Dropdown */}
+        {showIpInput && (
+          <div className="absolute inset-x-2 bottom-2 z-30 glass-panel p-3 rounded-xl border border-slate-700 bg-slate-950/95 flex flex-col gap-2 font-sans text-xs shadow-2xl">
+            <div className="flex justify-between items-center text-slate-300 text-[10px] font-bold">
+              <span>IP WEBCAM STREAM URL</span>
+              <button onClick={() => setShowIpInput(false)} className="text-slate-400 hover:text-white text-xs">✕</button>
+            </div>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                placeholder="e.g. http://10.35.147.105:8080/video"
+                value={ipWebcamUrl}
+                onChange={e => setIpWebcamUrl(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white font-mono text-[10px] focus:outline-none focus:border-sky-400"
+              />
               <button
-                onClick={() => setShowInsecureHelp(true)}
-                className="px-2.5 py-2 liquid-btn-primary text-white rounded-lg transition-all flex items-center justify-center gap-1 shadow-lg"
-                title="Allow Insecure Content in Chrome site settings"
+                onClick={() => {
+                  if (ipWebcamUrl) {
+                    let clean = ipWebcamUrl.trim();
+                    if (!clean.startsWith('http://') && !clean.startsWith('https://')) clean = 'http://' + clean;
+                    clean = clean.replace(/\/+$/, '');
+                    if (!clean.includes('/video') && !clean.includes('/shot.jpg')) clean += '/video';
+                    setIpWebcamUrl(clean);
+                    setFeedSource('ip_webcam');
+                    syncCameraSettings('ip_webcam', clean, ipStreamMode);
+                    setShowIpInput(false);
+                  }
+                }}
+                className="px-3 py-1 liquid-btn-primary text-white rounded-lg text-[10px] font-bold"
               >
-                <Settings size={12} />
-                <span>CHROME FIX</span>
+                CONNECT
               </button>
             </div>
-
             {/* Quick presets */}
-            <div className="flex flex-wrap items-center justify-center gap-1 text-[8px] font-mono text-white/70 w-full pt-1">
-              <span className="text-foreground/40 font-bold">PRESETS:</span>
+            <div className="flex items-center gap-1 text-[9px] flex-wrap">
+              <span className="text-slate-400 font-semibold">PRESETS:</span>
               <button
                 onClick={() => {
                   const url = 'http://10.35.147.105:8080/video';
                   setIpWebcamUrl(url);
-                  setCameraError(null);
                   setFeedSource('ip_webcam');
-                  syncCameraSettings('ip_webcam', url, 'direct');
+                  syncCameraSettings('ip_webcam', url, ipStreamMode);
                 }}
-                className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 border border-white/10"
+                className="px-2 py-0.5 rounded-full bg-slate-800 hover:bg-sky-500/20 text-slate-300 font-mono"
               >
                 10.35.147.105 (HTTP)
               </button>
@@ -760,221 +886,84 @@ export default function LiveCameraFeed({
                 onClick={() => {
                   const url = 'https://10.35.147.105:8080/video';
                   setIpWebcamUrl(url);
-                  setCameraError(null);
                   setFeedSource('ip_webcam');
-                  syncCameraSettings('ip_webcam', url, 'direct');
+                  syncCameraSettings('ip_webcam', url, ipStreamMode);
                   window.open('https://10.35.147.105:8080', '_blank');
                 }}
-                className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/30 flex items-center gap-0.5"
-                title="Opens phone HTTPS in new tab to trust SSL certificate"
+                className="px-2 py-0.5 rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 flex items-center gap-0.5 font-mono"
+                title="Open phone HTTPS in tab to trust cert"
               >
-                <span>10.35.147.105 (HTTPS)</span>
-                <ExternalLink size={9} />
-              </button>
-              <button
-                onClick={() => {
-                  setCameraError(null);
-                  setShowIpInput(true);
-                }}
-                className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white border border-white/10"
-              >
-                ENTER IP...
+                <span>10.35.147.105 (HTTPS ↗)</span>
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Live AI Bounding Box Overlay Canvas */}
-      <canvas
-        ref={overlayCanvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none z-10"
-      />
-
-      {/* Vignette Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/50 pointer-events-none" />
-
-      {/* Top Header Information */}
-      <div className="absolute top-2 left-2 flex items-center gap-1.5 z-20">
-        <span className="text-[10px] font-mono bg-black/80 px-2 py-0.5 rounded-md text-white border border-white/10 font-bold backdrop-blur-md">
-          {unitCode}
-        </span>
-        <span className="text-[9px] font-mono bg-black/60 px-1.5 py-0.5 rounded-md text-white/70 backdrop-blur-md">
-          {location}
-        </span>
+        )}
       </div>
 
-      {/* AI Vision Status Pill */}
-      <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20">
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-black/80 border border-cyan-500/30 text-[9px] font-mono backdrop-blur-md">
-          <Scan size={11} className={isAiActive ? 'text-cyan-400 animate-spin' : 'text-foreground/40'} />
-          <span className={isAiActive ? 'text-cyan-400 font-bold tracking-wider' : 'text-foreground/50'}>
-            {isAiLoading ? 'INITIALIZING AI...' : isAiActive ? 'AUTO-DETECTION ARMED' : 'AI STANDBY'}
-          </span>
-        </div>
-      </div>
-
-      {/* Simulated Thermal Overlay Compliance Label */}
-      {mode === 'thermal' && (
-        <div className="absolute top-8 left-2 z-20">
-          <span className="text-[8px] font-mono tracking-widest text-amber-300 bg-black/90 px-2 py-0.5 rounded border border-amber-500/40 uppercase">
-            SIMULATED THERMAL OVERLAY (RGB PSEUDO-COLOR)
-          </span>
-        </div>
-      )}
-
-      {/* Instant Notification Toast */}
-      {triggerNotification && (
-        <div className="absolute top-9 inset-x-2 z-30 flex items-center justify-center pointer-events-none animate-in fade-in slide-in-from-top-2">
-          <div className="glass-panel px-3 py-1.5 rounded-lg border border-cyan-400 bg-black/95 text-cyan-300 font-mono text-[10px] flex items-center gap-2 shadow-2xl shadow-cyan-500/30">
-            <Sparkles size={13} className="text-cyan-400 animate-bounce" />
-            <span className="font-bold">{triggerNotification}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Target Props Bar */}
-      <div className="absolute bottom-10 left-2 right-2 flex items-center justify-between z-20 pointer-events-auto">
-        <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md p-1 rounded-lg border border-white/10 text-[8px] font-mono">
-          <span className="text-foreground/50 px-1 uppercase font-bold">AUTO DETECTS:</span>
-          {(['bottle', 'handbag', 'backpack'] as const).map(prop => (
-            <button
-              key={prop}
-              onClick={() => triggerManualPropDemo(prop)}
-              className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-cyan-500/30 hover:text-cyan-300 text-white/80 transition-colors"
-              title={`Simulate immediate ${prop} detection`}
-            >
-              +{prop}
-            </button>
-          ))}
-        </div>
-
-        {/* IP Webcam button */}
-        <button
-          onClick={() => setShowIpInput(!showIpInput)}
-          className="p-1 rounded-lg bg-black/75 hover:bg-black text-white/70 hover:text-white border border-white/10 text-[9px] font-mono flex items-center gap-1 transition-colors"
-          title="Configure IP Webcam URL"
-        >
-          <Settings size={11} />
-          <span>IP CAM</span>
-        </button>
-      </div>
-
-      {/* IP Webcam Stream Config Dropdown */}
-      {showIpInput && (
-        <div className="absolute inset-x-2 bottom-12 z-30 glass-panel p-3 rounded-xl border border-panel-border bg-black/95 flex flex-col gap-2 font-mono text-[10px] shadow-2xl">
-          <div className="flex justify-between items-center text-foreground/70 uppercase text-[9px] font-bold">
-            <span>IP WEBCAM STREAM URL</span>
-            <button onClick={() => setShowIpInput(false)} className="text-foreground/40 hover:text-white text-xs">✕</button>
-          </div>
-          <div className="flex gap-1.5">
-            <input
-              type="text"
-              placeholder="e.g. http://10.35.147.105:8080 or 10.35.147.105:8080"
-              value={ipWebcamUrl}
-              onChange={e => setIpWebcamUrl(e.target.value)}
-              className="flex-1 bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-white text-[9px] focus:outline-none focus:border-cyan-400"
-            />
-            <button
-              onClick={() => {
-                if (ipWebcamUrl) {
-                  let clean = ipWebcamUrl.trim();
-                  if (!clean.startsWith('http://') && !clean.startsWith('https://')) clean = 'http://' + clean;
-                  clean = clean.replace(/\/+$/, '');
-                  if (!clean.includes('/video') && !clean.includes('/shot.jpg')) clean += '/video';
-                  setIpWebcamUrl(clean);
-                  setFeedSource('ip_webcam');
-                  syncCameraSettings('ip_webcam', clean, ipStreamMode);
-                  setShowIpInput(false);
-                }
-              }}
-              className="px-2.5 py-1 liquid-btn-primary text-white rounded-lg text-[9px] font-bold"
-            >
-              CONNECT
-            </button>
-          </div>
-          {/* Quick presets */}
-          <div className="flex items-center gap-1.5 text-[8px] flex-wrap">
-            <span className="text-foreground/50 font-bold">PRESETS:</span>
-            <button
-              onClick={() => {
-                const url = 'http://10.35.147.105:8080/video';
-                setIpWebcamUrl(url);
-                setFeedSource('ip_webcam');
-                syncCameraSettings('ip_webcam', url, ipStreamMode);
-              }}
-              className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/80"
-            >
-              10.35.147.105 (HTTP)
-            </button>
-            <button
-              onClick={() => {
-                const url = 'https://10.35.147.105:8080/video';
-                setIpWebcamUrl(url);
-                setFeedSource('ip_webcam');
-                syncCameraSettings('ip_webcam', url, ipStreamMode);
-                window.open('https://10.35.147.105:8080', '_blank');
-              }}
-              className="px-1.5 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-0.5"
-              title="Open phone HTTPS in tab to trust cert"
-            >
-              <span>10.35.147.105 (HTTPS ↗)</span>
-            </button>
-            <button
-              onClick={() => {
-                const url = 'http://10.35.147.52:8080/video';
-                setIpWebcamUrl(url);
-                setFeedSource('ip_webcam');
-                syncCameraSettings('ip_webcam', url, ipStreamMode);
-              }}
-              className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/60"
-            >
-              10.35.147.52 (Old)
-            </button>
-          </div>
-          <div className="text-[8px] text-foreground/40">
-            Open Android <em>IP Webcam</em> app → Tap Start Server → Enter video feed URL.
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Tactical Controls */}
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between z-20">
-        <div className="flex items-center gap-1.5">
+      {/* Structured Non-Overlapping Control Toolbar */}
+      <div className="p-2 bg-slate-950 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20 font-sans text-xs">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Mode toggle */}
           <button
             onClick={() => setMode(m => (m === 'optical' ? 'thermal' : 'optical'))}
-            className={`px-2 py-1 rounded-md text-[10px] font-mono flex items-center gap-1 transition-all border ${
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-sans font-semibold flex items-center gap-1 transition-all border ${
               mode === 'thermal'
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                : 'bg-black/60 text-white/80 hover:text-white border-white/10'
+                : 'bg-slate-900 text-slate-300 hover:text-white border-slate-700'
             }`}
           >
             {mode === 'thermal' ? <Flame size={12} className="text-amber-400" /> : <Eye size={12} />}
             <span>{mode.toUpperCase()}</span>
           </button>
 
+          {/* AI Scan toggle */}
           <button
             onClick={() => setIsAiActive(a => !a)}
-            className={`px-2 py-1 rounded-md text-[10px] font-mono flex items-center gap-1 transition-all border ${
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-sans font-semibold flex items-center gap-1 transition-all border ${
               isAiActive
-                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold'
-                : 'bg-black/60 text-white/50 border-white/10'
+                ? 'bg-sky-500/20 text-sky-300 border-sky-500/50'
+                : 'bg-slate-900 text-slate-400 border-slate-700'
             }`}
             title="Toggle AI Scanner"
           >
-            <Scan size={11} />
+            <Scan size={12} />
             <span>{isAiActive ? 'SCAN: ON' : 'SCAN: OFF'}</span>
+          </button>
+
+          {/* Prop Demos */}
+          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+            <span className="text-slate-400 px-1 font-medium">TEST PROPS:</span>
+            {(['bottle', 'handbag', 'backpack'] as const).map(prop => (
+              <button
+                key={prop}
+                onClick={() => triggerManualPropDemo(prop)}
+                className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-sky-500/20 hover:text-sky-300 text-slate-300 transition-colors capitalize font-medium"
+                title={`Simulate immediate ${prop} detection`}
+              >
+                +{prop}
+              </button>
+            ))}
+          </div>
+
+          {/* IP CAM Settings button */}
+          <button
+            onClick={() => setShowIpInput(!showIpInput)}
+            className="p-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] flex items-center gap-1 transition-colors px-2 font-medium"
+            title="Configure IP Webcam URL"
+          >
+            <Settings size={12} />
+            <span>IP CAM</span>
           </button>
         </div>
 
-        {/* Manual Snap & Log Button */}
+        {/* Primary Snap & Log Action Button */}
         <button
           onClick={() => triggerManualPropDemo('bottle')}
           disabled={isCapturing}
-          className="px-2.5 py-1 liquid-btn-primary text-white rounded-md text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-50"
+          className="px-3 py-1 liquid-btn-primary text-white rounded-lg text-[10px] font-sans font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50 ml-auto"
           title="Manual snapshot & auto-save to database"
         >
-          {isCapturing ? <RefreshCw size={11} className="animate-spin" /> : <Camera size={11} />}
+          {isCapturing ? <RefreshCw size={12} className="animate-spin" /> : <Camera size={12} />}
           <span>SNAP & LOG</span>
         </button>
       </div>
