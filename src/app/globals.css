@@ -209,19 +209,20 @@ body {
   background: rgba(100, 116, 139, 0.6);
 }
 
-/* Leaflet Dark mode overrides */
+/* Leaflet Light map styling */
 .leaflet-container {
-  background: transparent !important;
+  background: #f8fafc !important;
   font-family: var(--font-sans) !important;
 }
 .leaflet-layer,
 .leaflet-control-zoom-in,
 .leaflet-control-zoom-out,
 .leaflet-control-attribution {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  filter: none !important;
 }
 .leaflet-tile {
-  opacity: 0.55 !important;
+  opacity: 1 !important;
+  filter: none !important;
 }
 
 /* Animations */

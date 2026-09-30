@@ -375,7 +375,7 @@ export default function MainMap() {
         <MapContainer
           center={[currentPoint.lat, currentPoint.lon]}
           zoom={16}
-          style={{ height: '100%', width: '100%', background: '#09090b' }}
+          style={{ height: '100%', width: '100%', background: '#f8fafc' }}
           zoomControl={false}
         >
           <CameraController
@@ -394,10 +394,10 @@ export default function MainMap() {
             <Polyline
               positions={historicalPath}
               pathOptions={{
-                color: '#3b82f6',
-                weight: 3,
-                opacity: 0.5,
-                dashArray: '5, 6',
+                color: '#0284c7',
+                weight: 4,
+                opacity: 0.6,
+                dashArray: '6, 6',
                 lineJoin: 'round',
               }}
             />
@@ -408,7 +408,7 @@ export default function MainMap() {
             <Polyline
               positions={latestSegment}
               pathOptions={{
-                color: '#38bdf8',
+                color: '#0369a1',
                 weight: 5,
                 opacity: 0.95,
                 lineCap: 'round',
@@ -423,10 +423,10 @@ export default function MainMap() {
               center={[point.latitude, point.longitude]}
               radius={1.5}
               pathOptions={{
-                color: idx === trailPositions.slice(-15).length - 1 ? '#38bdf8' : '#3b82f6',
+                color: idx === trailPositions.slice(-15).length - 1 ? '#0369a1' : '#0284c7',
                 fillColor: '#ffffff',
                 fillOpacity: 0.9,
-                weight: 1,
+                weight: 1.5,
               }}
             />
           ))}
@@ -438,10 +438,10 @@ export default function MainMap() {
                 center={[deviceCoords.latitude, deviceCoords.longitude]}
                 radius={Math.max(deviceCoords.accuracy, 15)}
                 pathOptions={{
-                  color: '#3b82f6',
-                  fillColor: '#3b82f6',
-                  fillOpacity: 0.12,
-                  weight: 1,
+                  color: '#0284c7',
+                  fillColor: '#0284c7',
+                  fillOpacity: 0.15,
+                  weight: 1.5,
                   dashArray: '4, 4',
                 }}
               />
@@ -449,10 +449,10 @@ export default function MainMap() {
                 position={[deviceCoords.latitude, deviceCoords.longitude]}
                 icon={createDeviceIcon()}
               >
-                <Popup className="glass-panel text-foreground">
-                  <div className="font-mono text-xs p-1">
-                    <div className="text-accent font-bold mb-1 flex items-center gap-1.5">
-                      <Navigation size={12} />
+                <Popup className="text-slate-900 font-sans">
+                  <div className="font-sans text-xs p-1">
+                    <div className="text-sky-800 font-bold mb-1 flex items-center gap-1.5">
+                      <Navigation size={13} />
                       OPERATOR HARDWARE (GPS TRACKED)
                     </div>
                     <div><strong>Lat:</strong> {deviceCoords.latitude.toFixed(6)}</div>
@@ -468,9 +468,9 @@ export default function MainMap() {
               position={[currentPoint.lat, currentPoint.lon]}
               icon={createUnitIcon('Q-01', true)}
             >
-              <Popup className="glass-panel text-foreground">
-                <div className="font-mono text-xs p-1">
-                  <div className="font-bold text-accent mb-1">Q-01 Quadruped</div>
+              <Popup className="text-slate-900 font-sans">
+                <div className="font-sans text-xs p-1">
+                  <div className="font-bold text-sky-800 mb-1">Q-01 Quadruped</div>
                   <div><strong>Lat:</strong> {currentPoint.lat.toFixed(5)}</div>
                   <div><strong>Lon:</strong> {currentPoint.lon.toFixed(5)}</div>
                 </div>

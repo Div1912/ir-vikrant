@@ -282,53 +282,53 @@ export default function FleetTimelineMap({ unitId, unitCode = 'Q-01' }: FleetTim
   const isMoving = speedKmh > 0.4 || isSimulating;
 
   return (
-    <div className="flex flex-col h-full w-full rounded-2xl overflow-hidden glass-panel border border-cyan-500/20">
+    <div className="flex flex-col h-full w-full rounded-2xl overflow-hidden glass-panel border border-slate-200/90 shadow-sm font-sans">
       {/* Google Maps Style Timeline Control Header */}
-      <div className="p-3.5 border-b border-panel-border bg-black/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="p-3.5 border-b border-slate-200 bg-white/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-            <Route size={18} />
+          <div className="p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 shadow-xs">
+            <Route size={20} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-mono text-xs font-bold text-white tracking-wider uppercase">
+              <h3 className="font-sans text-xs font-bold text-slate-900 tracking-tight uppercase">
                 {unitCode} LIVE PATROL TIMELINE
               </h3>
               <span
-                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold flex items-center gap-1 border ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold flex items-center gap-1 border uppercase ${
                   isMoving
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-sky-50 text-sky-800 border-sky-200'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${isMoving ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400'}`} />
+                <span className={`w-2 h-2 rounded-full ${isMoving ? 'bg-emerald-600 animate-pulse' : 'bg-sky-600'}`} />
                 {isMoving ? 'MOVING' : 'STATIONARY'}
               </span>
               {gpsAccuracy && (
-                <span className="text-[9px] font-mono text-foreground/40 hidden sm:inline">
+                <span className="text-[10px] font-sans text-slate-500 font-medium hidden sm:inline">
                   (GPS ±{gpsAccuracy}m)
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-mono text-foreground/60 mt-0.5">
-              <MapPin size={11} className="text-cyan-400 shrink-0" />
-              <span className="text-white font-medium truncate max-w-[320px]">{currentStation}</span>
+            <div className="flex items-center gap-1 text-xs font-sans text-slate-600 mt-0.5 font-medium">
+              <MapPin size={12} className="text-sky-600 shrink-0" />
+              <span className="text-slate-900 font-bold truncate max-w-[320px]">{currentStation}</span>
             </div>
           </div>
         </div>
 
         {/* Real-time Telemetry Stats (Tied to Real Movement) */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex flex-col text-right font-mono">
-            <span className="text-[9px] text-foreground/40 uppercase">DISTANCE PATROLLED</span>
-            <span className="text-xs font-bold text-cyan-400">
+        <div className="flex items-center gap-3 flex-wrap font-sans">
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] text-slate-500 font-bold uppercase">DISTANCE PATROLLED</span>
+            <span className="text-xs font-bold text-sky-800">
               {sessionDistance >= 1000 ? `${(sessionDistance / 1000).toFixed(2)} km` : `${sessionDistance} m`}
             </span>
           </div>
 
-          <div className="flex flex-col text-right font-mono border-l border-white/10 pl-3">
-            <span className="text-[9px] text-foreground/40 uppercase">SPEED</span>
-            <span className="text-xs font-bold text-white">{speedKmh.toFixed(1)} km/h</span>
+          <div className="flex flex-col text-right border-l border-slate-200 pl-3">
+            <span className="text-[10px] text-slate-500 font-bold uppercase">SPEED</span>
+            <span className="text-xs font-bold text-slate-900">{speedKmh.toFixed(1)} km/h</span>
           </div>
 
           <div className="flex items-center gap-2 pl-2">
@@ -336,7 +336,7 @@ export default function FleetTimelineMap({ unitId, unitCode = 'Q-01' }: FleetTim
             <button
               onClick={() => setCenterTrigger(c => c + 1)}
               title="Center Map on Robot"
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 transition-colors shadow-xs"
             >
               <LocateFixed size={14} />
             </button>
@@ -345,7 +345,7 @@ export default function FleetTimelineMap({ unitId, unitCode = 'Q-01' }: FleetTim
             <button
               onClick={handleClearTrail}
               title="Reset Session Distance & Trail"
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-foreground/70 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 transition-colors border border-slate-300 shadow-xs"
             >
               <RotateCcw size={14} />
             </button>
@@ -360,13 +360,13 @@ export default function FleetTimelineMap({ unitId, unitCode = 'Q-01' }: FleetTim
                   setIsSimulating(true);
                 }
               }}
-              className={`px-2.5 py-1.5 rounded-xl font-mono text-[10px] font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs ${
                 isSimulating
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-white/5 text-foreground/60 hover:text-white border border-white/10'
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                  : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300'
               }`}
             >
-              {isSimulating ? <Pause size={12} /> : <Play size={12} />}
+              {isSimulating ? <Pause size={13} /> : <Play size={13} />}
               <span>{isSimulating ? 'STOP SIM' : 'DEMO WALK'}</span>
             </button>
           </div>
@@ -378,7 +378,7 @@ export default function FleetTimelineMap({ unitId, unitCode = 'Q-01' }: FleetTim
         <MapContainer
           center={currentCoord}
           zoom={17}
-          style={{ height: '100%', width: '100%', background: '#08090c' }}
+          style={{ height: '100%', width: '100%', background: '#f8fafc' }}
           zoomControl={false}
         >
           <CameraController center={currentCoord} trigger={centerTrigger} />
