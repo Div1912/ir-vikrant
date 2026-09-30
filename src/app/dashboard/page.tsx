@@ -252,9 +252,9 @@ export default function DashboardPage() {
         {/* Left / Center Col: Map (Top) & Video + Sensor Telemetry / Captures (Bottom) */}
         <div className="flex flex-col flex-1 gap-4 overflow-hidden">
           {/* Main Map with Path Trail & Coordinate Telemetry */}
-          <div className="flex-1 min-h-[380px] glass-panel rounded-xl overflow-hidden relative">
-            <div className="absolute top-4 left-4 z-10 glass-panel px-3 py-1 text-xs font-mono tracking-widest text-accent rounded-md flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <div className="flex-1 min-h-[380px] glass-panel rounded-xl overflow-hidden relative shadow-xs">
+            <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md border border-slate-200/90 px-3 py-1 text-xs font-mono tracking-widest text-sky-700 font-bold rounded-md flex items-center gap-2 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-sky-600 animate-pulse shadow-[0_0_8px_#0284c7]" />
               LIVE TACTICAL PATROL MAP
             </div>
             <MainMap />
@@ -265,15 +265,15 @@ export default function DashboardPage() {
             {/* Tray Header & Tab Selector */}
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-bold tracking-wider text-foreground/70 uppercase flex items-center gap-1.5">
-                  <Activity size={14} className="text-cyan-400" />
+                <span className="text-[11px] font-mono font-bold tracking-wider text-slate-800 uppercase flex items-center gap-1.5">
+                  <Activity size={14} className="text-sky-600" />
                   OPERATIONAL FEEDS & RECON
                 </span>
-                <div className="flex items-center bg-white/[0.03] rounded-lg p-0.5 border border-white/10 text-[10px] font-mono">
+                <div className="flex items-center bg-slate-200/60 rounded-lg p-0.5 border border-slate-300/60 text-[10px] font-mono">
                   <button
                     onClick={() => setBottomView('split')}
                     className={`px-2.5 py-1 rounded-md transition-all ${
-                      bottomView === 'split' ? 'bg-white/15 text-white font-bold' : 'text-foreground/50 hover:text-white'
+                      bottomView === 'split' ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     COMBINED SPLIT
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => setBottomView('captures')}
                     className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
-                      bottomView === 'captures' ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40' : 'text-foreground/50 hover:text-white'
+                      bottomView === 'captures' ? 'bg-sky-600 text-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <Scan size={11} />
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => setBottomView('sensors')}
                     className={`px-2.5 py-1 rounded-md transition-all ${
-                      bottomView === 'sensors' ? 'bg-white/15 text-white font-bold' : 'text-foreground/50 hover:text-white'
+                      bottomView === 'sensors' ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     SENSORS ONLY
@@ -301,7 +301,7 @@ export default function DashboardPage() {
               {/* Link to Dedicated Page */}
               <Link
                 href="/dashboard/captures"
-                className="liquid-btn px-3 py-1 rounded-lg text-[10px] font-mono text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5"
+                className="liquid-btn px-3 py-1 rounded-lg text-[10px] font-mono text-sky-700 font-bold border border-sky-300/80 flex items-center gap-1.5 shadow-xs"
               >
                 <span>OPEN DEDICATED CAPTURES PAGE</span>
                 <ChevronRight size={13} />
@@ -572,14 +572,14 @@ export default function DashboardPage() {
 
 function KpiCard({ title, value, icon }: { title: string; value: string | number; icon?: React.ReactNode }) {
   return (
-    <div className="flex-1 glass-liquid p-4 flex flex-col justify-center relative overflow-hidden group border border-white/10 hover:border-[#b8d4f0]/30 transition-all duration-300">
-      <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-25 group-hover:scale-110 transition-all duration-500 text-[#b8d4f0]">
+    <div className="flex-1 glass-liquid p-4 flex flex-col justify-center relative overflow-hidden group border border-slate-200/80 hover:border-sky-300 transition-all duration-300 shadow-xs">
+      <div className="absolute -right-4 -top-4 opacity-15 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500 text-sky-600">
         {icon}
       </div>
-      <div className="text-[10px] text-zinc-400 font-mono tracking-widest uppercase mb-1">{title}</div>
-      <div className="text-3xl font-mono font-bold tracking-tight text-white flex items-center justify-between">
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-200 to-[#b8d4f0]">{value}</span>
-        {icon && <span className="opacity-90 text-[#b8d4f0]">{icon}</span>}
+      <div className="text-[10px] text-slate-600 font-mono tracking-widest uppercase mb-1 font-semibold">{title}</div>
+      <div className="text-3xl font-mono font-bold tracking-tight text-slate-900 flex items-center justify-between">
+        <span className="text-slate-900">{value}</span>
+        {icon && <span className="opacity-90 text-sky-600">{icon}</span>}
       </div>
     </div>
   );

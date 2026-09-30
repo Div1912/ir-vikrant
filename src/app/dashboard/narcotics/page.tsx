@@ -751,31 +751,31 @@ void loop() {
       )}
 
       {/* Top Header Rail */}
-      <div className="glass-liquid p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-white/10">
+      <div className="glass-liquid p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-[#b8d4f0]/10 border border-[#b8d4f0]/30 text-[#b8d4f0] shadow-[0_0_15px_rgba(184,212,240,0.15)]">
+          <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-700 shadow-sm">
             <FlaskConical size={26} />
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-mono text-base font-bold text-white tracking-wider uppercase">
+              <h1 className="font-mono text-base font-bold text-slate-900 tracking-wider uppercase">
                 NARCOTICS MONITORING & CHEMICAL SENSOR TELEMETRY
               </h1>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 border ${
                   isSerialConnected
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                    : 'bg-[#b8d4f0]/10 text-[#b8d4f0] border-[#b8d4f0]/30'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-sky-50 text-sky-800 border-sky-200'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${isSerialConnected ? 'bg-emerald-400 animate-pulse' : 'bg-[#b8d4f0]'}`} />
+                <span className={`w-2 h-2 rounded-full ${isSerialConnected ? 'bg-emerald-600 animate-pulse' : 'bg-sky-600'}`} />
                 {isSerialConnected ? 'ARDUINO USB CONNECTED' : 'SYNTHETIC TELEMETRY STREAM'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 mt-1">
-              <MapPin size={13} className="text-[#b8d4f0]" />
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-600 mt-1">
+              <MapPin size={13} className="text-sky-600" />
               <span>{stationName}</span>
-              <span className="text-zinc-600">•</span>
+              <span className="text-slate-300">•</span>
               <span>e-Nose Multi-Gas Array (MQ-3 Alcohol / MQ-135 Precursors)</span>
             </div>
           </div>

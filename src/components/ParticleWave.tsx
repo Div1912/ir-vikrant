@@ -114,7 +114,7 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
       fragmentShader: particleFragment,
       uniforms: {
         uTime: { value: 0 },
-        uColor: { value: new THREE.Vector3(0.72, 0.88, 1.0) } // Luminous Ice-Blue (#b8d4f0)
+        uColor: { value: new THREE.Vector3(0.08, 0.42, 0.82) } // Luminous Sapphire-Cobalt Blue for bright mode visibility
       }
     });
 
