@@ -49,11 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardBackground />
 
       {/* iOS Liquid Crystal Side Navigation Rail */}
-      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/45 backdrop-blur-3xl border-r border-white/60 z-40 relative shadow-[4px_0_30px_rgba(0,0,0,0.03)]">
+      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/15 backdrop-blur-3xl border-r border-white/40 z-40 relative shadow-none">
         {/* Brand Logo & Ghost Header */}
-        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/60">
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/40">
           <Link href="/dashboard" className="flex items-center gap-3 group" title="IR Vikrant Ghost Command Center">
-            <div className="w-9.5 h-9.5 rounded-2xl bg-gradient-to-b from-white/90 to-white/50 border border-white/80 flex items-center justify-center shadow-sm group-hover:scale-105 transition-all">
+            <div className="w-9.5 h-9.5 rounded-2xl bg-white/60 border border-white/80 flex items-center justify-center shadow-xs group-hover:scale-105 transition-all">
               <VikrantLogo size={22} />
             </div>
             <div className="flex flex-col">
@@ -81,14 +81,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group relative
                   ${
                     isActive
-                      ? 'bg-gradient-to-r from-sky-500/20 to-sky-600/10 text-sky-950 font-bold border border-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_rgba(2,132,199,0.15)]'
-                      : 'text-slate-700 hover:bg-white/40 hover:text-slate-950'
+                      ? 'bg-gradient-to-r from-sky-500/25 to-sky-600/15 text-sky-950 font-bold border border-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_rgba(2,132,199,0.15)]'
+                      : 'text-slate-800 hover:bg-white/30 hover:text-slate-950 font-medium'
                   }
                 `}
               >
                 <Icon
                   className={`w-4 h-4 transition-colors ${
-                    isActive ? 'text-sky-600' : 'text-slate-500 group-hover:text-slate-800'
+                    isActive ? 'text-sky-600' : 'text-slate-600 group-hover:text-slate-900'
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
@@ -104,21 +104,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Bottom Utility / Settings */}
-        <div className="p-3 border-t border-white/60 flex flex-col gap-1.5">
+        <div className="p-3 border-t border-white/40 flex flex-col gap-1.5">
           <Link
             href="/dashboard/settings"
             className={`
               flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group
               ${
                 pathname === '/dashboard/settings'
-                  ? 'bg-gradient-to-r from-sky-500/20 to-sky-600/10 text-sky-950 font-bold border border-white/80 shadow-sm'
-                  : 'text-slate-700 hover:bg-white/40 hover:text-slate-950'
+                  ? 'bg-gradient-to-r from-sky-500/25 to-sky-600/15 text-sky-950 font-bold border border-white/80 shadow-xs'
+                  : 'text-slate-800 hover:bg-white/30 hover:text-slate-950 font-medium'
               }
             `}
           >
             <Settings
               className={`w-4 h-4 transition-colors ${
-                pathname === '/dashboard/settings' ? 'text-sky-600' : 'text-slate-500 group-hover:text-slate-800'
+                pathname === '/dashboard/settings' ? 'text-sky-600' : 'text-slate-600 group-hover:text-slate-900'
               }`}
             />
             <span>Settings</span>
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area with Ghost Top Header */}
       <div className="flex-1 relative overflow-hidden flex flex-col z-10 bg-transparent min-w-0">
         {/* Top Header */}
-        <header className="h-20 bg-white/40 backdrop-blur-3xl border-b border-white/60 flex items-center justify-between px-8 sticky top-0 z-30 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+        <header className="h-20 bg-white/20 backdrop-blur-3xl border-b border-white/40 flex items-center justify-between px-8 sticky top-0 z-30 shadow-none">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight uppercase text-slate-900 font-mono flex items-center gap-2">
               <span className="text-sky-600">/</span> {activeTitle}
