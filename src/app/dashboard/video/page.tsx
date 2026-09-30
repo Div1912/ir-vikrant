@@ -24,20 +24,20 @@ export default function VideoWallPage() {
   if (focusedId) {
     const feed = feeds.find(f => f.id === focusedId)!;
     return (
-      <div className="flex flex-col h-full w-full p-4 gap-4">
-        <div className="flex justify-between items-center glass-panel px-4 py-3 rounded-xl shrink-0">
-          <div className="flex items-center gap-3 text-sm font-mono tracking-widest text-foreground/70">
-            <VideoIcon size={16} /> 
+      <div className="flex flex-col h-full w-full p-4 gap-4 font-sans bg-transparent">
+        <div className="flex justify-between items-center glass-panel px-5 py-4 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
+          <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-900">
+            <VideoIcon size={20} className="text-sky-600" /> 
             FOCUS VIEW: {feed.unit} ({feed.location})
           </div>
           <button
             onClick={() => setFocusedId(null)}
-            className="text-xs px-3 py-1 bg-white/10 hover:bg-white/20 rounded font-mono transition-colors"
+            className="text-xs px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl font-sans font-bold transition-colors shadow-xs"
           >
             EXIT FOCUS
           </button>
         </div>
-        <div className="flex-1 glass-panel rounded-xl overflow-hidden relative">
+        <div className="flex-1 glass-panel rounded-2xl overflow-hidden relative border border-slate-200/90 shadow-sm">
           {feed.isLiveCam ? (
             <LiveCameraFeed unitCode={feed.unit} location={feed.location} className="w-full h-full" />
           ) : (
@@ -49,29 +49,29 @@ export default function VideoWallPage() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full p-4 gap-4">
-      <div className="flex justify-between items-center glass-panel px-4 py-3 rounded-xl shrink-0">
-        <div className="flex items-center gap-3 text-sm font-mono tracking-widest text-foreground/70">
-          <VideoIcon size={16} /> 
+    <div className="flex flex-col h-full w-full p-4 gap-4 font-sans bg-transparent">
+      <div className="flex justify-between items-center glass-panel px-5 py-4 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-900">
+          <VideoIcon size={20} className="text-sky-600" /> 
           TACTICAL VIDEO WALL (OPERATOR LIVE FEEDS)
         </div>
-        <div className="text-xs font-mono text-foreground/50">
+        <div className="text-xs font-sans font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
           {feeds.filter(f => f.status === 'live').length} ACTIVE STREAMS
         </div>
       </div>
       
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-4">
         {feeds.map(feed => (
-          <div key={feed.id} className="glass-panel rounded-xl overflow-hidden relative group">
+          <div key={feed.id} className="glass-panel rounded-2xl overflow-hidden relative group border border-slate-200/90 shadow-sm">
             {feed.isLiveCam ? (
               <div className="w-full h-full relative">
                 <LiveCameraFeed unitCode={feed.unit} location={feed.location} className="w-full h-full" />
                 <button
                   onClick={() => setFocusedId(feed.id)}
-                  className="absolute top-2 right-12 z-20 p-1.5 bg-black/60 hover:bg-black/80 rounded border border-white/10 text-white/70 hover:text-white transition-colors"
+                  className="absolute top-3 right-14 z-20 p-2 bg-slate-900/80 hover:bg-slate-900 rounded-xl border border-slate-700 text-white transition-colors backdrop-blur-sm shadow-md"
                   title="Focus View"
                 >
-                  <Maximize size={13} />
+                  <Maximize size={14} />
                 </button>
               </div>
             ) : (
@@ -108,37 +108,37 @@ function FeedRenderer({
           className={`w-full h-full object-cover ${
             feed.mode === 'thermal'
               ? 'hue-rotate-[180deg] saturate-200 contrast-125'
-              : 'grayscale opacity-70'
+              : 'grayscale opacity-80'
           }`}
         >
           <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
         </video>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black/50 gap-3">
-          <Radio size={32} className={`opacity-20 ${feed.status === 'buffering' ? 'animate-pulse' : ''}`} />
-          <span className="text-xs font-mono text-foreground/30 uppercase tracking-widest">
+        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 gap-3">
+          <Radio size={32} className={`text-slate-600 ${feed.status === 'buffering' ? 'animate-pulse' : ''}`} />
+          <span className="text-xs font-sans font-bold text-slate-400 uppercase tracking-tight">
             {feed.status === 'lost' ? 'SIGNAL LOST' : 'BUFFERING...'}
           </span>
         </div>
       )}
       
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/60 pointer-events-none" />
       
       <div className="absolute top-3 left-3">
-        <span className="text-xs font-mono bg-black/60 px-2 py-1 rounded text-white backdrop-blur-sm border border-white/10">
+        <span className="text-xs font-sans font-bold bg-slate-950/80 px-2.5 py-1 rounded-lg text-white backdrop-blur-sm border border-slate-700 shadow-md">
           {feed.unit}
         </span>
-        <div className="text-[10px] text-white/50 mt-1 font-mono">{feed.location}</div>
+        <div className="text-[11px] text-slate-300 mt-1 font-sans font-medium">{feed.location}</div>
       </div>
       
       <div className="absolute top-3 right-3 flex items-center gap-2">
         <span
-          className={`w-2 h-2 rounded-full inline-block shadow-[0_0_8px_rgba(0,0,0,0.5)] ${
+          className={`w-2.5 h-2.5 rounded-full inline-block shadow-md ${
             feed.status === 'live'
-              ? 'bg-success animate-pulse'
+              ? 'bg-emerald-500 animate-pulse'
               : feed.status === 'buffering'
-              ? 'bg-warning'
-              : 'bg-destructive'
+              ? 'bg-amber-500'
+              : 'bg-red-500'
           }`}
         />
       </div>
@@ -146,18 +146,18 @@ function FeedRenderer({
       <div className="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={onToggleMode}
-          className="p-2 bg-black/60 hover:bg-black/80 rounded border border-white/10 text-white/70 hover:text-white transition-colors"
+          className="p-2 bg-slate-900/80 hover:bg-slate-900 rounded-xl border border-slate-700 text-white transition-colors shadow-md backdrop-blur-sm"
           title="Toggle Mode"
         >
           <Settings2 size={16} />
         </button>
-        <div className="text-[10px] font-mono text-white/50 tracking-widest uppercase pointer-events-none">
+        <div className="text-[10px] font-sans text-slate-300 tracking-tight font-bold uppercase pointer-events-none">
           {feed.mode} MODE
         </div>
         {onFocus && (
           <button
             onClick={onFocus}
-            className="p-2 bg-black/60 hover:bg-black/80 rounded border border-white/10 text-white/70 hover:text-white transition-colors"
+            className="p-2 bg-slate-900/80 hover:bg-slate-900 rounded-xl border border-slate-700 text-white transition-colors shadow-md backdrop-blur-sm"
             title="Focus View"
           >
             <Maximize size={16} />

@@ -675,31 +675,31 @@ void loop() {
       )}
 
       {/* Top Header & Hardware Connectivity Rail */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-red-500/20">
-        <div className="flex items-center gap-3.5">
-          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-            <Flame size={24} />
+      <div className="glass-panel p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 shadow-sm">
+            <Flame size={26} />
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="font-mono text-base font-bold text-white tracking-wider uppercase">
+            <div className="flex items-center gap-3">
+              <h1 className="font-sans text-base font-bold text-slate-900 tracking-tight">
                 EXPLOSIVES TRACE & RDX MEMS DETECTION
               </h1>
               <span
-                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase flex items-center gap-1.5 border ${
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase flex items-center gap-1.5 border ${
                   isSerialConnected
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-red-500/10 text-red-300 border-red-500/30'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-rose-50 text-rose-800 border-rose-200'
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${isSerialConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                <span className={`w-2 h-2 rounded-full ${isSerialConnected ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'}`} />
                 {isSerialConnected ? 'ARDUINO UNO LIVE (HARDWARE CONNECTED)' : 'MOCK SIMULATOR STREAM (STANDBY FOR ARDUINO)'}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs font-mono text-foreground/60 mt-0.5">
-              <MapPin size={12} className="text-red-400" />
+            <div className="flex items-center gap-2 text-xs font-sans text-slate-600 mt-1 font-medium">
+              <MapPin size={13} className="text-rose-600" />
               <span>{stationName}</span>
-              <span className="text-foreground/30">•</span>
+              <span className="text-slate-300">•</span>
               <span>Microcantilever Resonance (MEMS) + Differential Scanning Calorimetry (DSC)</span>
             </div>
           </div>
@@ -710,21 +710,21 @@ void loop() {
           {/* Camera Source Indicator */}
           <Link
             href="/dashboard/settings"
-            className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all border ${
+            className={`px-3 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-2 transition-all border shadow-xs ${
               cameraSource === 'ip_webcam'
                 ? ipCamConnected
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
-                : 'bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30'
+                  ? 'bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100'
+                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                : 'bg-purple-50 text-purple-800 border-purple-300 hover:bg-purple-100'
             }`}
             title="Configured camera for spike auto-capture. Click to change in Settings."
           >
-            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-cyan-400' : ''} />
+            <Smartphone size={14} className={cameraSource === 'ip_webcam' && ipCamConnected ? 'animate-pulse text-sky-600' : ''} />
             <span>
               {cameraSource === 'ip_webcam'
                 ? ipCamConnected
-                  ? 'PHONE CAM (LIVE)'
-                  : 'PHONE CAM (CONNECTING)'
+                  ? 'PHONE CAM LIVE'
+                  : 'PHONE CAM CONNECTING'
                 : 'LAPTOP WEBCAM'}
             </span>
           </Link>
@@ -732,10 +732,10 @@ void loop() {
           {/* Connect Arduino Button */}
           <button
             onClick={connectArduinoSerial}
-            className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all liquid-btn ${
+            className={`px-3 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 transition-all border shadow-xs ${
               isSerialConnected
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                : 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30'
+                ? 'bg-emerald-600 text-white border-emerald-700'
+                : 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800'
             }`}
           >
             <Usb size={14} />
@@ -745,16 +745,16 @@ void loop() {
           {/* Flash Code Modal Button */}
           <button
             onClick={() => setShowArduinoModal(true)}
-            className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 glass-panel text-foreground/70 hover:text-white border border-panel-border"
+            className="px-3 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-2 bg-white/80 hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-xs"
           >
-            <Code size={14} />
+            <Code size={14} className="text-slate-600" />
             <span>ARDUINO SKETCH</span>
           </button>
 
           {/* Force Test Spike Button */}
           <button
             onClick={handleForceTestSpike}
-            className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-red-500/25 text-red-300 border border-red-500/40 hover:bg-red-500/40 transition-all"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 transition-all shadow-sm active:scale-95"
           >
             <Zap size={14} />
             <span>FORCE RDX SPIKE</span>
@@ -764,10 +764,10 @@ void loop() {
           <button
             onClick={() => setIsUsingMockData(v => !v)}
             disabled={isSerialConnected}
-            className={`p-1.5 rounded-xl border text-xs font-mono ${
+            className={`p-2 rounded-xl border text-xs font-sans transition-all shadow-xs ${
               isUsingMockData
-                ? 'bg-white/10 text-white border-white/20'
-                : 'bg-black/40 text-foreground/40 border-panel-border'
+                ? 'bg-white text-slate-800 border-slate-300'
+                : 'bg-slate-100 text-slate-400 border-slate-200'
             }`}
             title="Toggle Synthetic Mock Stream"
           >
@@ -786,88 +786,95 @@ void loop() {
       {/* KPI Gauges Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 shrink-0">
         {/* RDX Concentration Gauge */}
-        <div className={`glass-panel p-4 rounded-xl flex flex-col gap-1.5 border ${
-          isAlarmActive ? 'border-red-500 bg-red-950/25' : 'border-panel-border'
+        <div className={`glass-panel p-4.5 rounded-2xl flex flex-col gap-2 border transition-all shadow-[0_4px_16px_rgba(0,0,0,0.03)] ${
+          isAlarmActive ? 'border-rose-400 bg-rose-50/60' : 'border-white/90 hover:border-rose-300'
         }`}>
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>RDX TRACE LEVEL</span>
-            <span className={isAlarmActive ? 'text-red-400 font-bold' : 'text-emerald-400'}>
+            <span className={isAlarmActive ? 'text-rose-700 font-bold' : 'text-emerald-700 font-bold'}>
               {isAlarmActive ? 'CRITICAL DETONATION THREAT' : 'CLEAR'}
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={`text-2xl font-mono font-bold ${isAlarmActive ? 'text-red-400' : 'text-white'}`}>
+            <span className={`text-3xl font-sans font-bold ${isAlarmActive ? 'text-rose-600' : 'text-slate-950'}`}>
               {rdxConcentration}
             </span>
-            <span className="text-xs font-mono text-red-400">ng/L</span>
+            <span className="text-xs font-sans text-rose-700 font-semibold">ng/L</span>
           </div>
-          <div className="flex justify-between text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
+          <div className="flex justify-between text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             <span>ALARM LIMIT: {threshold.toFixed(0)} ng/L</span>
-            <span className="text-red-400 font-bold">{rdxConcentration >= threshold ? 'SPIKE' : 'SAFE'}</span>
+            <span className="text-rose-700 font-bold">{rdxConcentration >= threshold ? 'SPIKE' : 'SAFE'}</span>
           </div>
         </div>
 
         {/* MEMS Frequency Shift */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+        <div className="glass-panel p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-sky-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>MEMS FREQ SHIFT (Δf)</span>
-            <span className="text-cyan-400">MASS LOADING</span>
+            <span className="text-sky-700 font-bold">MASS LOADING</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{memsFreqShiftHz}</span>
-            <span className="text-xs font-mono text-cyan-300">Hz</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{memsFreqShiftHz}</span>
+            <span className="text-xs font-sans text-sky-700 font-semibold">Hz</span>
           </div>
-          <div className="text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
+          <div className="text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             PZT PIEZOELECTRIC ADSORPTION
           </div>
         </div>
 
         {/* DSC Heat Flow */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+        <div className="glass-panel p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-amber-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>DSC CALORIMETRY (ΔH)</span>
-            <span className="text-amber-400">MICRO-HEAT</span>
+            <span className="text-amber-700 font-bold">MICRO-HEAT</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{dscHeatFlowUw}</span>
-            <span className="text-xs font-mono text-amber-300">µW</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{dscHeatFlowUw}</span>
+            <span className="text-xs font-sans text-amber-700 font-semibold">µW</span>
           </div>
-          <div className="text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5">
+          <div className="text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80">
             EXOTHERMIC DEFLAGRATION SIGNATURE
           </div>
         </div>
 
         {/* Auto-Captures Counter */}
-        <div className="glass-panel p-4 rounded-xl flex flex-col gap-1.5 border border-panel-border">
-          <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+        <div className="glass-panel p-4.5 rounded-2xl flex flex-col gap-2 border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.03)] hover:border-rose-300 transition-all">
+          <div className="flex justify-between items-center text-xs font-sans font-bold text-slate-700">
             <span>SPIKE AUTO-CAPTURES</span>
-            <Camera size={13} className="text-red-400" />
+            <Camera size={14} className="text-rose-600" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-bold text-white">{captures.length}</span>
-            <span className="text-xs font-mono text-foreground/50">frames</span>
+            <span className="text-3xl font-sans font-bold text-slate-950">{captures.length}</span>
+            <span className="text-xs font-sans text-slate-500 font-medium">frames</span>
           </div>
-          <div className="text-[10px] font-mono text-foreground/40 mt-1 border-t border-white/5 pt-1.5 truncate">
+          <div className="text-[11px] font-sans text-slate-500 font-medium mt-0.5 pt-1.5 border-t border-slate-200/80 truncate">
             {lastSpikeTime ? `LAST TRIGGER: ${lastSpikeTime}` : 'STANDBY FOR SPIKE'}
           </div>
         </div>
       </div>
 
       {/* Interactive Main Visualizer & Chart */}
-      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 min-h-[380px] border border-red-500/20">
+      <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4 border border-slate-200/90 shadow-sm">
         {/* Chart Header & Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-panel-border">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-200/80">
           <div className="flex items-center gap-3">
-            <Activity size={16} className="text-red-400" />
-            <h2 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
-              REAL-TIME RDX TRACE CONCENTRATION & CALORIMETRY HEAT FLOW
-            </h2>
+            <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
+              <Activity size={20} />
+            </div>
+            <div>
+              <h2 className="font-sans text-sm font-bold text-slate-900 tracking-tight">
+                REAL-TIME RDX TRACE CONCENTRATION & CALORIMETRY HEAT FLOW
+              </h2>
+              <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
+                Microcantilever Resonance (MEMS) + Differential Scanning Calorimetry (DSC)
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
             {/* Interactive Threshold Slider */}
-            <div className="flex items-center gap-2 font-mono text-xs">
-              <span className="text-[10px] text-foreground/50 uppercase">THRESHOLD:</span>
+            <div className="flex items-center gap-2.5 font-sans text-xs bg-white/90 px-3.5 py-1.5 rounded-xl border border-slate-300 shadow-xs text-slate-800 font-semibold">
+              <span className="text-xs text-slate-500 font-medium uppercase">THRESHOLD:</span>
               <input
                 type="range"
                 min="20"
@@ -875,19 +882,19 @@ void loop() {
                 step="1"
                 value={threshold}
                 onChange={e => setThreshold(Number(e.target.value))}
-                className="w-24 accent-red-500 cursor-pointer"
+                className="w-28 accent-rose-600 cursor-pointer"
               />
-              <span className="text-xs font-bold text-red-400">{threshold.toFixed(0)} ng/L</span>
+              <span className="text-xs font-bold text-rose-700">{threshold.toFixed(0)} ng/L</span>
             </div>
 
             {/* Time Filter Buttons */}
-            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10 text-[10px] font-mono">
+            <div className="flex items-center bg-slate-200/70 rounded-xl p-0.5 border border-slate-300/80 text-xs font-sans">
               {(['5m', '15m', '1h', '24h'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setTimeRange(t)}
-                  className={`px-2.5 py-1 rounded-md transition-all uppercase ${
-                    timeRange === t ? 'bg-white/15 text-white font-bold' : 'text-foreground/50 hover:text-white'
+                  className={`px-3 py-1 rounded-lg transition-all uppercase font-semibold ${
+                    timeRange === t ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {t}
@@ -898,32 +905,32 @@ void loop() {
         </div>
 
         {/* High-Fidelity Area Chart */}
-        <div className="flex-1 w-full min-h-[290px]">
+        <div className="w-full h-[360px] pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={readings} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={readings} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
               <defs>
                 <linearGradient id="rdxGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.45} />
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#e11d48" stopOpacity={0.01} />
                 </linearGradient>
                 <linearGradient id="dscGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#d97706" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#d97706" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#22272e" />
-              <XAxis dataKey="time" stroke="#52525b" tick={{ fontSize: 10, fill: '#71717a' }} />
-              <YAxis stroke="#52525b" domain={[0, 100]} tick={{ fontSize: 10, fill: '#71717a' }} unit="ng" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.25)" />
+              <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 11, fill: '#334155', fontFamily: 'sans-serif', fontWeight: 600 }} />
+              <YAxis stroke="#64748b" domain={[0, Math.max(50, Math.ceil(threshold * 1.15))]} tick={{ fontSize: 11, fill: '#334155', fontFamily: 'sans-serif', fontWeight: 600 }} unit=" ng" />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="glass-panel p-3 rounded-xl border border-red-500/40 text-xs font-mono shadow-2xl bg-black/90">
-                        <div className="text-foreground/50 mb-1 font-bold">{label}</div>
-                        <div className="text-red-400">RDX Trace: {payload[0]?.value} ng/L</div>
-                        <div className="text-amber-400">DSC Heat Flow: {payload[1]?.value} µW</div>
-                        <div className="text-cyan-400">MEMS Shift: {payload[0]?.payload?.mems} Hz</div>
-                        <div className="text-[10px] text-foreground/40 mt-1">Source: {payload[0]?.payload?.source}</div>
+                      <div className="glass-panel p-3.5 rounded-xl border border-slate-300/90 text-xs font-sans shadow-xl bg-white/95 text-slate-900">
+                        <div className="text-slate-500 mb-1.5 font-bold">{label}</div>
+                        <div className="text-rose-700 font-bold">RDX Trace: {payload[0]?.value} ng/L</div>
+                        <div className="text-amber-700 font-bold">DSC Heat Flow: {payload[1]?.value} µW</div>
+                        <div className="text-sky-700 font-bold">MEMS Shift: {payload[0]?.payload?.mems} Hz</div>
+                        <div className="text-[10px] text-slate-500 mt-1">Source: {payload[0]?.payload?.source}</div>
                       </div>
                     );
                   }
@@ -932,39 +939,46 @@ void loop() {
               />
               <ReferenceLine
                 y={threshold}
-                stroke="#ef4444"
+                stroke="#dc2626"
                 strokeDasharray="4 4"
                 strokeWidth={2}
-                label={{ value: `ALARM THRESHOLD: ${threshold} ng/L`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }}
+                label={{ value: `ALARM THRESHOLD: ${threshold} ng/L`, fill: '#dc2626', fontSize: 11, fontFamily: 'sans-serif', fontWeight: 'bold', position: 'insideTopRight' }}
               />
-              <Area type="monotone" dataKey="rdx" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#rdxGrad)" name="RDX Trace (ng/L)" />
-              <Area type="monotone" dataKey="dsc" stroke="#f59e0b" strokeWidth={1.8} fillOpacity={1} fill="url(#dscGrad)" name="DSC Heat Flow (µW)" />
+              <Area type="monotone" dataKey="rdx" stroke="#e11d48" strokeWidth={3} fillOpacity={1} fill="url(#rdxGrad)" name="RDX Trace (ng/L)" />
+              <Area type="monotone" dataKey="dsc" stroke="#d97706" strokeWidth={2.5} fillOpacity={1} fill="url(#dscGrad)" name="DSC Heat Flow (µW)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Auto-Captured Recon Gallery (Spike Triggered Snapshots) */}
-      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 shrink-0 border border-red-500/20">
-        <div className="flex items-center justify-between pb-2 border-b border-panel-border">
-          <div className="flex items-center gap-2">
-            <Camera size={16} className="text-red-400" />
-            <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
-              AUTO-CAPTURED EXPLOSIVES RECON GALLERY (CAMERA & HUD PASSPORT)
-            </h3>
+      <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700">
+              <Camera size={20} />
+            </div>
+            <div>
+              <h3 className="font-sans text-sm font-bold text-slate-900 tracking-tight">
+                AUTO-CAPTURED EXPLOSIVES RECON GALLERY
+              </h3>
+              <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
+                Optical frames captured automatically when chemical gas spikes exceed threshold
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-foreground/50">
-              AUTO-FIRES THE INSTANT SPIKE EXCEEDS {threshold.toFixed(0)} NG/L
+            <span className="text-[11px] font-sans text-slate-500 font-semibold">
+              AUTO-FIRES INSTANTLY AT {threshold.toFixed(0)} NG/L
             </span>
             {captures.length > 0 && (
               <button
                 onClick={handleClearLogs}
                 disabled={isClearingLogs}
-                className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 flex items-center gap-1.5 transition-all active:scale-95"
+                className="px-3 py-1.5 rounded-xl font-sans text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5 transition-all shadow-xs"
                 title="Clear all explosives spike records from database"
               >
-                <Trash2 size={12} />
+                <Trash2 size={13} />
                 <span>{isClearingLogs ? 'CLEARING...' : 'CLEAR LOGS'}</span>
               </button>
             )}
@@ -972,26 +986,26 @@ void loop() {
         </div>
 
         {captures.length === 0 ? (
-          <div className="p-8 text-center font-mono text-xs text-foreground/40 flex flex-col items-center justify-center gap-2">
-            <Camera size={28} className="opacity-30" />
+          <div className="p-10 text-center font-sans text-xs text-slate-500 font-medium flex flex-col items-center justify-center gap-2">
+            <Camera size={32} className="opacity-40 text-rose-600" />
             <span>No spike captures recorded yet. Click &quot;FORCE RDX SPIKE&quot; above to test the auto-capture pipeline.</span>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3.5">
             {captures.map((cap, i) => (
               <div
                 key={cap.id || i}
                 onClick={() => setInspectCapture(cap)}
-                className="group relative rounded-xl overflow-hidden glass-panel border border-panel-border hover:border-red-400 cursor-pointer transition-all aspect-video"
+                className="group relative rounded-xl overflow-hidden glass-panel border border-slate-200 hover:border-rose-400 cursor-pointer transition-all aspect-video shadow-xs"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={cap.photo_url} alt="Explosives frame" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute bottom-1.5 left-2 right-2 flex justify-between items-center text-[9px] font-mono text-white">
-                  <span className="truncate max-w-[90px] font-bold text-red-300">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute bottom-2 left-2.5 right-2.5 flex justify-between items-center text-[10px] font-sans font-semibold text-white">
+                  <span className="truncate max-w-[90px] font-bold text-rose-300">
                     {cap.substance_name?.split(':')[1]?.split('(')[0]?.trim() || 'Spike'}
                   </span>
-                  <span className="text-white/60">
+                  <span className="text-slate-300 font-mono text-[9px]">
                     {isMounted ? new Date(cap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>

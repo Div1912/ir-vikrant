@@ -920,63 +920,63 @@ export default function WatchlistPage() {
 
       {/* High-Resolution Capture Inspector Modal */}
       {inspectMatch && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-          <div className="glass-panel p-5 rounded-2xl border border-red-500 max-w-2xl w-full flex flex-col gap-4 shadow-2xl relative">
-            <div className="flex justify-between items-center pb-3 border-b border-panel-border">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
+          <div className="bg-white/95 backdrop-blur-xl p-6 rounded-2xl border border-slate-300 max-w-2xl w-full flex flex-col gap-4 shadow-2xl relative text-slate-900">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <ScanFace size={18} className="text-red-400" />
-                <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
+                <ScanFace size={20} className="text-red-600" />
+                <h3 className="font-sans text-sm font-bold text-slate-900 uppercase tracking-tight">
                   CULPRIT INTERCEPTION DOSSIER
                 </h3>
               </div>
               <button
                 onClick={() => setInspectMatch(null)}
-                className="text-foreground/50 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 text-sm font-mono"
+                className="text-slate-400 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 text-sm font-sans font-bold"
               >
                 ✕ CLOSE
               </button>
             </div>
 
-            <div className="w-full aspect-video rounded-xl bg-black overflow-hidden relative border border-panel-border">
+            <div className="w-full aspect-video rounded-xl bg-slate-950 overflow-hidden relative border border-slate-300">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={inspectMatch.photo_url} alt="Culprit snapshot" className="w-full h-full object-cover" />
-              <div className="absolute top-2 left-2 px-2 py-1 rounded bg-red-950/90 font-mono text-xs text-red-300 border border-red-500/50">
+              <div className="absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-red-950/90 font-sans text-xs text-red-200 border border-red-500/50 font-bold">
                 {inspectMatch.substance_name}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-              <div className="p-2.5 rounded-xl bg-black/50 border border-panel-border flex flex-col">
-                <span className="text-[10px] text-foreground/40 uppercase">GPS STAMP</span>
-                <span className="text-foreground/90 font-bold">
+            <div className="grid grid-cols-2 gap-3 font-sans text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">GPS STAMP</span>
+                <span className="text-slate-900 font-bold mt-0.5">
                   {(inspectMatch.latitude || currentCoords[0]).toFixed(6)}° N, {(inspectMatch.longitude || currentCoords[1]).toFixed(6)}° E
                 </span>
-                <span className="text-[10px] text-foreground/60">{inspectMatch.station || stationName}</span>
+                <span className="text-[11px] text-slate-600 mt-0.5">{inspectMatch.station || stationName}</span>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-black/50 border border-panel-border flex flex-col">
-                <span className="text-[10px] text-foreground/40 uppercase">INTERCEPTION TIME</span>
-                <span className="text-foreground/90 font-bold">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">INTERCEPTION TIME</span>
+                <span className="text-slate-900 font-bold mt-0.5">
                   {isMounted ? new Date(inspectMatch.timestamp).toLocaleString() : ''}
                 </span>
-                <span className="text-[10px] text-red-400 font-bold">
+                <span className="text-xs text-red-600 font-bold mt-0.5">
                   MATCH SCORE: {Math.round((inspectMatch.confidence_score || 0.92) * 100)}%
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-panel-border">
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
               <Link
                 href="/dashboard/captures"
-                className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5"
+                className="text-xs font-sans font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1.5"
               >
                 <span>Open in All Captures Log</span>
-                <ExternalLink size={12} />
+                <ExternalLink size={13} />
               </Link>
 
               <button
                 onClick={() => setInspectMatch(null)}
-                className="px-4 py-2 rounded-xl liquid-btn-primary text-xs font-mono font-bold"
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-sans font-bold shadow-sm"
               >
                 ACKNOWLEDGE
               </button>
@@ -987,54 +987,54 @@ export default function WatchlistPage() {
 
       {/* Enroll Suspect Modal */}
       {showEnrollModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
-          <div className="glass-panel p-6 rounded-2xl border border-cyan-400 max-w-lg w-full flex flex-col gap-4 shadow-2xl relative">
-            <div className="flex justify-between items-center pb-3 border-b border-panel-border">
-              <div className="flex items-center gap-2 text-cyan-400">
-                <UserPlus size={18} />
-                <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in">
+          <div className="bg-white/95 backdrop-blur-xl p-6 rounded-2xl border border-sky-300 max-w-lg w-full flex flex-col gap-4 shadow-2xl relative text-slate-900">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2 text-sky-700">
+                <UserPlus size={20} />
+                <h3 className="font-sans text-sm font-bold text-slate-900 uppercase tracking-tight">
                   ENROLL SUSPECT TO WATCHLIST
                 </h3>
               </div>
               <button
                 onClick={() => setShowEnrollModal(false)}
-                className="text-foreground/50 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 text-sm font-mono"
+                className="text-slate-400 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 text-sm font-sans font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleEnrollSubmit} className="flex flex-col gap-3 font-mono text-xs">
+            <form onSubmit={handleEnrollSubmit} className="flex flex-col gap-3 font-sans text-xs">
               <div>
-                <label className="text-[10px] text-foreground/60 block mb-1">SUSPECT FULL NAME *</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">SUSPECT FULL NAME *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ramesh Kumar"
                   value={newSuspectName}
                   onChange={e => setNewSuspectName(e.target.value)}
-                  className="w-full bg-black/50 border border-panel-border rounded-xl p-2.5 text-white focus:border-cyan-400 outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:border-sky-500 focus:bg-white outline-none font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-foreground/60 block mb-1">WARRANT / CASE ID</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">WARRANT / CASE ID</label>
                   <input
                     type="text"
                     placeholder="RPF-W-2026-99"
                     value={newSuspectWarrant}
                     onChange={e => setNewSuspectWarrant(e.target.value)}
-                    className="w-full bg-black/50 border border-panel-border rounded-xl p-2.5 text-white focus:border-cyan-400 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:border-sky-500 focus:bg-white outline-none font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-foreground/60 block mb-1">HAZARD LEVEL</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">HAZARD LEVEL</label>
                   <select
                     value={newSuspectHazard}
                     onChange={e => setNewSuspectHazard(e.target.value as any)}
-                    className="w-full bg-black/50 border border-panel-border rounded-xl p-2.5 text-white focus:border-cyan-400 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:border-sky-500 focus:bg-white outline-none font-semibold"
                   >
                     <option value="CRITICAL">CRITICAL</option>
                     <option value="HIGH">HIGH</option>
@@ -1044,18 +1044,18 @@ export default function WatchlistPage() {
               </div>
 
               <div>
-                <label className="text-[10px] text-foreground/60 block mb-1">CHARGE / OFFENSE</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">CHARGE / OFFENSE</label>
                 <input
                   type="text"
                   placeholder="Contraband smuggling / station theft"
                   value={newSuspectOffense}
                   onChange={e => setNewSuspectOffense(e.target.value)}
-                  className="w-full bg-black/50 border border-panel-border rounded-xl p-2.5 text-white focus:border-cyan-400 outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 focus:border-sky-500 focus:bg-white outline-none font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] text-foreground/60 block mb-1">REFERENCE PHOTO (UPLOAD OR URL) *</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">REFERENCE PHOTO (UPLOAD OR URL) *</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="file"
@@ -1067,7 +1067,7 @@ export default function WatchlistPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 py-2 rounded-xl border border-dashed border-cyan-400/60 hover:bg-cyan-500/10 text-cyan-300 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl border border-dashed border-sky-400 bg-sky-50/50 hover:bg-sky-100/60 text-sky-800 font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Upload size={14} />
                     <span>Upload from Device</span>
@@ -1078,29 +1078,29 @@ export default function WatchlistPage() {
                   placeholder="Or paste image URL (e.g. /watchlist/suspect_1.svg)"
                   value={newSuspectPhotoUrl}
                   onChange={e => setNewSuspectPhotoUrl(e.target.value)}
-                  className="w-full bg-black/50 border border-panel-border rounded-xl p-2 text-foreground/80 focus:border-cyan-400 outline-none text-[11px]"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-slate-900 focus:border-sky-500 focus:bg-white outline-none text-xs font-medium"
                 />
               </div>
 
               {newSuspectPhotoUrl && (
-                <div className="flex items-center gap-3 p-2 bg-black/40 rounded-xl border border-panel-border">
+                <div className="flex items-center gap-3 p-2 bg-emerald-50 rounded-xl border border-emerald-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={newSuspectPhotoUrl} alt="Preview" className="w-12 h-12 rounded object-cover border" />
-                  <span className="text-[10px] text-emerald-400">Photo Loaded • Ready to Enroll</span>
+                  <img src={newSuspectPhotoUrl} alt="Preview" className="w-12 h-12 rounded object-cover border border-emerald-300" />
+                  <span className="text-xs font-bold text-emerald-800">Photo Loaded • Ready to Enroll</span>
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-panel-border mt-2">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 mt-2">
                 <button
                   type="button"
                   onClick={() => setShowEnrollModal(false)}
-                  className="px-4 py-2 rounded-xl glass-panel text-foreground/60 hover:text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
                 >
                   CANCEL
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl liquid-btn-primary font-bold text-black"
+                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 font-bold text-white shadow-sm"
                 >
                   ENROLL SUSPECT
                 </button>
@@ -1111,25 +1111,25 @@ export default function WatchlistPage() {
       )}
 
       {/* Top Header Rail */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-red-500/20">
-        <div className="flex items-center gap-3.5">
-          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-            <ScanFace size={24} />
+      <div className="glass-panel p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4 shrink-0 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-700 shadow-sm">
+            <ScanFace size={26} />
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="font-mono text-base font-bold text-white tracking-wider uppercase">
+            <div className="flex items-center gap-3">
+              <h1 className="font-sans text-base font-bold text-slate-900 tracking-tight">
                 CULPRIT & WANTED SUSPECT FACIAL INTERCEPTION
               </h1>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-mono font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-sans font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                 ACTIVE ON-DEVICE AI MATCHER
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs font-mono text-foreground/60 mt-0.5">
-              <MapPin size={12} className="text-red-400" />
+            <div className="flex items-center gap-2 text-xs font-sans text-slate-600 mt-1 font-medium">
+              <MapPin size={13} className="text-sky-600" />
               <span>{stationName}</span>
-              <span className="text-foreground/30">•</span>
+              <span className="text-slate-300">•</span>
               <span>128-D Spatial HOG & Euclidean Biometric Embedding Cross-Reference</span>
             </div>
           </div>
@@ -1140,7 +1140,7 @@ export default function WatchlistPage() {
           {/* Quick Enroll Current Face from Live Camera */}
           <button
             onClick={handleQuickEnrollCurrentFace}
-            className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all shadow-md active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-1.5 bg-emerald-600 text-white border border-emerald-700 hover:bg-emerald-700 transition-all shadow-sm active:scale-95"
             title="Instantly snap the face in front of the camera and enroll into watchlist"
           >
             <Camera size={14} />
@@ -1150,24 +1150,24 @@ export default function WatchlistPage() {
           {/* Enroll Suspect Button */}
           <button
             onClick={() => setShowEnrollModal(true)}
-            className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition-all"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-semibold flex items-center gap-1.5 bg-white/80 hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-xs"
           >
-            <UserPlus size={14} />
+            <UserPlus size={14} className="text-slate-600" />
             <span>+ ENROLL SUSPECT</span>
           </button>
 
           {/* Simulate Interception Button */}
           <button
             onClick={() => handleSimulateMatch()}
-            className="px-3.5 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-1.5 bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 transition-all shadow-sm active:scale-95"
           >
             <Sparkles size={14} />
             <span>TEST CULPRIT MATCH</span>
           </button>
 
           {/* Sensitivity Slider */}
-          <div className="flex items-center gap-2 bg-black/40 px-3 py-1 rounded-xl border border-panel-border text-xs font-mono">
-            <span className="text-[10px] text-foreground/50">THRESHOLD:</span>
+          <div className="flex items-center gap-2.5 bg-white/90 px-3.5 py-1.5 rounded-xl border border-slate-300 text-xs font-sans shadow-xs text-slate-800 font-semibold">
+            <span className="text-xs text-slate-500 font-medium uppercase">THRESHOLD:</span>
             <input
               type="range"
               min="0.30"
@@ -1179,9 +1179,9 @@ export default function WatchlistPage() {
                 setMatchThreshold(val);
                 if (typeof window !== 'undefined') localStorage.setItem('vikrant_face_match_threshold', String(val));
               }}
-              className="w-20 accent-red-500 cursor-pointer"
+              className="w-20 accent-sky-600 cursor-pointer"
             />
-            <span className="text-xs font-bold text-red-400">{Math.round(matchThreshold * 100)}%</span>
+            <span className="text-xs font-bold text-sky-700">{Math.round(matchThreshold * 100)}%</span>
           </div>
         </div>
       </div>
@@ -1230,11 +1230,11 @@ export default function WatchlistPage() {
       {/* Main Split Interface: Left Camera / Right Watchlist */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[440px]">
         {/* Left Column: Live Recon Camera with Optical Target Overlay (7 Cols) */}
-        <div className="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-panel-border overflow-hidden">
-          <div className="flex items-center justify-between pb-2 border-b border-panel-border flex-wrap gap-2">
+        <div className="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-slate-200/90 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <Camera size={16} className="text-red-400" />
-              <h2 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
+              <Camera size={18} className="text-sky-600" />
+              <h2 className="font-sans text-xs font-bold text-slate-900 tracking-tight uppercase">
                 RECON FEED • AUTONOMOUS FACIAL MATCHER
               </h2>
             </div>
@@ -1245,7 +1245,7 @@ export default function WatchlistPage() {
                 <select
                   value={selectedDeviceId}
                   onChange={e => setSelectedDeviceId(e.target.value)}
-                  className="bg-black/80 border border-white/15 rounded-lg px-2 py-0.5 text-[10px] font-mono text-cyan-300 focus:outline-none focus:border-cyan-400 max-w-[140px] truncate"
+                  className="bg-white/90 border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-sans text-slate-800 font-semibold focus:outline-none focus:border-sky-500 max-w-[150px] truncate shadow-xs"
                   title="Select video source (e.g. Laptop Cam, Iriun Webcam, DroidCam)"
                 >
                   {videoDevices.map((dev, idx) => (
@@ -1259,25 +1259,25 @@ export default function WatchlistPage() {
               {/* IP Cam Toggle */}
               <button
                 onClick={() => setShowIpModal(!showIpModal)}
-                className={`px-2 py-0.5 rounded-lg border text-[9px] font-mono font-bold flex items-center gap-1 transition-all ${
+                className={`px-2.5 py-1 rounded-lg border text-xs font-sans font-bold flex items-center gap-1 transition-all shadow-xs ${
                   feedSource === 'ip_webcam'
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400'
-                    : 'bg-black/60 text-foreground/60 border-white/10 hover:text-white'
+                    ? 'bg-sky-50 text-sky-800 border-sky-300'
+                    : 'bg-white/90 text-slate-700 border-slate-300 hover:bg-slate-100'
                 }`}
                 title="Connect to phone IP Webcam stream"
               >
                 <span>IP CAM</span>
                 {feedSource === 'ip_webcam' && (
-                  <span className={`w-1.5 h-1.5 rounded-full ${ipCamConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-ping'}`} />
+                  <span className={`w-2 h-2 rounded-full ${ipCamConnected ? 'bg-emerald-500' : 'bg-amber-500 animate-ping'}`} />
                 )}
               </button>
 
-              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+              <span className={`text-xs font-sans px-2.5 py-1 rounded-full border ${
                 activeMatchTarget
-                  ? 'bg-red-500/20 text-red-400 border-red-500/40 font-bold animate-pulse'
+                  ? 'bg-rose-50 text-rose-800 border-rose-300 font-bold animate-pulse'
                   : lastScanScore > 0
-                  ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 font-bold'
-                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 font-bold'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold'
               }`}>
                 {activeMatchTarget
                   ? `🚨 CULPRIT MATCH: ${activeMatchTarget.suspect.name}`
@@ -1290,13 +1290,13 @@ export default function WatchlistPage() {
 
           {/* IP Webcam Stream Setup Bar */}
           {showIpModal && (
-            <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex flex-col gap-2.5 font-mono text-[10px] animate-in fade-in">
-              <div className="flex justify-between items-center text-cyan-300 font-bold">
+            <div className="p-3.5 rounded-xl bg-sky-50/80 border border-sky-200 flex flex-col gap-2.5 font-sans text-xs animate-in fade-in">
+              <div className="flex justify-between items-center text-sky-900 font-bold">
                 <span className="flex items-center gap-1.5">
                   <span>📱 MOBILE IP WEBCAM STREAM SETUP</span>
-                  {ipCamConnected && <span className="text-[9px] text-emerald-400 font-bold">● CONNECTED</span>}
+                  {ipCamConnected && <span className="text-xs text-emerald-700 font-bold">● CONNECTED</span>}
                 </span>
-                <button onClick={() => setShowIpModal(false)} className="text-foreground/40 hover:text-white">✕</button>
+                <button onClick={() => setShowIpModal(false)} className="text-slate-400 hover:text-slate-800 font-bold">✕</button>
               </div>
 
               {/* Input row */}
@@ -1309,7 +1309,7 @@ export default function WatchlistPage() {
                     setIpWebcamUrl(e.target.value);
                     setIpCamError(null);
                   }}
-                  className="flex-1 bg-black/80 border border-white/15 rounded-lg px-2.5 py-1.5 text-white text-[10px] focus:outline-none focus:border-cyan-400"
+                  className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-xs focus:outline-none focus:border-sky-500 font-medium"
                 />
                 <button
                   onClick={() => {
@@ -1323,7 +1323,7 @@ export default function WatchlistPage() {
                     setShowIpModal(false);
                     setIpCamError(null);
                   }}
-                  className="px-3 py-1.5 liquid-btn-primary font-bold text-black rounded-lg"
+                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 font-bold text-white rounded-lg shadow-xs"
                 >
                   CONNECT
                 </button>
@@ -1347,12 +1347,12 @@ export default function WatchlistPage() {
                       setTestStatus('failed');
                     }
                   }}
-                  className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
                     testStatus === 'success'
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                       : testStatus === 'failed'
-                      ? 'bg-red-500/20 text-red-300 border-red-500'
-                      : 'border-white/20 text-white/80 hover:bg-white/10'
+                      ? 'bg-red-100 text-red-800 border-red-300'
+                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {testStatus === 'testing' ? 'TESTING...' : testStatus === 'success' ? '✅ 200 OK' : testStatus === 'failed' ? '❌ FAILED' : 'TEST PING'}
@@ -1363,7 +1363,7 @@ export default function WatchlistPage() {
                       setFeedSource('device');
                       setShowIpModal(false);
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-white/20 text-white/80 hover:bg-white/10"
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 font-semibold"
                   >
                     RESET
                   </button>
@@ -1371,9 +1371,9 @@ export default function WatchlistPage() {
               </div>
 
               {/* Presets and Stream Mode */}
-              <div className="flex items-center justify-between flex-wrap gap-2 text-[9px]">
+              <div className="flex items-center justify-between flex-wrap gap-2 text-xs font-medium">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-foreground/50 font-bold">PRESETS:</span>
+                  <span className="text-slate-500 font-bold">PRESETS:</span>
                   <button
                     onClick={() => {
                       const url = 'http://10.35.147.105:8080/video';
@@ -1382,7 +1382,7 @@ export default function WatchlistPage() {
                       setFeedSource('ip_webcam');
                       setIpCamError(null);
                     }}
-                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white/80 border border-white/10"
+                    className="px-2 py-0.5 rounded bg-white hover:bg-sky-100 text-slate-700 border border-slate-300"
                   >
                     10.35.147.105 (HTTP Phone)
                   </button>
@@ -1395,7 +1395,7 @@ export default function WatchlistPage() {
                       setIpCamError(null);
                       window.open('https://10.35.147.105:8080', '_blank');
                     }}
-                    className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1"
+                    className="px-2 py-0.5 rounded bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 flex items-center gap-1 font-bold"
                     title="Opens phone HTTPS in new tab to trust SSL certificate"
                   >
                     <span>10.35.147.105 (HTTPS ↗)</span>
@@ -1408,42 +1408,42 @@ export default function WatchlistPage() {
                       setFeedSource('ip_webcam');
                       setIpCamError(null);
                     }}
-                    className="px-2 py-0.5 rounded bg-white/10 hover:bg-cyan-500/20 text-white/60 border border-white/10"
+                    className="px-2 py-0.5 rounded bg-white hover:bg-slate-100 text-slate-600 border border-slate-300"
                   >
                     10.35.147.52 (Old)
                   </button>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="text-foreground/50">ROUTE:</span>
+                  <span className="text-slate-500">ROUTE:</span>
                   <button
                     onClick={() => setIpStreamMode('direct')}
-                    className={`px-1.5 py-0.5 rounded ${ipStreamMode === 'direct' ? 'bg-cyan-500/30 text-cyan-300 font-bold' : 'text-foreground/50'}`}
+                    className={`px-2 py-0.5 rounded font-bold ${ipStreamMode === 'direct' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     DIRECT
                   </button>
                   <button
                     onClick={() => setIpStreamMode('proxy')}
-                    className={`px-1.5 py-0.5 rounded ${ipStreamMode === 'proxy' ? 'bg-cyan-500/30 text-cyan-300 font-bold' : 'text-foreground/50'}`}
+                    className={`px-2 py-0.5 rounded font-bold ${ipStreamMode === 'proxy' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     PROXY
                   </button>
                 </div>
               </div>
 
-              <span className="text-[9px] text-foreground/50">
+              <span className="text-[11px] text-slate-600">
                 1. Open <strong>IP Webcam</strong> on phone → 2. Scroll down & tap <strong>Start server</strong> → 3. Ensure both laptop and phone are on the same Wi-Fi.
               </span>
             </div>
           )}
 
           {/* Camera Surface with Live Targeting HUD */}
-          <div className="flex-1 w-full min-h-[300px] bg-black rounded-xl overflow-hidden relative border border-panel-border flex items-center justify-center">
+          <div className="flex-1 w-full min-h-[300px] bg-slate-950 rounded-xl overflow-hidden relative border border-slate-300 flex items-center justify-center shadow-inner">
             {/* Auto-Fallback Notification Banner */}
             {autoFallbackNotice && (
-              <div className="absolute top-2 inset-x-2 z-40 bg-amber-950/90 border border-amber-500/70 text-amber-200 text-[10px] font-mono px-3 py-1.5 rounded-lg flex items-center justify-between shadow-xl backdrop-blur-md animate-in fade-in">
-                <div className="flex items-center gap-1.5">
-                  <AlertTriangle size={13} className="text-amber-400 shrink-0 animate-pulse" />
+              <div className="absolute top-2 inset-x-2 z-40 bg-amber-950/90 border border-amber-500/70 text-amber-200 text-xs font-sans px-3 py-1.5 rounded-lg flex items-center justify-between shadow-xl backdrop-blur-md animate-in fade-in">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <AlertTriangle size={14} className="text-amber-400 shrink-0 animate-pulse" />
                   <span>{autoFallbackNotice}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -1453,7 +1453,7 @@ export default function WatchlistPage() {
                       setFeedSource('ip_webcam');
                       setIpCamConnected(false);
                     }}
-                    className="px-2 py-0.5 rounded bg-amber-500/25 hover:bg-amber-500/40 text-amber-100 font-bold border border-amber-500/40 text-[9px] transition-all"
+                    className="px-2.5 py-0.5 rounded bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all"
                   >
                     RETRY PHONE CAM
                   </button>
@@ -1509,8 +1509,8 @@ export default function WatchlistPage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center gap-2 p-4 text-center font-mono text-xs text-foreground/50">
-                <Camera size={28} className="text-cyan-400 animate-pulse" />
+              <div className="flex flex-col items-center justify-center gap-2 p-4 text-center font-sans text-xs text-slate-400">
+                <Camera size={28} className="text-sky-400 animate-pulse" />
                 <span>No IP stream configured. Click IP CAM above to connect phone stream.</span>
               </div>
             )}
@@ -1518,10 +1518,10 @@ export default function WatchlistPage() {
             {/* Live Camera Connection Status Pill */}
             {feedSource === 'ip_webcam' && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 z-20 pointer-events-none">
-                <div className={`px-2.5 py-1 rounded-lg text-[9px] font-mono flex items-center gap-1.5 border backdrop-blur-md font-bold shadow-lg ${
+                <div className={`px-2.5 py-1 rounded-lg text-xs font-sans flex items-center gap-1.5 border backdrop-blur-md font-bold shadow-lg ${
                   ipCamConnected
-                    ? 'bg-emerald-950/85 border-emerald-500/50 text-emerald-300'
-                    : 'bg-amber-950/85 border-amber-500/50 text-amber-300 animate-pulse'
+                    ? 'bg-slate-900/90 border-emerald-500 text-emerald-300'
+                    : 'bg-slate-900/90 border-amber-500 text-amber-300 animate-pulse'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${ipCamConnected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                   <span>
@@ -1535,10 +1535,10 @@ export default function WatchlistPage() {
 
             {/* Error Overlay if disconnected */}
             {feedSource === 'ip_webcam' && ipCamError && !ipCamConnected && (
-              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-4 text-center z-20 font-mono">
-                <AlertTriangle size={30} className="text-amber-400 mb-2 animate-bounce" />
-                <span className="text-xs text-white font-bold mb-1">PHONE CAMERA NOT REACHABLE</span>
-                <span className="text-[10px] text-foreground/70 max-w-sm mb-3">
+              <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center z-20 font-sans">
+                <AlertTriangle size={32} className="text-amber-400 mb-2 animate-bounce" />
+                <span className="text-sm text-white font-bold mb-1">PHONE CAMERA NOT REACHABLE</span>
+                <span className="text-xs text-slate-300 max-w-sm mb-3 font-medium">
                   {ipCamError}
                 </span>
                 <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
@@ -1547,9 +1547,9 @@ export default function WatchlistPage() {
                       setFeedSource('device');
                       setIpCamError(null);
                     }}
-                    className="px-3 py-1.5 liquid-btn text-cyan-300 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                    className="px-3.5 py-1.5 bg-sky-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-sky-700 transition-colors"
                   >
-                    <Camera size={12} />
+                    <Camera size={13} />
                     <span>USE LAPTOP WEBCAM</span>
                   </button>
                   <button
@@ -1560,14 +1560,14 @@ export default function WatchlistPage() {
                       setIpCamError(null);
                       window.open(httpsUrl.replace(/\/video$/, ''), '_blank');
                     }}
-                    className="px-3 py-1.5 liquid-btn-primary text-white rounded-lg text-[10px] font-bold flex items-center gap-1"
+                    className="px-3.5 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-slate-700 transition-colors"
                   >
                     <span>OPEN HTTPS & TRUST CERT</span>
-                    <ExternalLink size={10} />
+                    <ExternalLink size={11} />
                   </button>
                   <button
                     onClick={() => setShowIpModal(true)}
-                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px]"
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium"
                   >
                     CHANGE IP
                   </button>
@@ -1581,31 +1581,31 @@ export default function WatchlistPage() {
                 activeMatchTarget
                   ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.6)] bg-red-500/10 animate-pulse'
                   : lastScanScore > 0
-                  ? 'border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-amber-500/5'
-                  : 'border-cyan-400/30'
+                  ? 'border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-amber-500/10'
+                  : 'border-sky-400/40'
               }`}>
-                <div className="flex justify-between text-[8px] font-mono">
-                  <span className={activeMatchTarget ? 'text-red-400 font-bold' : lastScanScore > 0 ? 'text-amber-400 font-bold' : 'text-cyan-400'}>
+                <div className="flex justify-between text-[9px] font-mono">
+                  <span className={activeMatchTarget ? 'text-red-400 font-bold' : lastScanScore > 0 ? 'text-amber-300 font-bold' : 'text-sky-300'}>
                     {activeMatchTarget ? 'LOCK ON TARGET' : lastScanScore > 0 ? 'HUMAN IN FRAME' : 'BIO-SCANNER'}
                   </span>
                   <span className="text-white/60">64x64 HOG</span>
                 </div>
                 <div className="text-center">
                   {activeMatchTarget ? (
-                    <div className="px-2 py-0.5 rounded bg-red-950/90 border border-red-500 text-white font-mono text-[9px] font-bold animate-bounce">
+                    <div className="px-2 py-0.5 rounded bg-red-950/90 border border-red-500 text-white font-sans text-xs font-bold animate-bounce">
                       MATCH: {Math.round(activeMatchTarget.confidence * 100)}% [{activeMatchTarget.targetType === 'full_photo' ? 'PHOTO' : 'FACE'}]
                     </div>
                   ) : lastScanScore > 0 ? (
                     <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[9px] font-mono text-amber-300 font-bold">
+                      <span className="text-xs font-sans text-amber-300 font-bold">
                         LIVE FACE IN FRAME
                       </span>
-                      <span className="text-[8px] font-mono text-amber-400/90 font-semibold">
+                      <span className="text-[10px] font-sans text-amber-200 font-semibold">
                         Sim: {Math.round(lastScanScore * 100)}% (Threshold: {Math.round(matchThreshold * 100)}%)
                       </span>
                     </div>
                   ) : (
-                    <span className="text-[9px] font-mono text-emerald-400/80 font-bold">
+                    <span className="text-xs font-sans text-emerald-300 font-bold">
                       SECURE • NO HUMAN
                     </span>
                   )}
@@ -1614,12 +1614,12 @@ export default function WatchlistPage() {
             </div>
 
             {/* Bottom HUD Telemetry Strip */}
-            <div className="absolute bottom-2 left-2 right-2 p-2 rounded-lg bg-black/80 backdrop-blur-sm border border-white/10 flex justify-between items-center text-[10px] font-mono">
-              <span className="text-foreground/70 flex items-center gap-1">
-                <MapPin size={11} className="text-red-400" />
+            <div className="absolute bottom-2 left-2 right-2 p-2 rounded-lg bg-slate-950/80 backdrop-blur-sm border border-slate-700 flex justify-between items-center text-xs font-sans">
+              <span className="text-slate-300 flex items-center gap-1 font-medium">
+                <MapPin size={12} className="text-rose-400" />
                 {stationName.split('•')[0].trim()}
               </span>
-              <span className="text-cyan-400">
+              <span className="text-sky-300 font-bold">
                 WATCHLIST POOL: {watchlist.length} SUSPECTS
               </span>
             </div>
@@ -1627,16 +1627,16 @@ export default function WatchlistPage() {
         </div>
 
         {/* Right Column: Enrolled Watchlist Roster (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-panel-border overflow-hidden">
-          <div className="flex items-center justify-between pb-2 border-b border-panel-border">
+        <div className="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col gap-3 border border-slate-200/90 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <Radio size={16} className="text-cyan-400" />
-              <h2 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
+              <Radio size={18} className="text-sky-600" />
+              <h2 className="font-sans text-xs font-bold text-slate-900 tracking-tight uppercase">
                 ACTIVE SUSPECT WATCHLIST ({watchlist.length})
               </h2>
             </div>
-            <span className="text-[10px] font-mono text-foreground/40">
-              FOLDER: /public/watchlist/
+            <span className="text-xs font-sans text-slate-500 font-medium">
+              /public/watchlist/
             </span>
           </div>
 
@@ -1644,31 +1644,31 @@ export default function WatchlistPage() {
             {watchlist.map(suspect => (
               <div
                 key={suspect.id}
-                className="p-3 rounded-xl bg-black/40 border border-panel-border hover:border-white/20 transition-all flex items-center justify-between gap-3 group"
+                className="p-3.5 rounded-xl bg-white/90 border border-slate-200 hover:border-slate-300 shadow-xs transition-all flex items-center justify-between gap-3 group"
               >
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={suspect.photoUrl}
                     alt={suspect.name}
-                    className="w-12 h-12 rounded-lg object-cover border border-panel-border bg-slate-900"
+                    className="w-12 h-12 rounded-xl object-cover border border-slate-300 bg-slate-100 shrink-0"
                   />
-                  <div className="flex flex-col font-mono">
-                    <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  <div className="flex flex-col font-sans">
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
                       {suspect.name}
                     </span>
-                    <span className="text-[10px] text-foreground/60">
+                    <span className="text-xs text-slate-600 font-medium">
                       WARRANT: {suspect.warrantId}
                     </span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded ${
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         suspect.hazardLevel === 'CRITICAL'
-                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          ? 'bg-red-50 text-red-800 border border-red-200'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         {suspect.hazardLevel}
                       </span>
-                      <span className="text-[8px] text-emerald-400">128-D EMBEDDED</span>
+                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">128-D EMBEDDED</span>
                     </div>
                   </div>
                 </div>
@@ -1677,50 +1677,50 @@ export default function WatchlistPage() {
                   <button
                     onClick={() => handleSimulateMatch(suspect)}
                     title="Simulate spotting this suspect"
-                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-foreground/70 hover:text-white transition-colors text-[10px] font-mono"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-sans font-bold transition-colors text-xs"
                   >
                     TEST
                   </button>
                   <button
                     onClick={() => handleRemoveSuspect(suspect.id)}
                     title="Remove from watchlist"
-                    className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition-colors border border-red-200"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/30 text-[10px] font-mono text-cyan-200/80 flex items-center gap-2">
-            <FolderOpen size={14} className="text-cyan-400 shrink-0" />
+          <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-xs font-sans text-sky-900 font-medium flex items-center gap-2">
+            <FolderOpen size={16} className="text-sky-600 shrink-0" />
             <span>Drop images into <strong>public/watchlist/</strong> or click <strong>+ ENROLL SUSPECT</strong> to add culprits.</span>
           </div>
         </div>
       </div>
 
       {/* Bottom Section: Side-by-Side Interception Log (Live Capture vs Watchlist Mugshot) */}
-      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 shrink-0 border border-red-500/20">
-        <div className="flex items-center justify-between pb-2 border-b border-panel-border">
+      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3 shrink-0 border border-slate-200/90 shadow-sm">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <ShieldAlert size={16} className="text-red-400" />
-            <h3 className="font-mono text-xs font-bold text-white tracking-widest uppercase">
+            <ShieldAlert size={18} className="text-rose-600" />
+            <h3 className="font-sans text-xs font-bold text-slate-900 tracking-tight uppercase">
               CULPRIT INTERCEPT LOG • SIDE-BY-SIDE VERIFICATION PASSPORT
             </h3>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-foreground/50">
+            <span className="text-xs font-sans text-slate-600 font-medium">
               AUTO-DISPATCHES RPF EMERGENCY ALERT ON CONFIRMED MATCH
             </span>
             {interceptionLogs.length > 0 && (
               <button
                 onClick={handleClearLogs}
                 disabled={isClearingLogs}
-                className="px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 flex items-center gap-1.5 transition-all active:scale-95"
+                className="px-3 py-1 rounded-lg font-sans text-xs font-bold text-red-700 hover:text-red-800 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-1.5 transition-all active:scale-95 shadow-xs"
                 title="Clear all facial interception logs from database"
               >
-                <Trash2 size={12} />
+                <Trash2 size={13} />
                 <span>{isClearingLogs ? 'CLEARING...' : 'CLEAR LOGS'}</span>
               </button>
             )}
@@ -1728,8 +1728,8 @@ export default function WatchlistPage() {
         </div>
 
         {interceptionLogs.length === 0 ? (
-          <div className="p-8 text-center font-mono text-xs text-foreground/40 flex flex-col items-center justify-center gap-2">
-            <ScanFace size={28} className="opacity-30" />
+          <div className="p-8 text-center font-sans text-xs text-slate-500 font-medium flex flex-col items-center justify-center gap-2">
+            <ScanFace size={32} className="opacity-40 text-slate-400" />
             <span>No suspect interceptions recorded today. Click &quot;TEST CULPRIT MATCH&quot; above to simulate an encounter.</span>
           </div>
         ) : (
@@ -1738,14 +1738,14 @@ export default function WatchlistPage() {
               <div
                 key={`${log.id || 'log'}-${i}`}
                 onClick={() => setInspectMatch(log)}
-                className="p-3 rounded-xl glass-panel border border-panel-border hover:border-red-400 transition-all cursor-pointer flex flex-col gap-2.5 group"
+                className="p-3 rounded-xl bg-white/90 border border-slate-200 hover:border-red-400 shadow-xs transition-all cursor-pointer flex flex-col gap-2.5 group"
               >
                 {/* Header Strip */}
-                <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="text-red-400 font-bold truncate max-w-[170px]">
+                <div className="flex justify-between items-center text-xs font-sans">
+                  <span className="text-rose-700 font-bold truncate max-w-[170px]">
                     {log.substance_name?.replace('WANTED CULPRIT:', '') || 'Suspect Encounter'}
                   </span>
-                  <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold border border-red-500/30">
+                  <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-800 font-bold border border-red-200 text-[10px]">
                     {Math.round((log.confidence_score || 0.92) * 100)}% MATCH
                   </span>
                 </div>
@@ -1753,30 +1753,30 @@ export default function WatchlistPage() {
                 {/* Side-by-Side Photo Comparison */}
                 <div className="grid grid-cols-2 gap-2 aspect-[2/1] w-full rounded-lg overflow-hidden">
                   {/* Live Captured Photo */}
-                  <div className="relative bg-black h-full w-full overflow-hidden border border-white/10 rounded">
+                  <div className="relative bg-slate-950 h-full w-full overflow-hidden border border-slate-300 rounded">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={log.photo_url} alt="Live Capture" className="w-full h-full object-cover" />
-                    <span className="absolute bottom-1 left-1 px-1 py-0.2 rounded bg-black/80 text-[8px] font-mono text-red-400 border border-red-500/40">
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-slate-950/90 text-[9px] font-sans font-bold text-red-300 border border-red-500/40">
                       LIVE CAMERA
                     </span>
                   </div>
 
                   {/* Watchlist Mugshot Reference */}
-                  <div className="relative bg-black h-full w-full overflow-hidden border border-white/10 rounded">
+                  <div className="relative bg-slate-950 h-full w-full overflow-hidden border border-slate-300 rounded">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={log.suspectReferencePhoto || '/watchlist/suspect_1.svg'}
                       alt="Watchlist Reference"
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute bottom-1 left-1 px-1 py-0.2 rounded bg-black/80 text-[8px] font-mono text-cyan-300 border border-cyan-400/40">
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-slate-950/90 text-[9px] font-sans font-bold text-sky-300 border border-sky-400/40">
                       DOSSIER MUGSHOT
                     </span>
                   </div>
                 </div>
 
                 {/* Telemetry Footer */}
-                <div className="flex justify-between items-center text-[9px] font-mono text-foreground/60 pt-1 border-t border-white/5">
+                <div className="flex justify-between items-center text-xs font-sans text-slate-600 font-medium pt-1 border-t border-slate-100">
                   <span className="truncate max-w-[140px]">{log.station || stationName.split('•')[0].trim()}</span>
                   <span>{isMounted ? new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>

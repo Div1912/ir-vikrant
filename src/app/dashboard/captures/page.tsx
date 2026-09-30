@@ -130,21 +130,21 @@ export default function CapturesPage() {
   return (
     <div className="flex flex-col h-full w-full p-4 gap-4 overflow-hidden bg-transparent">
       {/* Top Header & Analytics KPI Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel px-5 py-3.5 rounded-2xl shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel px-5 py-3.5 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+          <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700">
             <Scan size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-mono font-bold tracking-wider text-white">
+              <h1 className="text-base font-sans font-bold tracking-tight text-slate-900">
                 LIVE AI VISUAL RECON & CAPTURE LOG
               </h1>
-              <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 text-[10px] font-sans font-bold">
                 REALTIME PIPELINE
               </span>
             </div>
-            <p className="text-[11px] font-mono text-foreground/50 mt-0.5">
+            <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
               Automated frame capture on AI object detection • GPS coordinates & timestamp stamped inline
             </p>
           </div>
@@ -152,25 +152,25 @@ export default function CapturesPage() {
 
         {/* Live Counters */}
         <div className="flex items-center gap-3">
-          <div className="glass-pill px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-mono">
-            <Camera size={13} className="text-cyan-400" />
-            <span className="text-foreground/50">CAPTURES:</span>
-            <strong className="text-white">{totalFrames}</strong>
+          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+            <Camera size={14} className="text-sky-600" />
+            <span className="text-slate-500 font-medium">CAPTURES:</span>
+            <strong className="text-slate-950 font-bold">{totalFrames}</strong>
           </div>
-          <div className="glass-pill px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-mono">
-            <Sparkles size={13} className="text-amber-400" />
-            <span className="text-foreground/50">AI DETECTIONS:</span>
-            <strong className="text-amber-300">{aiTriggersCount}</strong>
+          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+            <Sparkles size={14} className="text-amber-600" />
+            <span className="text-slate-500 font-medium">AI DETECTIONS:</span>
+            <strong className="text-amber-700 font-bold">{aiTriggersCount}</strong>
           </div>
-          <div className="glass-pill px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs font-mono">
-            <ShieldCheck size={13} className="text-success" />
-            <span className="text-foreground/50">AVG CONF:</span>
-            <strong className="text-success">{avgConfidence}%</strong>
+          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+            <ShieldCheck size={14} className="text-emerald-600" />
+            <span className="text-slate-500 font-medium">AVG CONF:</span>
+            <strong className="text-emerald-700 font-bold">{avgConfidence}%</strong>
           </div>
 
           <button
             onClick={() => setShowPurgeModal(true)}
-            className="px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 transition-all shadow-md active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all shadow-xs active:scale-95"
             title="Purge old capture logs to free database storage"
           >
             <Trash2 size={13} />
@@ -183,13 +183,13 @@ export default function CapturesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40" size={14} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input
               type="text"
               placeholder="Search by object prop, case ID, or station..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-black/50 border border-panel-border rounded-xl py-2 pl-9 pr-4 text-xs font-mono focus:outline-none focus:border-cyan-400 text-white placeholder:text-foreground/30"
+              className="w-full bg-white/90 border border-slate-300 rounded-xl py-2 pl-9 pr-4 text-xs font-sans focus:outline-none focus:border-sky-500 text-slate-900 placeholder:text-slate-400 shadow-xs"
             />
           </div>
         </div>
@@ -200,10 +200,10 @@ export default function CapturesPage() {
             <button
               key={tab}
               onClick={() => setFilterType(tab)}
-              className={`px-3 py-1.5 rounded-xl font-mono text-xs transition-all liquid-btn ${
+              className={`px-3.5 py-1.5 rounded-xl font-sans text-xs transition-all shadow-xs ${
                 filterType === tab
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold shadow-md shadow-cyan-500/10'
-                  : 'text-foreground/60 hover:text-white'
+                  ? 'bg-sky-600 text-white font-bold'
+                  : 'bg-white/80 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold'
               }`}
             >
               {tab === 'all' ? 'ALL CAPTURES' : tab === 'ai_visual' ? 'AI VISUAL PROPS' : 'TACTICAL SURVEILLANCE'}

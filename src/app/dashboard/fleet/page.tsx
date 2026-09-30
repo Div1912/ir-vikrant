@@ -80,13 +80,13 @@ export default function FleetStatusPage() {
   return (
     <div className="flex h-full w-full p-4 gap-4 overflow-hidden bg-transparent">
       {/* Fleet Roster List (Left Column) */}
-      <div className="w-2/5 glass-panel rounded-2xl flex flex-col transition-all duration-300 overflow-hidden shrink-0">
-        <div className="p-4 border-b border-panel-border bg-black/40 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-3 text-sm font-mono tracking-widest text-foreground/70">
-            <Radio size={16} className="text-cyan-400" />
+      <div className="w-2/5 glass-panel rounded-2xl flex flex-col transition-all duration-300 overflow-hidden shrink-0 border border-slate-200/90 shadow-sm">
+        <div className="p-4 border-b border-slate-200 bg-white/60 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-900">
+            <Radio size={18} className="text-sky-600" />
             <span>ROBOTIC FLEET ROSTER</span>
           </div>
-          <div className="text-xs font-mono px-2.5 py-0.5 bg-cyan-500/10 text-cyan-300 rounded-full border border-cyan-500/30">
+          <div className="text-xs font-sans font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
             {units.filter(u => u.status === 'active' || u.status === 'patrolling').length} ACTIVE PATROLS
           </div>
         </div>
@@ -102,40 +102,40 @@ export default function FleetStatusPage() {
                 onClick={() => setSelectedUnitId(unit.id)}
                 className={`p-3.5 rounded-xl cursor-pointer transition-all border ${
                   isSelected
-                    ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10'
-                    : 'border-panel-border hover:border-white/20 glass-panel'
+                    ? 'border-sky-500 bg-sky-50/90 shadow-sm'
+                    : 'border-slate-200 bg-white/80 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex justify-between items-start mb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-bold text-white">{unit.unit_code}</span>
-                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-white/10 text-foreground/70">
+                    <span className="font-sans text-sm font-bold text-slate-900">{unit.unit_code}</span>
+                    <span className="text-[10px] font-sans font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                       {unit.type}
                     </span>
                   </div>
 
                   <span
-                    className={`text-[9px] font-mono px-2 py-0.5 rounded-full border uppercase ${
+                    className={`text-[10px] font-sans px-2.5 py-0.5 rounded-full border uppercase font-bold ${
                       isActive
-                        ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10 font-bold'
+                        ? 'border-emerald-200 text-emerald-800 bg-emerald-50'
                         : unit.status === 'charging'
-                        ? 'border-cyan-500 text-cyan-400 bg-cyan-500/10'
-                        : 'border-white/10 text-foreground/40 bg-black/40'
+                        ? 'border-sky-200 text-sky-800 bg-sky-50'
+                        : 'border-slate-200 text-slate-600 bg-slate-100'
                     }`}
                   >
                     {unit.status}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs font-mono mt-2">
-                  <span className="text-foreground/70 flex items-center gap-1">
-                    <MapPin size={11} className="text-cyan-400" />
+                <div className="flex items-center justify-between text-xs font-sans mt-2">
+                  <span className="text-slate-600 font-medium flex items-center gap-1">
+                    <MapPin size={12} className="text-sky-600" />
                     {unit.station || 'Local Station Sector'}
                   </span>
 
-                  <div className="flex items-center gap-1.5">
-                    <Battery size={13} className={unit.battery_pct < 20 ? 'text-destructive' : 'text-emerald-400'} />
-                    <span className="text-foreground/90">{unit.battery_pct || 85}%</span>
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Battery size={14} className={unit.battery_pct < 20 ? 'text-red-600' : 'text-emerald-600'} />
+                    <span className="text-slate-900">{unit.battery_pct || 85}%</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export default function FleetStatusPage() {
       </div>
 
       {/* Unit Detail & Live Google Maps Timeline (Right Column) */}
-      <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden border border-slate-200/90 shadow-sm">
         {selectedUnit && (
           <UnitDetail
             unit={selectedUnit}
@@ -226,26 +226,26 @@ function UnitDetail({
   };
 
   return (
-    <div className="flex flex-col h-full relative overflow-hidden">
+    <div className="flex flex-col h-full relative overflow-hidden text-slate-900 font-sans">
       {/* E-Stop Confirmation Modal */}
       {isConfirmingEStop && (
-        <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-6">
-          <div className="glass-panel p-6 rounded-2xl border border-destructive max-w-sm w-full text-center">
-            <AlertOctagon size={48} className="text-destructive mx-auto mb-4 animate-pulse" />
-            <h3 className="text-xl font-bold mb-2 font-mono">ENGAGE EMERGENCY STOP?</h3>
-            <p className="text-xs text-foreground/70 mb-6">
+        <div className="absolute inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="bg-white p-6 rounded-2xl border border-red-500 max-w-sm w-full text-center shadow-2xl">
+            <AlertOctagon size={48} className="text-red-600 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-bold mb-2 font-sans text-slate-900">ENGAGE EMERGENCY STOP?</h3>
+            <p className="text-xs text-slate-600 mb-6 font-medium">
               This will cut high-voltage motor power instantly. Unit will halt in place.
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setIsConfirmingEStop(false)}
-                className="flex-1 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors font-mono text-xs"
+                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors font-sans text-xs font-bold text-slate-700"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleEStop}
-                className="flex-1 py-2 rounded-xl bg-destructive text-white hover:bg-destructive/80 transition-colors font-mono text-xs font-bold"
+                className="flex-1 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors font-sans text-xs font-bold shadow-sm"
               >
                 CONFIRM E-STOP
               </button>
@@ -255,46 +255,46 @@ function UnitDetail({
       )}
 
       {/* Detail Header & Mode Switcher */}
-      <div className="p-4 border-b border-panel-border bg-black/40 flex flex-wrap justify-between items-center gap-3 shrink-0">
+      <div className="p-4 border-b border-slate-200 bg-white/80 flex flex-wrap justify-between items-center gap-3 shrink-0">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-mono font-bold tracking-tight text-white">{unit.unit_code}</h2>
+            <h2 className="text-2xl font-sans font-bold tracking-tight text-slate-950">{unit.unit_code}</h2>
             <span
-              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border uppercase ${
+              className={`text-xs font-sans font-bold px-2.5 py-0.5 rounded-full border uppercase ${
                 unit.status === 'active' || unit.status === 'patrolling'
-                  ? 'border-emerald-500 text-emerald-300 bg-emerald-500/10'
-                  : 'border-white/10 text-foreground/50 bg-black/40'
+                  ? 'border-emerald-200 text-emerald-800 bg-emerald-50'
+                  : 'border-slate-200 text-slate-600 bg-slate-100'
               }`}
             >
               {unit.status}
             </span>
-            <span className="text-xs font-mono text-foreground/60">• {unit.station}</span>
+            <span className="text-xs font-sans text-slate-600 font-medium">• {unit.station}</span>
           </div>
         </div>
 
         {/* Tab Buttons */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-black/50 rounded-xl p-0.5 border border-white/10 text-xs font-mono">
+          <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200 text-xs font-sans">
             <button
               onClick={() => setDetailTab('timeline')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-bold ${
                 detailTab === 'timeline'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
-                  : 'text-foreground/60 hover:text-white'
+                  ? 'bg-white text-sky-800 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Route size={13} />
+              <Route size={14} />
               <span>LIVE TIMELINE MAP</span>
             </button>
             <button
               onClick={() => setDetailTab('vitals')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-bold ${
                 detailTab === 'vitals'
-                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
-                  : 'text-foreground/60 hover:text-white'
+                  ? 'bg-white text-sky-800 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Activity size={13} />
+              <Activity size={14} />
               <span>VITALS & TELEMETRY</span>
             </button>
           </div>
@@ -307,7 +307,7 @@ function UnitDetail({
           /* 1. Google Maps Style Live Timeline Map */
           <div className="flex-1 flex flex-col gap-4 min-h-[500px]">
             {/* Embedded Live Moving Quadruped Timeline Map */}
-            <div className="flex-1 w-full min-h-[380px] rounded-2xl overflow-hidden border border-panel-border">
+            <div className="flex-1 w-full min-h-[380px] rounded-2xl overflow-hidden border border-slate-300 shadow-inner">
               <FleetTimelineMap unitId={unit.id} unitCode={unit.unit_code} />
             </div>
 
@@ -329,52 +329,52 @@ function UnitDetail({
 
             {/* Vitals Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="glass-panel p-4 rounded-xl flex flex-col gap-2">
-                <div className="text-[10px] font-mono tracking-widest text-foreground/50 flex items-center gap-2">
-                  <Battery size={12} /> POWER SYSTEM
+              <div className="glass-panel p-4 rounded-xl flex flex-col gap-2 border border-slate-200/90 shadow-sm">
+                <div className="text-xs font-sans font-bold tracking-tight text-slate-600 flex items-center gap-2 uppercase">
+                  <Battery size={14} /> POWER SYSTEM
                 </div>
-                <div className="text-2xl font-light text-white">{unit.battery_pct || 85}%</div>
-                <div className="w-full bg-black rounded-full h-1.5 mt-2">
+                <div className="text-3xl font-sans font-bold text-slate-950">{unit.battery_pct || 85}%</div>
+                <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
                   <div
-                    className={`h-1.5 rounded-full ${(unit.battery_pct || 85) < 20 ? 'bg-destructive' : 'bg-emerald-400'}`}
+                    className={`h-2 rounded-full ${(unit.battery_pct || 85) < 20 ? 'bg-red-600' : 'bg-emerald-600'}`}
                     style={{ width: `${unit.battery_pct || 85}%` }}
                   />
                 </div>
               </div>
 
-              <div className="glass-panel p-4 rounded-xl flex flex-col gap-2">
-                <div className="text-[10px] font-mono tracking-widest text-foreground/50 flex items-center gap-2">
-                  <Cpu size={12} /> SENSOR HEALTH
+              <div className="glass-panel p-4 rounded-xl flex flex-col gap-2 border border-slate-200/90 shadow-sm">
+                <div className="text-xs font-sans font-bold tracking-tight text-slate-600 flex items-center gap-2 uppercase">
+                  <Cpu size={14} /> SENSOR HEALTH
                 </div>
-                <div className="text-lg font-mono uppercase text-emerald-400">NOMINAL</div>
-                <div className="text-[10px] font-mono text-foreground/40 mt-auto">All spectrometer & LiDAR arrays locked</div>
+                <div className="text-xl font-sans font-bold text-emerald-800">NOMINAL</div>
+                <div className="text-xs font-sans text-slate-500 font-medium mt-auto">All spectrometer & LiDAR arrays locked</div>
               </div>
             </div>
 
             {/* Fail-Safe & Hardware Interlock */}
-            <div className={`glass-panel rounded-xl overflow-hidden border ${unit.e_stop_triggered ? 'border-destructive' : 'border-emerald-500/20'}`}>
-              <div className="bg-black/40 p-3 border-b border-panel-border flex items-center justify-between">
-                <div className={`text-[10px] font-mono tracking-widest flex items-center gap-2 ${unit.e_stop_triggered ? 'text-destructive' : 'text-foreground/70'}`}>
-                  <ShieldAlert size={12} /> FAIL-SAFE & HARDWARE INTERLOCK
+            <div className={`glass-panel rounded-xl overflow-hidden border shadow-sm ${unit.e_stop_triggered ? 'border-red-400 bg-red-50/30' : 'border-slate-200/90'}`}>
+              <div className="bg-white/80 p-3 border-b border-slate-200 flex items-center justify-between">
+                <div className={`text-xs font-sans font-bold tracking-tight flex items-center gap-2 uppercase ${unit.e_stop_triggered ? 'text-red-700' : 'text-slate-800'}`}>
+                  <ShieldAlert size={14} /> FAIL-SAFE & HARDWARE INTERLOCK
                 </div>
               </div>
               <div className="p-4 flex flex-col gap-4">
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="p-2 bg-black/40 rounded-xl border border-panel-border flex flex-col items-center justify-center">
-                    <span className="text-[9px] font-mono text-foreground/50 uppercase mb-1">E-STOP</span>
-                    <span className={`text-[10px] font-mono font-bold ${unit.e_stop_triggered ? 'text-destructive' : unit.e_stop_armed ? 'text-emerald-400' : 'text-warning'}`}>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-sans font-bold text-slate-500 uppercase mb-0.5">E-STOP</span>
+                    <span className={`text-xs font-sans font-bold ${unit.e_stop_triggered ? 'text-red-700' : unit.e_stop_armed ? 'text-emerald-700' : 'text-amber-700'}`}>
                       {unit.e_stop_triggered ? 'TRIGGERED' : unit.e_stop_armed ? 'ARMED' : 'DISARMED'}
                     </span>
                   </div>
-                  <div className="p-2 bg-black/40 rounded-xl border border-panel-border flex flex-col items-center justify-center">
-                    <span className="text-[9px] font-mono text-foreground/50 uppercase mb-1">WATCHDOG</span>
-                    <span className={`text-[10px] font-mono font-bold ${unit.watchdog_status === 'fault' ? 'text-destructive' : 'text-emerald-400'}`}>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-sans font-bold text-slate-500 uppercase mb-0.5">WATCHDOG</span>
+                    <span className={`text-xs font-sans font-bold ${unit.watchdog_status === 'fault' ? 'text-red-700' : 'text-emerald-700'}`}>
                       {unit.watchdog_status?.toUpperCase() || 'NORMAL'}
                     </span>
                   </div>
-                  <div className="p-2 bg-black/40 rounded-xl border border-panel-border flex flex-col items-center justify-center">
-                    <span className="text-[9px] font-mono text-foreground/50 uppercase mb-1">SAFE FOLD</span>
-                    <span className={`text-[10px] font-mono font-bold ${unit.safe_fold_state ? 'text-emerald-400' : 'text-foreground/70'}`}>
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-sans font-bold text-slate-500 uppercase mb-0.5">SAFE FOLD</span>
+                    <span className={`text-xs font-sans font-bold ${unit.safe_fold_state ? 'text-emerald-700' : 'text-slate-700'}`}>
                       {unit.safe_fold_state ? 'ENGAGED' : 'READY'}
                     </span>
                   </div>
@@ -384,26 +384,26 @@ function UnitDetail({
                   <button
                     onClick={() => setIsConfirmingEStop(true)}
                     disabled={unit.e_stop_triggered}
-                    className="w-24 h-24 shrink-0 rounded-2xl bg-destructive/10 border-2 border-destructive flex flex-col items-center justify-center text-destructive hover:bg-destructive hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="w-24 h-24 shrink-0 rounded-2xl bg-red-50 border-2 border-red-500 flex flex-col items-center justify-center text-red-700 hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm"
                   >
                     <AlertOctagon size={28} className="mb-1 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold font-mono">E-STOP</span>
+                    <span className="text-xs font-bold font-sans">E-STOP</span>
                   </button>
 
-                  <div className="flex-1 bg-black/40 rounded-xl border border-panel-border p-2.5 h-24 overflow-y-auto">
-                    <div className="text-[9px] font-mono text-foreground/40 uppercase mb-1 sticky top-0 bg-black/80 px-1">
+                  <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-3 h-24 overflow-y-auto">
+                    <div className="text-[10px] font-sans font-bold text-slate-500 uppercase mb-1 sticky top-0 bg-slate-50 px-1">
                       FAULT LOG
                     </div>
                     {failsafeEvents.length === 0 ? (
-                      <div className="text-[10px] font-mono text-foreground/50 px-1">No faults recorded.</div>
+                      <div className="text-xs font-sans text-slate-500 px-1 font-medium">No faults recorded.</div>
                     ) : (
                       <div className="flex flex-col gap-1">
                         {failsafeEvents.map(ev => (
-                          <div key={ev.id} className="text-[9px] font-mono flex items-start gap-2 px-1">
-                            <span className="text-foreground/40 shrink-0">
+                          <div key={ev.id} className="text-xs font-sans flex items-start gap-2 px-1">
+                            <span className="text-slate-500 shrink-0 font-medium">
                               {isMounted ? new Date(ev.timestamp).toLocaleTimeString() : ''}
                             </span>
-                            <span className={ev.resolved ? 'text-emerald-400' : 'text-warning'}>
+                            <span className={ev.resolved ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
                               {ev.event_type}
                             </span>
                           </div>
