@@ -130,21 +130,21 @@ export default function CapturesPage() {
   return (
     <div className="flex flex-col h-full w-full p-4 gap-4 overflow-hidden bg-transparent">
       {/* Top Header & Analytics KPI Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-4 glass-panel px-5 py-3.5 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 glass-liquid-panel px-5 py-3.5 rounded-3xl shrink-0 border border-white/80 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700">
+          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/80 text-sky-700 shadow-xs backdrop-blur-md">
             <Scan size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-sans font-bold tracking-tight text-slate-900">
+              <h1 className="text-base font-sans font-bold tracking-tight text-slate-950">
                 LIVE AI VISUAL RECON & CAPTURE LOG
               </h1>
-              <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 text-[10px] font-sans font-bold">
+              <span className="px-3 py-0.5 rounded-full bg-white/60 text-sky-900 border border-white/80 text-[10px] font-sans font-bold shadow-xs backdrop-blur-md">
                 REALTIME PIPELINE
               </span>
             </div>
-            <p className="text-xs font-sans text-slate-600 mt-0.5 font-medium">
+            <p className="text-xs font-sans text-slate-700 mt-0.5 font-semibold">
               Automated frame capture on AI object detection • GPS coordinates & timestamp stamped inline
             </p>
           </div>
@@ -152,25 +152,25 @@ export default function CapturesPage() {
 
         {/* Live Counters */}
         <div className="flex items-center gap-3">
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+          <div className="bg-white/60 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl flex items-center gap-2 text-xs font-sans border border-white/80 shadow-xs font-semibold">
             <Camera size={14} className="text-sky-600" />
-            <span className="text-slate-500 font-medium">CAPTURES:</span>
+            <span className="text-slate-600">CAPTURES:</span>
             <strong className="text-slate-950 font-bold">{totalFrames}</strong>
           </div>
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+          <div className="bg-white/60 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl flex items-center gap-2 text-xs font-sans border border-white/80 shadow-xs font-semibold">
             <Sparkles size={14} className="text-amber-600" />
-            <span className="text-slate-500 font-medium">AI DETECTIONS:</span>
-            <strong className="text-amber-700 font-bold">{aiTriggersCount}</strong>
+            <span className="text-slate-600">AI DETECTIONS:</span>
+            <strong className="text-amber-800 font-bold">{aiTriggersCount}</strong>
           </div>
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl flex items-center gap-2 text-xs font-sans border border-slate-200 shadow-xs">
+          <div className="bg-white/60 backdrop-blur-xl px-3.5 py-1.5 rounded-2xl flex items-center gap-2 text-xs font-sans border border-white/80 shadow-xs font-semibold">
             <ShieldCheck size={14} className="text-emerald-600" />
-            <span className="text-slate-500 font-medium">AVG CONF:</span>
-            <strong className="text-emerald-700 font-bold">{avgConfidence}%</strong>
+            <span className="text-slate-600">AVG CONF:</span>
+            <strong className="text-emerald-800 font-bold">{avgConfidence}%</strong>
           </div>
 
           <button
             onClick={() => setShowPurgeModal(true)}
-            className="px-3.5 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all shadow-xs active:scale-95"
+            className="px-3.5 py-1.5 rounded-2xl font-sans text-xs font-bold flex items-center gap-1.5 bg-rose-500/10 text-rose-800 border border-rose-300 hover:bg-rose-500/20 transition-all shadow-xs active:scale-95"
             title="Purge old capture logs to free database storage"
           >
             <Trash2 size={13} />
@@ -183,13 +183,13 @@ export default function CapturesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
             <input
               type="text"
               placeholder="Search by object prop, case ID, or station..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white/90 border border-slate-300 rounded-xl py-2 pl-9 pr-4 text-xs font-sans focus:outline-none focus:border-sky-500 text-slate-900 placeholder:text-slate-400 shadow-xs"
+              className="w-full bg-white/60 backdrop-blur-2xl border border-white/80 rounded-2xl py-2 pl-10 pr-4 text-xs font-sans focus:outline-none focus:border-sky-500 text-slate-900 placeholder:text-slate-500 font-semibold shadow-xs"
             />
           </div>
         </div>
@@ -200,10 +200,10 @@ export default function CapturesPage() {
             <button
               key={tab}
               onClick={() => setFilterType(tab)}
-              className={`px-3.5 py-1.5 rounded-xl font-sans text-xs transition-all shadow-xs ${
+              className={`px-4 py-2 rounded-2xl font-sans text-xs transition-all shadow-xs ${
                 filterType === tab
                   ? 'bg-sky-600 text-white font-bold'
-                  : 'bg-white/80 hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold'
+                  : 'bg-white/60 backdrop-blur-md hover:bg-white/80 text-slate-800 border border-white/80 font-semibold'
               }`}
             >
               {tab === 'all' ? 'ALL CAPTURES' : tab === 'ai_visual' ? 'AI VISUAL PROPS' : 'TACTICAL SURVEILLANCE'}
@@ -215,18 +215,18 @@ export default function CapturesPage() {
       {/* Main Dual Area: Gallery Grid on Left + Selected Frame Inspector on Right */}
       <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
         {/* Left: Interactive Captures Grid */}
-        <div className="flex-1 glass-panel rounded-2xl p-3 flex flex-col overflow-hidden">
-          <div className="flex justify-between items-center px-2 py-1.5 mb-2 border-b border-panel-border/60">
-            <span className="text-[10px] font-mono tracking-widest text-foreground/50 uppercase">
+        <div className="flex-1 glass-liquid-panel rounded-3xl p-4 flex flex-col overflow-hidden border border-white/80 shadow-md">
+          <div className="flex justify-between items-center px-2 py-1.5 mb-2 border-b border-white/60">
+            <span className="text-[10px] font-mono tracking-widest text-slate-700 uppercase font-bold">
               FEED FRAMES ({filteredCaptures.length})
             </span>
-            <span className="text-[9px] font-mono text-cyan-400">CLICK FRAME TO INSPECT TELEMETRY</span>
+            <span className="text-[10px] font-mono text-sky-800 font-bold">CLICK FRAME TO INSPECT TELEMETRY</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+          <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 p-1">
             {filteredCaptures.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center text-foreground/40 font-mono text-xs py-16">
-                <Camera size={32} className="mb-2 opacity-30" />
+              <div className="col-span-full flex flex-col items-center justify-center text-slate-500 font-sans text-xs font-semibold py-16">
+                <Camera size={32} className="mb-2 opacity-40" />
                 <span>No captured frames match the filter.</span>
               </div>
             ) : (
@@ -239,10 +239,10 @@ export default function CapturesPage() {
                     key={item.id}
                     layoutId={item.id}
                     onClick={() => setSelectedCapture(item)}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer transition-all group border ${
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer transition-all group border ${
                       isSelected
-                        ? 'border-cyan-400 ring-2 ring-cyan-400/30 shadow-lg shadow-cyan-500/20'
-                        : 'border-panel-border hover:border-white/20 glass-panel'
+                        ? 'border-sky-500 ring-2 ring-sky-400/40 shadow-lg'
+                        : 'border-white/80 hover:border-sky-300 glass-liquid shadow-xs'
                     }`}
                   >
                     {/* Image Thumbnail */}
@@ -259,7 +259,7 @@ export default function CapturesPage() {
                       {/* AI Badge Overlay */}
                       {isAi && (
                         <div className="absolute top-2 left-2 z-10">
-                          <span className="px-1.5 py-0.5 rounded bg-cyan-500/90 text-black font-mono font-bold text-[8px] flex items-center gap-1 shadow-md">
+                          <span className="px-2 py-0.5 rounded-full bg-sky-600 text-white font-mono font-bold text-[8px] flex items-center gap-1 shadow-md">
                             <Sparkles size={9} /> AI TRIGGER
                           </span>
                         </div>
@@ -268,7 +268,7 @@ export default function CapturesPage() {
                       {/* Ultrasonic Distance Badge if detected */}
                       {item.substance_name?.includes('Target at') && (
                         <div className="absolute top-2 left-2 z-10">
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/90 text-black font-mono font-bold text-[8px] flex items-center gap-1 shadow-md">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-mono font-bold text-[8px] flex items-center gap-1 shadow-md">
                             <Radar size={9} />
                             {item.substance_name.split('•').find((s: string) => s.includes('Target at'))?.replace('Target at', '').trim()}
                           </span>
@@ -277,15 +277,15 @@ export default function CapturesPage() {
 
                       {/* Confidence Score */}
                       <div className="absolute top-2 right-2 z-10">
-                        <span className="px-1.5 py-0.5 rounded bg-black/80 text-white font-mono text-[9px] border border-white/10">
+                        <span className="px-2 py-0.5 rounded-full bg-black/80 text-white font-mono text-[9px] border border-white/20 font-bold">
                           {Math.round((item.confidence_score || 0.88) * 100)}%
                         </span>
                       </div>
 
                       {/* Bottom Stamped Metadata */}
-                      <div className="absolute bottom-1.5 left-2 right-2 z-10 flex items-center justify-between text-[9px] font-mono text-white/90">
-                        <span className="truncate max-w-[130px] font-bold">{item.substance_name}</span>
-                        <span className="text-white/60">
+                      <div className="absolute bottom-1.5 left-2 right-2 z-10 flex items-center justify-between text-[9px] font-mono text-white/90 font-bold">
+                        <span className="truncate max-w-[130px]">{item.substance_name}</span>
+                        <span className="text-white/70">
                           {isMounted ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''}
                         </span>
                       </div>
@@ -299,7 +299,7 @@ export default function CapturesPage() {
 
         {/* Right: Selected Frame Inspector & Telemetry Passport */}
         {selectedCapture && (
-          <div className="w-96 glass-panel rounded-2xl p-4 flex flex-col overflow-y-auto shrink-0 border border-cyan-500/20">
+          <div className="w-96 glass-liquid-panel rounded-3xl p-5 flex flex-col overflow-y-auto shrink-0 border border-white/80 shadow-md">
             <div className="flex items-center justify-between border-b border-panel-border pb-3 mb-4">
               <div className="flex items-center gap-2">
                 <Crosshair size={16} className="text-cyan-400" />

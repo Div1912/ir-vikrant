@@ -25,19 +25,19 @@ export default function VideoWallPage() {
     const feed = feeds.find(f => f.id === focusedId)!;
     return (
       <div className="flex flex-col h-full w-full p-4 gap-4 font-sans bg-transparent">
-        <div className="flex justify-between items-center glass-panel px-5 py-4 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
-          <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-900">
+        <div className="flex justify-between items-center glass-liquid-panel px-5 py-4 rounded-3xl shrink-0 border border-white/80 shadow-md">
+          <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-950">
             <VideoIcon size={20} className="text-sky-600" /> 
             FOCUS VIEW: {feed.unit} ({feed.location})
           </div>
           <button
             onClick={() => setFocusedId(null)}
-            className="text-xs px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl font-sans font-bold transition-colors shadow-xs"
+            className="text-xs px-4 py-2 liquid-btn border border-white/80 rounded-2xl font-sans font-bold transition-all shadow-xs"
           >
             EXIT FOCUS
           </button>
         </div>
-        <div className="flex-1 glass-panel rounded-2xl overflow-hidden relative border border-slate-200/90 shadow-sm">
+        <div className="flex-1 glass-liquid-panel rounded-3xl overflow-hidden relative border border-white/80 shadow-md">
           {feed.isLiveCam ? (
             <LiveCameraFeed unitCode={feed.unit} location={feed.location} className="w-full h-full" />
           ) : (
@@ -50,19 +50,19 @@ export default function VideoWallPage() {
 
   return (
     <div className="flex flex-col h-full w-full p-4 gap-4 font-sans bg-transparent">
-      <div className="flex justify-between items-center glass-panel px-5 py-4 rounded-2xl shrink-0 border border-slate-200/90 shadow-sm">
-        <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-900">
+      <div className="flex justify-between items-center glass-liquid-panel px-5 py-4 rounded-3xl shrink-0 border border-white/80 shadow-md">
+        <div className="flex items-center gap-3 text-sm font-sans font-bold tracking-tight text-slate-950">
           <VideoIcon size={20} className="text-sky-600" /> 
           TACTICAL VIDEO WALL (OPERATOR LIVE FEEDS)
         </div>
-        <div className="text-xs font-sans font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
+        <div className="text-xs font-sans font-bold px-3 py-1 bg-white/60 text-emerald-900 rounded-full border border-white/80 shadow-xs backdrop-blur-md">
           {feeds.filter(f => f.status === 'live').length} ACTIVE STREAMS
         </div>
       </div>
       
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-4">
         {feeds.map(feed => (
-          <div key={feed.id} className="glass-panel rounded-2xl overflow-hidden relative group border border-slate-200/90 shadow-sm">
+          <div key={feed.id} className="glass-liquid-panel rounded-3xl overflow-hidden relative group border border-white/80 shadow-md">
             {feed.isLiveCam ? (
               <div className="w-full h-full relative">
                 <LiveCameraFeed unitCode={feed.unit} location={feed.location} className="w-full h-full" />

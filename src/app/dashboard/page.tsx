@@ -244,7 +244,7 @@ export default function DashboardPage() {
       <div className="flex gap-4 h-24 shrink-0">
         <KpiCard title="Active Units" value={stats.activeUnits} icon={<Wifi className="text-info" />} />
         <KpiCard title="Detections Today" value={stats.detectionsToday} icon={<Crosshair className="text-destructive" />} />
-        <KpiCard title="AI Captures" value={recentCaptures.length} icon={<Scan className="text-cyan-400" />} />
+        <KpiCard title="AI Captures" value={recentCaptures.length} icon={<Scan className="text-sky-600" />} />
         <KpiCard title="Avg Response" value={stats.avgResponseTime} />
       </div>
 
@@ -252,8 +252,8 @@ export default function DashboardPage() {
         {/* Left / Center Col: Map (Top) & Video + Sensor Telemetry / Captures (Bottom) */}
         <div className="flex flex-col flex-1 gap-4 overflow-hidden">
           {/* Main Map with Path Trail & Coordinate Telemetry */}
-          <div className="flex-1 min-h-[380px] glass-panel rounded-xl overflow-hidden relative shadow-xs">
-            <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md border border-slate-200/90 px-3 py-1 text-xs font-mono tracking-widest text-sky-700 font-bold rounded-md flex items-center gap-2 shadow-sm">
+          <div className="flex-1 min-h-[380px] glass-liquid-panel rounded-3xl overflow-hidden relative border border-white/80 shadow-md">
+            <div className="absolute top-4 left-4 z-10 bg-white/60 backdrop-blur-2xl border border-white/80 px-3.5 py-1.5 text-xs font-mono tracking-widest text-sky-950 font-bold rounded-full flex items-center gap-2 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-sky-600 animate-pulse shadow-[0_0_8px_#0284c7]" />
               LIVE TACTICAL PATROL MAP
             </div>
@@ -312,12 +312,12 @@ export default function DashboardPage() {
             {bottomView === 'split' ? (
               <div className="flex-1 flex gap-4 overflow-hidden">
                 {/* 1. Live Video Feeds with Operator Phone Camera */}
-                <div className="w-2/5 glass-panel rounded-xl p-2.5 flex flex-col overflow-hidden">
+                <div className="w-2/5 glass-liquid-panel rounded-3xl p-3 flex flex-col overflow-hidden border border-white/80 shadow-md">
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <h2 className="text-xs font-sans font-bold text-slate-800 flex items-center gap-2">
+                    <h2 className="text-xs font-sans font-bold text-slate-900 flex items-center gap-2">
                       <Camera size={14} className="text-sky-600" /> Live Feed
                     </h2>
-                    <span className="text-[10px] font-sans font-semibold text-sky-700 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-300">
+                    <span className="text-[10px] font-sans font-bold text-sky-800 bg-white/70 px-2.5 py-0.5 rounded-full border border-white/90 shadow-xs backdrop-blur-md">
                       SUB-SECOND AI
                     </span>
                   </div>
@@ -327,24 +327,24 @@ export default function DashboardPage() {
                 </div>
 
                 {/* 2. Live Sensor Telemetry Panel */}
-                <div className="flex-1 glass-panel rounded-xl overflow-y-auto p-1">
+                <div className="flex-1 glass-liquid-panel rounded-3xl overflow-y-auto p-2 border border-white/80 shadow-md">
                   <LiveSensorPanel unitCode="Q-01" />
                 </div>
               </div>
             ) : bottomView === 'captures' ? (
               /* Dedicated Live Captures View directly on Dashboard */
-              <div className="flex-1 glass-panel rounded-xl p-3 flex flex-col overflow-hidden">
+              <div className="flex-1 glass-liquid-panel rounded-3xl p-4 flex flex-col overflow-hidden border border-white/80 shadow-md">
                 <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-xs font-mono font-bold text-cyan-400 tracking-wider">
+                  <span className="text-xs font-mono font-bold text-sky-800 tracking-wider">
                     AUTO-CAPTURED FRAMES FROM CAMERA EYE (CLICK TO INSPECT)
                   </span>
-                  <span className="text-[10px] font-mono text-foreground/40">
+                  <span className="text-[10px] font-mono text-slate-600 font-bold">
                     STAMPED WITH GPS LOCATION & TIMESTAMP
                   </span>
                 </div>
                 <div className="flex-1 overflow-x-auto flex gap-3 p-1">
                   {recentCaptures.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-foreground/40 font-mono text-xs">
+                    <div className="flex-1 flex items-center justify-center text-slate-600 font-sans text-xs font-semibold">
                       No captures yet. Point your camera at a bottle, bag, or packet to trigger auto-capture!
                     </div>
                   ) : (
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                       <div
                         key={cap.id}
                         onClick={() => setInspectCapture(cap)}
-                        className="w-56 h-full glass-panel rounded-xl overflow-hidden cursor-pointer hover:border-cyan-400 transition-all shrink-0 flex flex-col group border border-panel-border"
+                        className="w-56 h-full glass-liquid rounded-2xl overflow-hidden cursor-pointer hover:border-sky-400 transition-all shrink-0 flex flex-col group border border-white/80 shadow-sm"
                       >
                         <div className="relative flex-1 bg-black overflow-hidden">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -361,20 +361,20 @@ export default function DashboardPage() {
                             alt="Capture"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
-                          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/80 font-mono text-[8px] text-cyan-300 border border-cyan-400/40">
+                          <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-slate-950/80 font-mono text-[9px] text-sky-300 border border-sky-400/40 font-bold">
                             {cap.substance_name?.slice(0, 18) || 'AI Prop'}
                           </div>
                         </div>
-                        <div className="p-2 bg-white/[0.03] font-mono text-[10px] space-y-1">
-                          <div className="flex justify-between items-center text-foreground/90 font-bold">
+                        <div className="p-2.5 bg-white/40 backdrop-blur-md font-sans text-[11px] space-y-1">
+                          <div className="flex justify-between items-center text-slate-900 font-bold">
                             <span className="truncate">{cap.substance_name?.slice(0, 16)}</span>
-                            <span className="text-cyan-400">{Math.round((cap.confidence_score || 0.88) * 100)}%</span>
+                            <span className="text-sky-700">{Math.round((cap.confidence_score || 0.88) * 100)}%</span>
                           </div>
-                          <div className="text-[9px] text-emerald-400 flex items-center gap-1 truncate">
+                          <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 truncate">
                             <MapPin size={10} />
                             <span>{(cap.latitude || 28.6139).toFixed(4)}°, {(cap.longitude || 77.2090).toFixed(4)}°</span>
                           </div>
-                          <div className="text-[8px] text-foreground/50 flex items-center gap-1">
+                          <div className="text-[9px] text-slate-600 font-medium flex items-center gap-1">
                             <Clock size={10} />
                             <span>{isMounted ? new Date(cap.timestamp).toLocaleTimeString() : ''}</span>
                           </div>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               /* Sensor Panel Full */
-              <div className="flex-1 glass-panel rounded-xl overflow-y-auto p-2">
+              <div className="flex-1 glass-liquid-panel rounded-3xl overflow-y-auto p-3 border border-white/80 shadow-md">
                 <LiveSensorPanel unitCode="Q-01" />
               </div>
             )}
