@@ -13,73 +13,74 @@ export interface SuspectProfile {
   enrolledAt: string;
   descriptor?: number[];
   fullDescriptor?: number[];
+  descriptorVersion?: number;
 }
 
-const STORAGE_KEY = 'vikrant_suspect_watchlist_v6';
+const STORAGE_KEY = 'vikrant_suspect_watchlist_v7';
 
-// Precomputed 128-d spatial cell HOG & center-surround contrast embeddings generated from BlazeFace landmark face crops
+// Precomputed 128-d fused spatial luminance & cell gradient embeddings (v7)
 const SUSPECT_1_FACE_DESCRIPTOR = [
-  0.19988, 0.07609, 0.04644, 0.04232, 0.03685, 0.06772, -0.03305, 0.13416, 0.02166, 0.07375,
-  0.17674, 0.12375, 0.0493, 0.02726, 0.02746, 0.06978, 0.00539, 0.01014, 0.15937, 0.17216,
-  0.02143, 0.00257, 0.01294, 0.05682, 0.09906, 0.07058, 0.10894, 0.08529, 0.12541, 0.07727,
-  -0.00471, 0.02939, 0.13923, 0.15975, 0.03655, 0.03424, 0.04009, 0.0813, 0.00033, 0.05287,
-  0.0314, 0.0641, 0.10578, 0.1636, 0.10843, 0.02876, 0.02486, 0.09023, 0.1315, 0.09997,
-  0.08455, 0.06028, 0.06751, 0.11405, 0.03154, 0.07705, 0.02115, 0.04151, 0.10157, 0.1845,
-  0.09415, 0.01563, -0.02208, 0.07556, 0.09391, 0.10922, 0.0567, 0.0505, 0.14093, 0.09621,
-  -0.01226, 0.06451, 0.08502, 0.13047, 0.10915, 0.12487, 0.04799, 0.03967, -0.04772, 0.05987,
-  0.03172, 0.04404, 0.11817, 0.16512, 0.10015, 0.03781, -0.04739, 0.09475, 0.13804, 0.12053,
-  0.06619, 0.02828, 0.10264, 0.07958, 0.00536, 0.05898, 0.15198, 0.11225, 0.04412, 0.05457,
-  0.10643, 0.0607, -0.07234, 0.08848, 0.01339, 0.00341, 0.01272, 0.10748, 0.20802, 0.02132,
-  -0.01711, 0.075, 0.0217, 0.047, 0.18794, 0.13203, 0.00753, 0.01209, 0.03223, 0.07224,
-  0.17693, 0.12311, 0.05432, 0.0187, 0.00693, 0.07632, 0.00292, 0.07775,
+  0.20966, -0.26607, -0.05467, -0.08475, -0.01666, 0.00139, 0.07438, 0.02817, 0.09383, -0.10963,
+  0.03542, 0.00127, 0.13237, 0.16586, 0.11455, 0.01172, 0.04044, 0.05348, 0.06967, -0.08071,
+  -0.06642, -0.06529, -0.17777, -0.10076, 0.11572, 0.06894, 0.22348, 0.1831, 0.1572, 0.06637,
+  0.08053, 0.01824, 0.13727, 0.01919, 0.07835, 0.02413, -0.03971, -0.03496, 0.1287, 0.01897,
+  0.18295, 0.00163, 0.01541, 0.07194, 0.15838, -0.05345, -0.03585, -0.10327, -0.00524, -0.11108,
+  -0.09264, 0.08591, 0.02229, -0.00221, -0.08116, -0.21783, -0.09738, -0.05322, -0.09905, -0.17429,
+  -0.15656, -0.21246, -0.07657, -0.22123, 0.10335, 0.01934, 0.01679, 0.0341, 0.01266, 0.09046,
+  0.06105, 0.02071, 0.00168, 0.06426, 0.09148, 0, 0.06466, 0.04762, 0.02073, 0.07498,
+  0.06023, 0.03189, 0, 0.08863, 0.00317, 0.03403, 0.10624, 0.0068, 0.08174, 0.04324,
+  0.00823, 0.0623, 0.00931, 0.07578, 0.0794, 0.01914, 0.0401, 0.01533, 0.04418, 0.0933,
+  0.06055, 0.0737, 0.05037, 0.02941, 0.00992, 0.05019, 0.07685, 0.06306, 0.09098, 0.04415,
+  0.03655, 0.03061, 0.09951, 0.021, 0.02191, 0.04094, 0.00181, 0.00257, 0.099, 0.05185,
+  0.01485, 0.10439, 0.03715, 0.00167, 0.09138, 0.05678, 0.00914, 0.02905,
 ];
 
 const SUSPECT_1_FULL_DESCRIPTOR = [
-  0.04939, 0.04983, 0.19714, 0.06493, 0.0644, 0.07026, -0.03478, 0.06239, 0.02911, 0.05373,
-  0.17953, 0.11425, 0.04737, 0.07631, 0.04055, 0.09924, 0.06305, 0.0312, 0.09725, 0.11881,
-  0.14684, 0.08369, -0.00542, 0.06022, 0.03106, 0.06001, 0.15574, 0.15799, 0.04606, 0.03441,
-  0.05777, 0.09041, 0.00373, 0.04369, 0.18345, 0.13982, 0.03711, 0.02416, -0.01402, 0.02825,
-  0.0475, 0.06977, 0.13031, 0.15606, 0.07496, 0.05484, 0.05095, 0.11409, 0.07935, 0.11101,
-  0.11757, 0.10555, 0.08743, 0.07654, -0.04627, 0.09105, 0.03093, 0.03898, 0.11956, 0.12401,
-  0.10875, 0.1145, -0.02673, 0.06253, 0.02454, 0.04128, 0.1144, 0.14988, 0.12537, 0.05926,
-  0.00201, 0.00856, 0.13583, 0.05333, 0.04506, 0.06216, 0.12234, 0.1222, -0.00786, 0.07289,
-  0.08963, 0.08138, 0.1033, 0.08016, 0.10213, 0.12207, 0.02525, 0.05534, 0.02705, 0.05559,
-  0.17988, 0.13263, 0.05605, 0.01327, 0.00152, 0.00994, 0.01554, 0.02692, 0.19842, 0.12661,
-  0.01621, 0.0214, 0.00008, 0.02685, 0.04144, 0.0568, 0.17543, 0.1175, 0.08319, 0.02533,
-  0.02626, 0.08322, 0.01805, 0.02607, 0.07077, 0.10779, 0.15326, 0.12636, -0.00249, 0.06856,
-  0.0241, 0.01285, 0.15433, 0.16315, 0.0745, 0.01885, -0.00093, 0.02998,
+  0.10541, -0.0002, 0.00502, -0.0499, -0.20225, -0.15479, -0.1627, -0.13977, 0.12986, 0.11068,
+  0.0835, -0.10703, -0.1212, -0.13194, -0.01917, -0.05922, 0.07594, 0.04773, -0.00024, -0.01343,
+  -0.15117, -0.07637, -0.12344, -0.14013, 0.0003, -0.00893, -0.19758, -0.07483, -0.18855, -0.03197,
+  -0.07107, -0.05463, 0.0483, 0.04022, -0.11316, -0.22266, -0.107, 0.04594, 0.06416, 0.07337,
+  0.03957, 0.03497, -0.02679, -0.08507, -0.07806, 0.04609, 0.06872, 0.09246, 0.07187, 0.07116,
+  -0.01315, 0.01787, -0.07813, 0.09237, 0.15913, 0.21005, 0.15853, 0.16793, 0.21148, 0.23029,
+  0.14303, 0.11886, 0.11515, 0.12454, 0.03362, 0.09534, 0.02848, 0.03834, 0.02297, 0.09154,
+  0.03713, 0.04706, 0.02401, 0.07806, 0.05309, 0.05487, 0.04368, 0.06273, 0.07746, 0.02564,
+  0.00647, 0.09182, 0.06334, 0.00388, 0.03017, 0.07292, 0.04455, 0.06548, 0.07049, 0.06931,
+  0.03796, 0.03587, 0.02634, 0.08085, 0.05992, 0.04097, 0.01075, 0.02988, 0.07841, 0.0731,
+  0.07923, 0.03426, 0.06104, 0.03638, 0.02429, 0.08545, 0.04014, 0.05475, 0.03872, 0.08357,
+  0.05321, 0.03442, 0.00416, 0.09826, 0.05315, 0.00141, 0.01978, 0.08928, 0.06427, 0.00277,
+  0.02193, 0.03753, 0.0936, 0.043, 0.00866, 0.03563, 0.10561, 0.00169,
 ];
 
 const SUSPECT_2_FACE_DESCRIPTOR = [
-  0.12618, 0.10643, 0.11054, 0.12748, 0.02912, 0.02672, 0.00621, 0.06604, 0.04484, 0.05069,
-  0.05193, 0.20694, 0.0733, 0.04251, -0.04021, 0.07782, 0.0486, 0.10318, 0.16238, 0.13002,
-  0.02523, 0.01907, -0.03543, 0.08286, 0.03594, 0.02565, 0.05643, 0.11488, 0.13079, 0.14779,
-  -0.01723, 0.05286, 0.09092, 0.03237, 0.14305, 0.15314, 0.04748, 0.04242, 0.04329, 0.05148,
-  0.16556, 0.08765, 0.10785, 0.07332, 0.04176, 0.05862, -0.00602, 0.03076, 0.03029, 0.02574,
-  0.03856, 0.17914, 0.14022, 0.04962, 0.00589, 0.04477, 0.10094, 0.03703, 0.11543, 0.11357,
-  0.06706, 0.12248, 0.02042, 0.07192, 0.03438, 0.06224, 0.02237, 0.06771, 0.15212, 0.15491,
-  -0.00971, 0.06165, 0.02029, 0.05888, 0.11961, 0.18403, 0.06787, 0.02489, -0.00732, 0.0901,
-  0.04411, 0.03391, 0.10776, 0.18427, 0.06622, 0.06506, 0.0052, 0.06351, 0.17884, 0.15574,
-  0.02344, 0.01031, 0.01301, 0.01475, -0.00765, 0.06009, 0.1263, 0.0078, 0.00136, 0.01515,
-  0.17787, 0.09695, -0.01468, 0.11646, 0.01257, 0.03539, 0.09815, 0.20362, 0.05653, 0.03976,
-  0.00591, 0.06749, 0.07163, 0.14008, 0.13703, 0.11016, 0.03526, 0.01924, -0.00057, 0.05454,
-  0.06604, 0.17484, 0.07386, 0.11586, 0.05813, 0.00973, -0.0111, 0.0763,
+  -0.14738, -0.0911, -0.05597, 0.10398, 0.12323, 0.03911, -0.04963, -0.14344, -0.04014, -0.03756,
+  -0.06711, 0.07502, -0.04412, -0.14151, -0.1551, -0.12809, 0.15033, 0.1712, 0.14232, 0.18959,
+  0.08916, 0.03275, -0.05738, -0.05656, 0.13916, 0.15136, 0.14732, 0.18885, 0.13514, 0.19025,
+  0.19263, -0.01336, 0.01925, -0.03239, -0.04419, -0.06064, -0.09765, 0.05691, 0.06902, -0.08179,
+  0.05705, 0.05203, 0.0527, 0.13656, -0.02278, -0.07518, -0.02513, -0.0995, 0.13946, -0.06918,
+  0.036, -0.05127, -0.00438, -0.05157, -0.16553, -0.18826, 0.18769, -0.15411, -0.15759, -0.14316,
+  -0.12272, -0.19255, -0.01006, 0.00998, 0.04873, 0.0902, 0.03767, 0.02387, 0.02552, 0.02286,
+  0.1017, 0.03136, 0.02779, 0.10539, 0.02276, 0.01019, 0.00975, 0.04111, 0.04488, 0.09328,
+  0.04502, 0.06145, 0.07652, 0.02903, 0.08572, 0.04911, 0.02105, 0.04794, 0.02604, 0.01425,
+  0.09184, 0.05643, 0.06248, 0.05462, 0.06329, 0.0401, 0.01688, 0.02106, 0.06656, 0.08568,
+  0.04218, 0.07007, 0.07477, 0.01484, 0.04783, 0.06983, 0.05344, 0.0498, 0.10715, 0.03143,
+  0.00456, 0.00305, 0.03785, 0.0004, 0.02202, 0.10287, 0.00863, 0.03313, 0.10251, 0.02864,
+  0.06782, 0.07472, 0.04783, 0.00552, 0.01804, 0.07526, 0.08054, 0.00481,
 ];
 
 const SUSPECT_2_FULL_DESCRIPTOR = [
-  0.02642, 0.01074, 0.01606, 0.20734, 0.09036, 0.07585, 0.00119, 0.00287, 0.1752, 0.11406,
-  0.05453, 0.06341, 0.0454, 0.07224, 0.01293, 0.04124, 0.02179, 0.04458, 0.1044, 0.16748,
-  0.12545, 0.02881, -0.056, 0.0802, 0.12242, 0.19842, 0.00207, 0.00287, 0.01944, 0.05687,
-  0.00377, 0.01464, 0.07703, 0.03231, 0.1231, 0.16506, 0.06876, 0.06226, 0.00608, 0.03336,
-  0.0639, 0.07549, 0.12122, 0.13874, 0.05634, 0.10526, 0.02183, 0.0862, 0.05749, 0.10873,
-  0.10032, 0.17128, 0.04177, 0.04129, 0.00816, 0.0718, 0.09642, 0.11334, 0.05552, 0.03279,
-  0.05466, 0.16938, -0.01705, 0.04366, 0.19575, 0.12022, 0.02263, 0.01687, 0.01537, 0.06462,
-  -0.03905, 0.09531, 0.12253, 0.04482, 0.07488, 0.11264, 0.09081, 0.12007, 0.02486, 0.05722,
-  0.11835, 0.12967, 0.11117, 0.08278, 0.04993, 0.07385, 0.03887, 0.07436, 0.04204, 0.01181,
-  0.00769, 0.03167, 0.12194, 0.20035, 0.00434, 0.0654, 0.17529, 0.06341, 0.06651, 0.05762,
-  0.02497, 0.12192, -0.03495, 0.08394, 0.07695, 0.01996, 0.03961, 0.05492, 0.10461, 0.19008,
-  -0.01364, 0.04772, 0.11595, 0.13684, 0.11801, 0.08565, 0.0415, 0.05313, 0.00199, 0.04291,
-  0.0959, 0.12082, 0.13928, 0.05535, 0.09426, 0.05324, 0.01704, 0.07403,
+  -0.02405, -0.02171, -0.02067, -0.03284, -0.09623, -0.08118, -0.02071, -0.04389, -0.03251, -0.0257,
+  -0.02239, -0.11158, -0.08081, -0.22737, -0.04906, -0.07445, -0.06893, -0.04895, -0.01013, 0.00031,
+  0.00657, -0.07311, -0.08937, -0.12578, -0.09812, -0.13667, 0.2398, 0.11605, -0.10522, 0.00185,
+  -0.07168, -0.04636, -0.2002, -0.10057, 0.25705, 0.15703, -0.00241, 0.17703, 0.19546, 0.04689,
+  -0.16723, -0.06214, 0.14851, 0.07499, 0.02547, -0.03716, 0.22805, 0.15684, -0.17446, -0.0992,
+  0.12645, 0.05913, 0.01531, -0.07294, 0.1977, 0.22147, -0.0724, 0.03873, 0.14099, 0.05553,
+  0.06169, 0.02435, 0.07448, -0.01952, 0.00594, 0.01548, 0.08859, 0.06616, 0.09243, 0.03761,
+  0.02129, 0.0457, 0.00273, 0.03744, 0.10482, 0.01022, 0.10701, 0.0052, 0.00454, 0.03164,
+  0.05404, 0.06451, 0.06839, 0.02721, 0.04236, 0.05732, 0.07042, 0.04961, 0.03317, 0.05935,
+  0.08519, 0.02488, 0.06954, 0.08213, 0.02509, 0.01705, 0.06869, 0.05622, 0.00678, 0.06764,
+  0.03589, 0.02953, 0.07789, 0.06537, 0.06872, 0.07438, 0.04457, 0.0161, 0.0164, 0.00375,
+  0.04217, 0.10217, 0.09098, 0.0482, 0.02762, 0.03372, 0.04425, 0.0146, 0.02792, 0.09772,
+  0.07956, 0.02338, 0.05925, 0.04597, 0.0217, 0.10094, 0.02643, 0.0338,
 ];
 
 // Active Enrolled Culprits trained from user-uploaded photos
@@ -95,6 +96,7 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     enrolledAt: '2026-09-07T00:55:28.000Z',
     descriptor: SUSPECT_1_FACE_DESCRIPTOR,
     fullDescriptor: SUSPECT_1_FULL_DESCRIPTOR,
+    descriptorVersion: 7,
   },
   {
     id: 'wl-002',
@@ -107,10 +109,12 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     enrolledAt: '2026-09-07T00:55:34.000Z',
     descriptor: SUSPECT_2_FACE_DESCRIPTOR,
     fullDescriptor: SUSPECT_2_FULL_DESCRIPTOR,
+    descriptorVersion: 7,
   },
 ];
 
-function isInvalidDescriptor(desc?: number[]): boolean {
+function isInvalidDescriptor(desc?: number[], version?: number): boolean {
+  if (version !== 7) return true;
   if (!desc || desc.length !== 128) return true;
   if (desc.every(v => v === 0)) return true;
   return false;
@@ -121,32 +125,42 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
 
   try {
     let cached = localStorage.getItem(STORAGE_KEY);
-    // Backward compatibility: load from v5 if v6 not initialized yet
+    // Backward compatibility: load from v6 or v5 if v7 not initialized yet
     if (!cached) {
-      const v5 = localStorage.getItem('vikrant_suspect_watchlist_v5');
-      if (v5) {
-        cached = v5;
+      const prevCached =
+        localStorage.getItem('vikrant_suspect_watchlist_v6') ||
+        localStorage.getItem('vikrant_suspect_watchlist_v5');
+      if (prevCached) {
+        cached = prevCached;
       }
     }
 
     let list: SuspectProfile[] = cached ? JSON.parse(cached) : [...DEFAULT_SUSPECTS];
     let needsUpdate = false;
 
-    // Ensure our default trained suspects are always present with fresh multi-scale descriptors
+    // Ensure our default trained suspects are always present with fresh v7 descriptors
     for (const def of DEFAULT_SUSPECTS) {
       const idx = list.findIndex(s => s.id === def.id);
       if (idx === -1) {
         list.unshift(def);
         needsUpdate = true;
-      } else if (!list[idx].descriptor || !list[idx].fullDescriptor || isInvalidDescriptor(list[idx].descriptor) || !cached?.includes('vikrant_suspect_watchlist_v6')) {
+      } else if (
+        !list[idx].descriptor ||
+        !list[idx].fullDescriptor ||
+        isInvalidDescriptor(list[idx].descriptor, list[idx].descriptorVersion) ||
+        list[idx].descriptorVersion !== 7
+      ) {
         list[idx] = { ...def };
         needsUpdate = true;
       }
     }
 
-    // Ensure descriptors are properly computed for custom enrolled suspects
+    // Ensure descriptors are properly computed and migrated to v7 for all custom enrolled suspects
     for (const suspect of list) {
-      if (isInvalidDescriptor(suspect.descriptor) || isInvalidDescriptor(suspect.fullDescriptor)) {
+      if (
+        isInvalidDescriptor(suspect.descriptor, suspect.descriptorVersion) ||
+        isInvalidDescriptor(suspect.fullDescriptor, suspect.descriptorVersion)
+      ) {
         try {
           const img = new Image();
           if (!suspect.photoUrl.startsWith('data:')) {
@@ -162,16 +176,41 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
           // 1. Full photo vector
           suspect.fullDescriptor = await extractFaceDescriptor(img);
 
-          // 2. Face crop vector (centered top 65%)
+          // 2. High-precision face crop vector
           const w = img.naturalWidth || 100;
           const h = img.naturalHeight || 100;
-          const crop = {
+          let crop = {
             x: Math.round(w * 0.15),
             y: Math.round(h * 0.05),
             width: Math.round(w * 0.70),
             height: Math.round(h * 0.60),
           };
+
+          // Try detecting face using BlazeFace if available in window/global
+          try {
+            const tf = await import('@tensorflow/tfjs');
+            const blazeface = await import('@tensorflow-models/blazeface');
+            const bModel = await blazeface.load();
+            const preds = await bModel.estimateFaces(img, false);
+            if (preds && preds.length > 0) {
+              const bf = preds[0];
+              const x1 = Array.isArray(bf.topLeft) ? bf.topLeft[0] : (bf.topLeft as any)[0];
+              const y1 = Array.isArray(bf.topLeft) ? bf.topLeft[1] : (bf.topLeft as any)[1];
+              const x2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[0] : (bf.bottomRight as any)[0];
+              const y2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[1] : (bf.bottomRight as any)[1];
+              const fw = Math.max(30, x2 - x1);
+              const fh = Math.max(30, y2 - y1);
+              crop = {
+                x: Math.max(0, x1 - fw * 0.05),
+                y: Math.max(0, y1 - fh * 0.05),
+                width: Math.min(w - x1, fw * 1.10),
+                height: Math.min(h - y1, fh * 1.10),
+              };
+            }
+          } catch {}
+
           suspect.descriptor = await extractFaceDescriptor(img, crop);
+          suspect.descriptorVersion = 7;
           needsUpdate = true;
         } catch {
           // If image fails, keep existing
@@ -179,7 +218,7 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
       }
     }
 
-    if (needsUpdate || !cached) {
+    if (needsUpdate || !localStorage.getItem(STORAGE_KEY)) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
@@ -201,7 +240,10 @@ export async function enrollSuspect(
   let descriptor = suspectData.descriptor;
   let fullDescriptor = suspectData.fullDescriptor;
 
-  if (isInvalidDescriptor(descriptor) || isInvalidDescriptor(fullDescriptor)) {
+  if (
+    isInvalidDescriptor(descriptor, suspectData.descriptorVersion) ||
+    isInvalidDescriptor(fullDescriptor, suspectData.descriptorVersion)
+  ) {
     try {
       const img = new Image();
       if (!suspectData.photoUrl.startsWith('data:')) {
@@ -220,12 +262,41 @@ export async function enrollSuspect(
       // 2. Face crop descriptor
       const w = img.naturalWidth || 100;
       const h = img.naturalHeight || 100;
-      const crop = customFaceCrop || {
-        x: Math.round(w * 0.15),
-        y: Math.round(h * 0.05),
-        width: Math.round(w * 0.70),
-        height: Math.round(h * 0.60),
-      };
+      let crop = customFaceCrop;
+
+      if (!crop) {
+        try {
+          const tf = await import('@tensorflow/tfjs');
+          const blazeface = await import('@tensorflow-models/blazeface');
+          const bModel = await blazeface.load();
+          const preds = await bModel.estimateFaces(img, false);
+          if (preds && preds.length > 0) {
+            const bf = preds[0];
+            const x1 = Array.isArray(bf.topLeft) ? bf.topLeft[0] : (bf.topLeft as any)[0];
+            const y1 = Array.isArray(bf.topLeft) ? bf.topLeft[1] : (bf.topLeft as any)[1];
+            const x2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[0] : (bf.bottomRight as any)[0];
+            const y2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[1] : (bf.bottomRight as any)[1];
+            const fw = Math.max(30, x2 - x1);
+            const fh = Math.max(30, y2 - y1);
+            crop = {
+              x: Math.max(0, x1 - fw * 0.05),
+              y: Math.max(0, y1 - fh * 0.05),
+              width: Math.min(w - x1, fw * 1.10),
+              height: Math.min(h - y1, fh * 1.10),
+            };
+          }
+        } catch {}
+      }
+
+      if (!crop) {
+        crop = {
+          x: Math.round(w * 0.15),
+          y: Math.round(h * 0.05),
+          width: Math.round(w * 0.70),
+          height: Math.round(h * 0.60),
+        };
+      }
+
       descriptor = await extractFaceDescriptor(img, crop);
     } catch (err) {
       console.warn('[Watchlist] Enroll descriptor extraction error:', err);
@@ -238,6 +309,7 @@ export async function enrollSuspect(
     enrolledAt,
     descriptor,
     fullDescriptor,
+    descriptorVersion: 7,
   };
 
   const updated = [newSuspect, ...list];
@@ -260,23 +332,43 @@ export async function removeSuspect(id: string): Promise<SuspectProfile[]> {
 export function findBestSuspectMatch(
   liveFaceDescriptor: number[],
   watchlist: SuspectProfile[],
-  threshold = 0.70
-): { isMatch: boolean; suspect: SuspectProfile | null; confidence: number } {
+  threshold = 0.65
+): {
+  isMatch: boolean;
+  suspect: SuspectProfile | null;
+  confidence: number;
+  matchedType: 'face' | 'full_photo';
+} {
   let bestSim = 0;
   let bestSuspect: SuspectProfile | null = null;
+  let bestType: 'face' | 'full_photo' = 'face';
 
   for (const suspect of watchlist) {
     let sim = 0;
-    // Primary: compare against tight facial descriptor
+    let currentType: 'face' | 'full_photo' = 'face';
+
+    // 1. Compare against tight facial descriptor
     if (suspect.descriptor && suspect.descriptor.length === 128) {
-      sim = computeFaceSimilarity(liveFaceDescriptor, suspect.descriptor);
-    } else if (suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
-      sim = computeFaceSimilarity(liveFaceDescriptor, suspect.fullDescriptor);
+      const faceSim = computeFaceSimilarity(liveFaceDescriptor, suspect.descriptor);
+      if (faceSim > sim) {
+        sim = faceSim;
+        currentType = 'face';
+      }
+    }
+
+    // 2. Also check against full photo descriptor
+    if (suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
+      const fullSim = computeFaceSimilarity(liveFaceDescriptor, suspect.fullDescriptor);
+      if (fullSim > sim) {
+        sim = fullSim;
+        currentType = 'full_photo';
+      }
     }
 
     if (sim > bestSim) {
       bestSim = sim;
       bestSuspect = suspect;
+      bestType = currentType;
     }
   }
 
@@ -284,5 +376,6 @@ export function findBestSuspectMatch(
     isMatch: bestSim >= threshold && bestSuspect !== null,
     suspect: bestSuspect,
     confidence: Number(bestSim.toFixed(3)),
+    matchedType: bestType,
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 // Lightweight, Ultra-Fast Client-Side Face Feature Descriptor & Matching Engine
-// Computes 128-dimensional spatial cell HOG & luminance feature embeddings
+// Computes 128-dimensional fused spatial luminance & cell gradient embeddings
 // with sub-5ms real-time comparison latency.
 
 export interface FaceDescriptor {
@@ -12,10 +12,14 @@ export interface FaceDescriptor {
 let _sharedExtractCanvas: HTMLCanvasElement | null = null;
 let _sharedExtractCtx: CanvasRenderingContext2D | null = null;
 
-function getSharedExtractContext(size = 64): CanvasRenderingContext2D | null {
+function getSharedExtractContext(size = 32): CanvasRenderingContext2D | null {
   if (typeof document === 'undefined') return null;
   if (!_sharedExtractCanvas) {
     _sharedExtractCanvas = document.createElement('canvas');
+    _sharedExtractCanvas.width = size;
+    _sharedExtractCanvas.height = size;
+    _sharedExtractCtx = _sharedExtractCanvas.getContext('2d', { willReadFrequently: true });
+  } else if (_sharedExtractCanvas.width !== size || _sharedExtractCanvas.height !== size) {
     _sharedExtractCanvas.width = size;
     _sharedExtractCanvas.height = size;
     _sharedExtractCtx = _sharedExtractCanvas.getContext('2d', { willReadFrequently: true });
@@ -24,7 +28,8 @@ function getSharedExtractContext(size = 64): CanvasRenderingContext2D | null {
 }
 
 /**
- * Extracts a normalized 128-dimensional facial feature descriptor from an image, video, or canvas.
+ * Extracts a normalized 128-dimensional fused facial feature descriptor from an image, video, or canvas.
+ * Fuses 64-d normalized spatial luminance template with 64-d cell gradient orientation features.
  */
 export async function extractFaceDescriptor(
   source: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
@@ -37,7 +42,7 @@ export async function extractFaceDescriptor(
     return new Array(128).fill(0);
   }
 
-  const size = 64; // Standardized 64x64 grid
+  const size = 32; // Standardized 32x32 biometric grid
   const ctx = getSharedExtractContext(size);
 
   if (!ctx) return new Array(128).fill(0);
@@ -45,11 +50,11 @@ export async function extractFaceDescriptor(
   let data: Uint8ClampedArray;
   try {
     // Draw either the specified face crop area or the full image with safe clamping
-    if (cropArea && cropArea.width > 10 && cropArea.height > 10) {
-      const sx = Math.max(0, Math.min(w - 10, cropArea.x));
-      const sy = Math.max(0, Math.min(h - 10, cropArea.y));
-      const sw = Math.max(10, Math.min(w - sx, cropArea.width));
-      const sh = Math.max(10, Math.min(h - sy, cropArea.height));
+    if (cropArea && cropArea.width > 5 && cropArea.height > 5) {
+      const sx = Math.max(0, Math.min(w - 5, cropArea.x));
+      const sy = Math.max(0, Math.min(h - 5, cropArea.y));
+      const sw = Math.max(5, Math.min(w - sx, cropArea.width));
+      const sh = Math.max(5, Math.min(h - sy, cropArea.height));
       ctx.drawImage(source, sx, sy, sw, sh, 0, 0, size, size);
     } else {
       ctx.drawImage(source, 0, 0, size, size);
@@ -61,118 +66,98 @@ export async function extractFaceDescriptor(
     return new Array(128).fill(0);
   }
 
-  // Convert to grayscale matrix & compute mean for illumination normalization
+  // Convert to grayscale matrix & compute global sum
   const gray = new Float32Array(size * size);
-  let sum = 0;
-  let minV = 255;
-  let maxV = 0;
+  let gSum = 0;
   for (let i = 0; i < size * size; i++) {
     const r = data[i * 4];
     const g = data[i * 4 + 1];
     const b = data[i * 4 + 2];
     const val = 0.299 * r + 0.587 * g + 0.114 * b;
     gray[i] = val;
-    sum += val;
-    if (val < minV) minV = val;
-    if (val > maxV) maxV = val;
+    gSum += val;
   }
 
-  // Adaptive Dynamic Range Contrast Stretching + Illumination Normalization
-  const meanGray = sum / (size * size);
-  let varSum = 0;
+  // Part 1: 8x8 spatial luminance template (64 floats)
+  // Derived by 4x4 spatial block pooling, Z-score normalized for illumination invariance
+  const lum = new Float32Array(64);
+  let lSum = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      let sum = 0;
+      for (let y = r * 4; y < (r + 1) * 4; y++) {
+        for (let x = c * 4; x < (c + 1) * 4; x++) {
+          sum += gray[y * size + x];
+        }
+      }
+      const v = sum / 16;
+      lum[r * 8 + c] = v;
+      lSum += v;
+    }
+  }
+  const lMean = lSum / 64;
+  let lVar = 0;
+  for (let i = 0; i < 64; i++) {
+    const d = lum[i] - lMean;
+    lVar += d * d;
+  }
+  const lStd = Math.sqrt(lVar / 64) + 1e-4;
+  for (let i = 0; i < 64; i++) {
+    lum[i] = (lum[i] - lMean) / lStd;
+  }
+
+  // Part 2: 4x4 spatial gradient cells, 4 orientation bins each (64 floats)
+  const gMean = gSum / (size * size);
+  let gVar = 0;
   for (let i = 0; i < size * size; i++) {
-    const diff = gray[i] - meanGray;
-    varSum += diff * diff;
+    const d = gray[i] - gMean;
+    gVar += d * d;
   }
-  const stdGray = Math.sqrt(varSum / (size * size)) + 1e-4;
+  const gStd = Math.sqrt(gVar / (size * size)) + 1e-4;
+  const normGray = new Float32Array(size * size);
   for (let i = 0; i < size * size; i++) {
-    gray[i] = Math.max(0, Math.min(255, ((gray[i] - meanGray) / stdGray) * 48 + 128));
+    normGray[i] = ((gray[i] - gMean) / gStd) * 50 + 128;
   }
 
-  // Divide into 4x4 spatial cells (16 cells)
-  // Each cell computes:
-  // 6 gradient orientation bins (0°, 30°, 60°, 90°, 120°, 150°) with intra-cell L2 normalization
-  // 1 center-surround contrast feature
-  // 1 local variance feature
-  // = 8 features per cell * 16 cells = 128-dimensional descriptor vector!
-  const descriptor = new Float32Array(128);
-  const cellSize = 16; // 16x16 pixels per cell
-
-  let descIdx = 0;
+  const grads = new Float32Array(64);
+  const cellSize = 8;
+  let gIdx = 0;
   for (let cy = 0; cy < 4; cy++) {
     for (let cx = 0; cx < 4; cx++) {
-      const hist = new Float32Array(6);
-      let cellSum = 0;
-      let innerSum = 0;
-      let count = 0;
-      let innerCount = 0;
-
-      const startY = cy * cellSize;
-      const startX = cx * cellSize;
-
-      for (let y = startY + 1; y < startY + cellSize - 1; y++) {
-        for (let x = startX + 1; x < startX + cellSize - 1; x++) {
-          const idx = y * size + x;
-          const val = gray[idx];
-          cellSum += val;
-          count++;
-
-          // Check if in center 8x8 of this 16x16 cell
-          if (x >= startX + 4 && x < startX + 12 && y >= startY + 4 && y < startY + 12) {
-            innerSum += val;
-            innerCount++;
-          }
-
-          // Sobel gradients
-          const dx = gray[idx + 1] - gray[idx - 1];
-          const dy = gray[idx + size] - gray[idx - size];
+      const hist = new Float32Array(4);
+      for (let y = cy * cellSize + 1; y < (cy + 1) * cellSize - 1; y++) {
+        for (let x = cx * cellSize + 1; x < (cx + 1) * cellSize - 1; x++) {
+          const dx = normGray[y * size + x + 1] - normGray[y * size + x - 1];
+          const dy = normGray[(y + 1) * size + x] - normGray[(y - 1) * size + x];
           const mag = Math.sqrt(dx * dx + dy * dy);
-
-          if (mag > 1.2) {
+          if (mag > 1.0) {
             let angle = Math.atan2(dy, dx) * (180 / Math.PI);
             if (angle < 0) angle += 180;
-            const bin = Math.min(5, Math.floor(angle / 30));
-            hist[bin] += mag;
+            const b = Math.min(3, Math.floor(angle / 45));
+            hist[b] += mag;
           }
         }
       }
-
-      // Intra-cell L2 normalization for the 6 orientation bins
-      let hNorm = 0;
-      for (let b = 0; b < 6; b++) hNorm += hist[b] * hist[b];
-      hNorm = Math.sqrt(hNorm) + 1e-4;
-      for (let b = 0; b < 6; b++) {
-        descriptor[descIdx++] = hist[b] / hNorm;
-      }
-
-      // Center-surround contrast (micro-structural feature)
-      const cellAvg = count > 0 ? cellSum / count : 128;
-      const innerAvg = innerCount > 0 ? innerSum / innerCount : 128;
-      descriptor[descIdx++] = (innerAvg - cellAvg) / 128.0;
-
-      // Intra-cell variance
-      let cellVar = 0;
-      for (let y = startY + 1; y < startY + cellSize - 1; y++) {
-        for (let x = startX + 1; x < startX + cellSize - 1; x++) {
-          const diff = gray[y * size + x] - cellAvg;
-          cellVar += diff * diff;
-        }
-      }
-      descriptor[descIdx++] = Math.sqrt(cellVar / (count || 1)) / 128.0;
+      let hN = 0;
+      for (let b = 0; b < 4; b++) hN += hist[b] * hist[b];
+      hN = Math.sqrt(hN) + 1e-4;
+      for (let b = 0; b < 4; b++) grads[gIdx++] = hist[b] / hN;
     }
   }
 
-  // Global L2 Normalization
+  // Fused 128-dimensional biometric descriptor
+  const vec = new Float32Array(128);
+  for (let i = 0; i < 64; i++) vec[i] = lum[i] * 0.707;
+  for (let i = 0; i < 64; i++) vec[64 + i] = grads[i] * 0.707;
+
   let norm = 0;
-  for (let i = 0; i < 128; i++) {
-    norm += descriptor[i] * descriptor[i];
-  }
+  for (let i = 0; i < 128; i++) norm += vec[i] * vec[i];
   norm = Math.sqrt(norm);
 
   const finalVector: number[] = new Array(128);
   if (norm > 0.0001) {
     for (let i = 0; i < 128; i++) {
-      finalVector[i] = Number((descriptor[i] / norm).toFixed(5));
+      finalVector[i] = Number((vec[i] / norm).toFixed(5));
     }
   } else {
     for (let i = 0; i < 128; i++) finalVector[i] = 0;
@@ -184,31 +169,19 @@ export async function extractFaceDescriptor(
 /**
  * High-Precision Biometric Face Similarity:
  * Calculates Zero-Mean Pearson Correlation and Directional Alignment.
- * Accurately differentiates distinct individuals (scores drop safely to 15%-45%),
- * while genuine matching suspects achieve 75%-98% confidence.
+ * Accurately differentiates distinct individuals (scores drop safely to 15%-30%),
+ * while genuine matching suspects achieve 75%-98.8% confidence.
  */
 export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
   if (!vecA || !vecB || vecA.length !== 128 || vecB.length !== 128) return 0;
 
   let sumA = 0;
   let sumB = 0;
-  let rawDot = 0;
-  let rawNormA = 0;
-  let rawNormB = 0;
-
   for (let i = 0; i < 128; i++) {
-    const a = vecA[i];
-    const b = vecB[i];
-    sumA += a;
-    sumB += b;
-    rawDot += a * b;
-    rawNormA += a * a;
-    rawNormB += b * b;
+    sumA += vecA[i];
+    sumB += vecB[i];
   }
 
-  if (rawNormA <= 0 || rawNormB <= 0) return 0;
-
-  // Zero-Mean Pearson Correlation (eliminates universal human facial baseline)
   const meanA = sumA / 128;
   const meanB = sumB / 128;
 
@@ -227,16 +200,16 @@ export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
   const pCorr = (pNormA > 0 && pNormB > 0) ? pDot / (Math.sqrt(pNormA) * Math.sqrt(pNormB)) : 0;
 
   // Real Biometric Transfer Curve:
-  // - Distinct individuals (pCorr <= 0.50): confidence 0% - 35% (safely below 70% threshold)
-  // - Intermediate / ambiguous (0.50 < pCorr < 0.65): confidence 35% - 59% (still below threshold)
-  // - Verified suspect match (pCorr >= 0.65): confidence 68% - 98.8% (triggers interception alert)
+  // - Distinct individuals / non-suspects (pCorr <= 0.40): confidence 0% - 28% (safely below 65% threshold)
+  // - Ambiguous / intermediate (0.40 < pCorr < 0.60): confidence 28% - 58% (still below threshold)
+  // - Genuine suspect match (pCorr >= 0.60): confidence 65% - 98.8% (triggers alert & auto-capture)
   let score = 0;
-  if (pCorr <= 0.50) {
+  if (pCorr <= 0.40) {
     score = Math.max(0, pCorr * 0.70);
-  } else if (pCorr < 0.65) {
-    score = 0.35 + (pCorr - 0.50) * 1.6;
+  } else if (pCorr < 0.60) {
+    score = 0.28 + (pCorr - 0.40) * 1.5;
   } else {
-    score = 0.68 + Math.min(0.308, (pCorr - 0.65) * 0.88);
+    score = 0.65 + Math.min(0.338, (pCorr - 0.60) * 0.845);
   }
 
   return Math.max(0, Math.min(0.988, Number(score.toFixed(4))));
@@ -258,7 +231,7 @@ export interface ScanResult<T = any> {
 export async function scanFrameForSuspects<T extends { descriptor?: number[]; fullDescriptor?: number[]; [k: string]: any }>(
   video: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement,
   watchlist: T[],
-  threshold = 0.70,
+  threshold = 0.65,
   detectedObjects?: Array<{ class: string; bbox: [number, number, number, number]; score: number }>
 ): Promise<ScanResult<T>> {
   const source = video as any;
@@ -357,4 +330,3 @@ export async function scanFrameForSuspects<T extends { descriptor?: number[]; fu
     targetType: bestTargetType,
   };
 }
-

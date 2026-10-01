@@ -62,7 +62,7 @@ function playInterceptionAlertSound() {
 
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<SuspectProfile[]>([]);
-  const [matchThreshold, setMatchThreshold] = useState<number>(0.70);
+  const [matchThreshold, setMatchThreshold] = useState<number>(0.65);
   const [enrollToast, setEnrollToast] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [aiModel, setAiModel] = useState<any>(null);
@@ -152,7 +152,7 @@ export default function WatchlistPage() {
       const savedThresh = localStorage.getItem('vikrant_face_match_threshold');
       if (savedThresh) {
         const val = Number(savedThresh);
-        setMatchThreshold(val < 0.60 ? 0.70 : val);
+        setMatchThreshold(val < 0.50 ? 0.65 : val);
       }
 
       window.addEventListener('vikrant:camera_settings_changed', handleSettingsChange);
@@ -615,17 +615,20 @@ export default function WatchlistPage() {
             let sim = 0;
             let matchedType: 'face' | 'full_photo' = 'face';
 
-            // 1. Primary: Match live face crop against suspect's tight facial descriptor
-            if (region.type === 'face' && suspect.descriptor && suspect.descriptor.length === 128) {
-              sim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
+            let faceSim = 0;
+            let fullSim = 0;
+            if (suspect.descriptor && suspect.descriptor.length === 128) {
+              faceSim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
+            }
+            if (suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
+              fullSim = computeFaceSimilarity(liveDescriptor, suspect.fullDescriptor);
+            }
+            if (faceSim >= fullSim) {
+              sim = faceSim;
               matchedType = 'face';
-            } else if (region.type === 'full_photo' && suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
-              // 2. Photo-on-phone or document scan: match against suspect's full photo descriptor
-              sim = computeFaceSimilarity(liveDescriptor, suspect.fullDescriptor);
+            } else {
+              sim = fullSim;
               matchedType = 'full_photo';
-            } else if (suspect.descriptor && suspect.descriptor.length === 128) {
-              sim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
-              matchedType = 'face';
             }
 
             if (sim > bestSim) {
@@ -1171,8 +1174,8 @@ export default function WatchlistPage() {
             <span className="text-xs text-slate-600 font-bold uppercase">THRESHOLD:</span>
             <input
               type="range"
-              min="0.55"
-              max="0.90"
+              min="0.50"
+              max="0.85"
               step="0.01"
               value={matchThreshold}
               onChange={e => {

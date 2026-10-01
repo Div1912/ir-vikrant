@@ -533,7 +533,7 @@ export default function LiveCameraFeed({
               }
 
               const faceDescriptor = await extractFaceDescriptor(sourceEl, faceCrop);
-              const matchResult = findBestSuspectMatch(faceDescriptor, watchlistRef.current, 0.70);
+              const matchResult = findBestSuspectMatch(faceDescriptor, watchlistRef.current, 0.65);
 
               if (matchResult.isMatch && matchResult.suspect) {
                 const sId = matchResult.suspect.id;
