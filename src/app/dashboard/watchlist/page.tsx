@@ -156,6 +156,8 @@ export default function WatchlistPage() {
       }
 
       window.addEventListener('vikrant:camera_settings_changed', handleSettingsChange);
+      const handleWatchlistUpdated = (e: any) => { if (e.detail) setWatchlist(e.detail); };
+      window.addEventListener('vikrant:watchlist_updated', handleWatchlistUpdated);
     }
 
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
@@ -533,127 +535,11 @@ export default function WatchlistPage() {
       isScanningBusyRef.current = true;
 
       try {
-        const fullW = (scanTarget as any).naturalWidth || (scanTarget as any).videoWidth || 640;
-        const fullH = (scanTarget as any).naturalHeight || (scanTarget as any).videoHeight || 480;
+        const scanRes = await scanFrameForSuspects(scanTarget, watchlist, matchThreshold);
+        setLastScanScore(scanRes.confidence);
 
-        let inferCanvas = inferCanvasRef.current;
-        if (!inferCanvas) {
-          inferCanvas = document.createElement('canvas');
-          inferCanvasRef.current = inferCanvas;
-        }
-        inferCanvas.width = 320;
-        inferCanvas.height = 240;
-        const inferCtx = inferCanvas.getContext('2d', { willReadFrequently: true });
-        if (!inferCtx) return;
-        inferCtx.drawImage(scanTarget, 0, 0, 320, 240);
-
-        let detectedFaces: Array<{ x: number; y: number; width: number; height: number; type: 'face' | 'full_photo' }> = [];
-
-        // 1. BlazeFace Landmark Face Detection (sub-10ms precision)
-        if (blazeModel) {
-          try {
-            const blazePreds = await blazeModel.estimateFaces(inferCanvas, false);
-            for (const p of blazePreds) {
-              const x1 = Array.isArray(p.topLeft) ? p.topLeft[0] : (p.topLeft as any)[0];
-              const y1 = Array.isArray(p.topLeft) ? p.topLeft[1] : (p.topLeft as any)[1];
-              const x2 = Array.isArray(p.bottomRight) ? p.bottomRight[0] : (p.bottomRight as any)[0];
-              const y2 = Array.isArray(p.bottomRight) ? p.bottomRight[1] : (p.bottomRight as any)[1];
-              const fw = x2 - x1;
-              const fh = y2 - y1;
-              detectedFaces.push({
-                x: Math.max(0, x1 - fw * 0.05),
-                y: Math.max(0, y1 - fh * 0.05),
-                width: Math.min(320 - x1, fw * 1.10),
-                height: Math.min(240 - y1, fh * 1.10),
-                type: 'face',
-              });
-            }
-          } catch {}
-        }
-
-        // 2. COCO-SSD ONLY if no face was detected by BlazeFace (throttled to 700ms)
-        if (detectedFaces.length === 0 && aiModel && (Date.now() - lastCocoScanRef.current > 700)) {
-          lastCocoScanRef.current = Date.now();
-          try {
-            const rawPreds = await aiModel.detect(inferCanvas);
-            for (const obj of rawPreds) {
-              if (obj.class === 'cell phone' && obj.score >= 0.28) {
-                const [px, py, pw, ph] = obj.bbox;
-                detectedFaces.push({ x: px, y: py, width: pw, height: ph, type: 'full_photo' });
-              } else if (detectedFaces.length === 0 && obj.class === 'person' && obj.score >= 0.35) {
-                const [px, py, pw, ph] = obj.bbox;
-                detectedFaces.push({
-                  x: Math.max(0, px + pw * 0.15),
-                  y: Math.max(0, py),
-                  width: Math.min(320 - px, pw * 0.70),
-                  height: Math.min(240 - py, Math.max(25, ph * 0.30)),
-                  type: 'face',
-                });
-              }
-            }
-          } catch {}
-        }
-
-        // STRICT HUMAN GATE: If no face or phone is detected, immediately return
-        if (detectedFaces.length === 0) {
-          setLastScanScore(0);
-          setActiveMatchTarget(null);
-          consecutiveMatchesRef.current = { suspectId: '', count: 0 };
-          return;
-        }
-
-        // Scan candidate regions against watchlist directly from inferCanvas!
-        let bestSim = 0;
-        let bestSuspect: SuspectProfile | null = null;
-        let bestBbox = detectedFaces[0];
-        let bestTargetType: 'face' | 'full_photo' = 'face';
-
-        for (const region of detectedFaces) {
-          if (region.width < 15 || region.height < 15) continue;
-          const liveDescriptor = await extractFaceDescriptor(inferCanvas, region);
-          for (const suspect of watchlist) {
-            let sim = 0;
-            let matchedType: 'face' | 'full_photo' = 'face';
-
-            let faceSim = 0;
-            let fullSim = 0;
-            if (suspect.descriptor && suspect.descriptor.length === 128) {
-              faceSim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
-            }
-            if (suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
-              fullSim = computeFaceSimilarity(liveDescriptor, suspect.fullDescriptor);
-            }
-            if (faceSim >= fullSim) {
-              sim = faceSim;
-              matchedType = 'face';
-            } else {
-              sim = fullSim;
-              matchedType = 'full_photo';
-            }
-
-            if (sim > bestSim) {
-              bestSim = sim;
-              bestSuspect = suspect;
-              bestBbox = region;
-              bestTargetType = matchedType;
-            }
-          }
-        }
-
-        setLastScanScore(Number(bestSim.toFixed(3)));
-
-        // Scale bounding box back up to full video dimensions for visual reticle
-        const scaleX = fullW / 320;
-        const scaleY = fullH / 240;
-        const scaledBbox = {
-          x: bestBbox.x * scaleX,
-          y: bestBbox.y * scaleY,
-          width: bestBbox.width * scaleX,
-          height: bestBbox.height * scaleY,
-        };
-
-        if (bestSim >= matchThreshold && bestSuspect) {
-          const sId = bestSuspect.id;
+        if (scanRes.isMatch && scanRes.suspect) {
+          const sId = scanRes.suspect.id;
           if (consecutiveMatchesRef.current.suspectId === sId) {
             consecutiveMatchesRef.current.count += 1;
           } else {
@@ -661,32 +547,35 @@ export default function WatchlistPage() {
           }
 
           setActiveMatchTarget({
-            suspect: bestSuspect,
-            confidence: bestSim,
-            bbox: scaledBbox,
-            targetType: bestTargetType,
+            suspect: scanRes.suspect,
+            confidence: scanRes.confidence,
+            bbox: scanRes.bbox,
+            targetType: scanRes.targetType,
           });
 
-          // Require at least 2 consecutive positive match frames before auto-capture!
-          if (consecutiveMatchesRef.current.count >= 2) {
-            triggerSuspectInterception(bestSuspect, bestSim, scaledBbox);
+          // Immediate or 2-frame rapid lock & capture
+          if (consecutiveMatchesRef.current.count >= 2 || scanRes.confidence >= 0.72) {
+            triggerSuspectInterception(scanRes.suspect, scanRes.confidence, scanRes.bbox);
           }
         } else {
           consecutiveMatchesRef.current = { suspectId: '', count: 0 };
           setActiveMatchTarget(null);
+          if (!scanRes.detectedFaceCount || scanRes.detectedFaceCount === 0) {
+            setLastScanScore(0);
+          }
         }
       } catch (err) {
         console.warn('[Face Engine] Frame scan error:', err);
       } finally {
         isScanningBusyRef.current = false;
       }
-    }, 90); // Real-time 90ms (~11 FPS) instantaneous face scan loop
+    }, 120);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [isScanning, watchlist, matchThreshold, triggerSuspectInterception, feedSource, aiModel, blazeModel]);
+  }, [isScanning, watchlist, matchThreshold, triggerSuspectInterception, feedSource]);
 
   // Quick Snap Current Face and Enroll into Watchlist
   const handleQuickEnrollCurrentFace = async () => {
@@ -1286,7 +1175,7 @@ export default function WatchlistPage() {
                 {activeMatchTarget
                   ? `🚨 CULPRIT MATCH: ${activeMatchTarget.suspect.name}`
                   : lastScanScore > 0
-                  ? `LIVE FACE DETECTED (${Math.round(lastScanScore * 100)}% match)`
+                  ? `LIVE FACE SCANNED (${Math.round(lastScanScore * 100)}% - NON-SUSPECT)`
                   : 'BIO-SCANNER READY (NO HUMAN)'}
               </span>
             </div>
@@ -1515,7 +1404,7 @@ export default function WatchlistPage() {
                   <span className={activeMatchTarget ? 'text-red-400 font-bold' : lastScanScore > 0 ? 'text-amber-300 font-bold' : 'text-sky-300'}>
                     {activeMatchTarget ? 'LOCK ON TARGET' : lastScanScore > 0 ? 'HUMAN IN FRAME' : 'BIO-SCANNER'}
                   </span>
-                  <span className="text-white/60">64x64 HOG</span>
+                  <span className="text-white/60">1024-D NEURAL (FACERES)</span>
                 </div>
                 <div className="text-center">
                   {activeMatchTarget ? (

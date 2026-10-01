@@ -116,6 +116,12 @@ export default function LiveCameraFeed({
     getWatchlist().then(list => {
       watchlistRef.current = list;
     });
+
+    const handleWatchlistUpdate = (e: any) => {
+      if (e.detail) watchlistRef.current = e.detail;
+    };
+    window.addEventListener('vikrant:watchlist_updated', handleWatchlistUpdate);
+    return () => window.removeEventListener('vikrant:watchlist_updated', handleWatchlistUpdate);
   }, []);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
