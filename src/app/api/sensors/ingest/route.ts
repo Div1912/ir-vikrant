@@ -14,6 +14,13 @@ export async function POST(req: NextRequest) {
       longitude = 88.45420,
       distance_m,
       distance_cm,
+      bearing_deg,
+      magnitude,
+      action,
+      front_mq2,
+      right_mq3,
+      rear_mq5,
+      left_mq135,
     } = body;
 
     if (!sensor_type || value === undefined || value === null) {
@@ -63,10 +70,12 @@ export async function POST(req: NextRequest) {
     // 2. Check if spike exceeds threshold and auto-log detection event
     const isNarcotics = sensor_type.includes('narcotics') || sensor_type.includes('mq3') || sensor_type.includes('mq135');
     const isExplosives = sensor_type.includes('explosives') || sensor_type.includes('rdx') || sensor_type.includes('mems');
+    const hasDirectionalSpike = magnitude !== undefined && Number(magnitude) >= 25.0;
 
     let thresholdExceeded = false;
     if (isNarcotics && numValue >= 40.0) thresholdExceeded = true;
     if (isExplosives && numValue >= 50.0) thresholdExceeded = true;
+    if (hasDirectionalSpike) thresholdExceeded = true;
 
     let detectionEvent = null;
 
@@ -74,9 +83,10 @@ export async function POST(req: NextRequest) {
       const nearestSt = findNearestRailwayStation(latitude, longitude);
       const category = isNarcotics ? 'Narcotics MOS (MQ-3/MQ-135)' : 'Explosives Trace (RDX)';
       const distTag = distM !== null && !isNaN(distM) ? ` • Target at ${distM.toFixed(2)}m from robot` : '';
+      const dirTag = bearing_deg !== undefined ? ` • Vector: ${Number(bearing_deg).toFixed(0)}° [${action || 'CHEMOTAXIS'}]` : '';
       const substanceName = isNarcotics
-        ? `Narcotics Vapor Spike: ${numValue} ppm (MQ-3 e-Nose)${distTag}`
-        : `High Explosive Trace Spike: ${numValue} ng/L (RDX / MEMS)${distTag}`;
+        ? `Narcotics Plume: ${numValue} ppm (MQ-3 e-Nose)${dirTag}${distTag}`
+        : `Explosive Plume: ${numValue} ng/L${dirTag}${distTag}`;
 
       const { data: newEvent, error: eventError } = await supabase
         .from('detection_events')

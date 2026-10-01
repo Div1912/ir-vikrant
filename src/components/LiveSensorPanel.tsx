@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { Activity, Flame, Pill, Thermometer, Battery, ShieldAlert, Sparkles, ExternalLink, Radar } from 'lucide-react';
+import { Activity, Flame, Pill, Thermometer, Battery, ShieldAlert, Sparkles, ExternalLink, Radar, Compass } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface LiveSensorPanelProps {
@@ -286,6 +286,16 @@ export default function LiveSensorPanel({
               <span>{lastThresholdAlert}</span>
             </div>
           )}
+
+          {/* 360° Chemical Compass Link */}
+          <Link
+            href="/dashboard/narcotics"
+            className="liquid-btn px-2.5 py-1 text-sky-800 font-mono text-[10px] font-bold flex items-center gap-1 shadow-xs hover:text-sky-950 border border-sky-300"
+            title="Open 360° Directional Chemical Radar & Quadruped Chemotaxis Compass"
+          >
+            <Compass size={11} className="text-sky-600 animate-spin" />
+            <span>360° ODOR COMPASS</span>
+          </Link>
 
           {/* Spike Test Button */}
           <button

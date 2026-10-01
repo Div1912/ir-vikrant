@@ -44,6 +44,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { findNearestRailwayStation } from '@/lib/railwayStations';
 import { clearDetectionEvents } from '@/lib/logService';
+import DirectionalOdorRadar, { DirectionalPlumeTelemetry } from '@/components/DirectionalOdorRadar';
 
 // Camera Shutter Audio Feedback
 function playShutterSound() {
@@ -74,7 +75,8 @@ export default function NarcoticsSensorPage() {
   const [isUsingMockData, setIsUsingMockData] = useState<boolean>(true);
   const [showArduinoModal, setShowArduinoModal] = useState<boolean>(false);
   const [serialError, setSerialError] = useState<string | null>(null);
-  const [sketchTab, setSketchTab] = useState<'single_mq3' | 'raw_analog' | 'dual' | 'python_bridge'>('single_mq3');
+  const [sketchTab, setSketchTab] = useState<'chemotaxis_4direction' | 'single_mq3' | 'dual'>('chemotaxis_4direction');
+  const [directionalPlume, setDirectionalPlume] = useState<DirectionalPlumeTelemetry | null>(null);
 
   // Live Telemetry Streams
   const [readings, setReadings] = useState<any[]>([]);
@@ -491,11 +493,32 @@ export default function NarcoticsSensorPage() {
             try {
               if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
                 const parsed = JSON.parse(trimmed);
-                const ppm3 = parsed.ppm !== undefined ? Number(parsed.ppm) : parsed.mq3 !== undefined ? Number(parsed.mq3) : 20.0;
-                const ppm135 = parsed.mq135 !== undefined ? Number(parsed.mq135) : 15.0;
-                const raw3 = parsed.mq3_raw !== undefined ? Number(parsed.mq3_raw) : Math.round((ppm3 / 85.0) * 1023);
-                const raw135 = parsed.mq135_raw !== undefined ? Number(parsed.mq135_raw) : Math.round((ppm135 / 65.0) * 1023);
-                const distM = parsed.distance_m !== undefined ? Number(parsed.distance_m) : undefined;
+
+                // Handle 4-Directional Chemotaxis Plume Telemetry
+                if (parsed.bearing_deg !== undefined || parsed.front_mq2 !== undefined || parsed.delta_right !== undefined) {
+                  const pData: DirectionalPlumeTelemetry = {
+                    front_mq2: Number(parsed.front_mq2 ?? 300),
+                    right_mq3: Number(parsed.right_mq3 ?? 160),
+                    rear_mq5: Number(parsed.rear_mq5 ?? 220),
+                    left_mq135: Number(parsed.left_mq135 ?? 280),
+                    delta_front: Number(parsed.delta_front ?? 0),
+                    delta_right: Number(parsed.delta_right ?? 0),
+                    delta_rear: Number(parsed.delta_rear ?? 0),
+                    delta_left: Number(parsed.delta_left ?? 0),
+                    bearing_deg: Number(parsed.bearing_deg ?? 0),
+                    magnitude: Number(parsed.magnitude ?? 0),
+                    action: parsed.action || 'IDLE',
+                    distance_cm: parsed.distance_cm !== undefined ? Number(parsed.distance_cm) : undefined,
+                  };
+                  setDirectionalPlume(pData);
+                  window.dispatchEvent(new CustomEvent('vikrant:directional_plume', { detail: pData }));
+                }
+
+                const ppm3 = parsed.ppm !== undefined ? Number(parsed.ppm) : parsed.mq3 !== undefined ? Number(parsed.mq3) : parsed.right_mq3 !== undefined ? Number(((parsed.right_mq3 / 1023.0) * 85.0).toFixed(1)) : 20.0;
+                const ppm135 = parsed.mq135 !== undefined ? Number(parsed.mq135) : parsed.left_mq135 !== undefined ? Number(((parsed.left_mq135 / 1023.0) * 65.0).toFixed(1)) : 15.0;
+                const raw3 = parsed.mq3_raw !== undefined ? Number(parsed.mq3_raw) : parsed.right_mq3 !== undefined ? Number(parsed.right_mq3) : Math.round((ppm3 / 85.0) * 1023);
+                const raw135 = parsed.mq135_raw !== undefined ? Number(parsed.mq135_raw) : parsed.left_mq135 !== undefined ? Number(parsed.left_mq135) : Math.round((ppm135 / 65.0) * 1023);
+                const distM = parsed.distance_m !== undefined ? Number(parsed.distance_m) : parsed.distance_cm !== undefined ? Number(parsed.distance_cm) / 100 : undefined;
                 const distCm = parsed.distance_cm !== undefined ? Number(parsed.distance_cm) : undefined;
 
                 handleIncomingSensorData(ppm3, ppm135, trimmed, raw3, raw135, distM, distCm);
@@ -669,14 +692,22 @@ export default function NarcoticsSensorPage() {
               <button onClick={() => setShowArduinoModal(false)} className="text-zinc-400 hover:text-white text-sm font-mono">✕</button>
             </div>
 
-            <div className="flex gap-2 font-mono text-xs border-b border-white/10 pb-2">
+            <div className="flex gap-2 font-mono text-xs border-b border-white/10 pb-2 flex-wrap">
+              <button
+                onClick={() => setSketchTab('chemotaxis_4direction')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  sketchTab === 'chemotaxis_4direction' ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                🧭 4-DIRECTION CHEMOTAXIS (MQ2/3/5/135)
+              </button>
               <button
                 onClick={() => setSketchTab('single_mq3')}
                 className={`px-3 py-1.5 rounded-lg transition-all ${
                   sketchTab === 'single_mq3' ? 'bg-[#b8d4f0]/20 text-[#b8d4f0] font-bold border border-[#b8d4f0]/30' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                MQ-3 + ULTRASONIC (RECOMMENDED)
+                MQ-3 + ULTRASONIC
               </button>
               <button
                 onClick={() => setSketchTab('dual')}
@@ -690,7 +721,89 @@ export default function NarcoticsSensorPage() {
 
             <div className="p-4 rounded-xl bg-black/80 border border-white/10 font-mono text-xs text-zinc-300">
               <pre className="overflow-x-auto text-[11px] text-[#b8d4f0] leading-relaxed select-all">
-                {sketchTab === 'single_mq3'
+                {sketchTab === 'chemotaxis_4direction'
+                  ? `// ========================================================================================
+// IR VIKRANT - Autonomous Quadruped Directional Chemical Plume Tracking (Chemotaxis Engine)
+// Pins: A0=MQ-2 (Front 0°), A1=MQ-3 (Right +90°), A2=MQ-5 (Rear 180°), A3=MQ-135 (Left -90°)
+// Pins: 9=TRIG, 10=ECHO (HC-SR04), Motors: 5=L_PWM, 6=R_PWM, 7=DIR_L, 8=DIR_R
+// ========================================================================================
+#define PIN_MQ2_FRONT   A0
+#define PIN_MQ3_RIGHT   A1
+#define PIN_MQ5_REAR    A2
+#define PIN_MQ135_LEFT  A3
+#define PIN_TRIG        9
+#define PIN_ECHO        10
+
+float base_f = 300.0, base_r = 160.0, base_b = 220.0, base_l = 280.0;
+float filt_f = 300.0, filt_r = 160.0, filt_b = 220.0, filt_l = 280.0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(PIN_TRIG, OUTPUT); pinMode(PIN_ECHO, INPUT);
+  // Auto-calibrate clean air baseline
+  float sf=0, sr=0, sb=0, sl=0;
+  for (int i=0; i<40; i++) {
+    sf += analogRead(PIN_MQ2_FRONT); sr += analogRead(PIN_MQ3_RIGHT);
+    sb += analogRead(PIN_MQ5_REAR);  sl += analogRead(PIN_MQ135_LEFT);
+    delay(30);
+  }
+  base_f = sf/40.0; base_r = sr/40.0; base_b = sb/40.0; base_l = sl/40.0;
+}
+
+float getDistanceCm() {
+  digitalWrite(PIN_TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(PIN_TRIG, LOW);
+  long d = pulseIn(PIN_ECHO, HIGH, 25000);
+  return (d > 115) ? (d * 0.0343) / 2.0 : 150.0;
+}
+
+void loop() {
+  // 1. Filtered Read
+  filt_f = (0.25 * analogRead(PIN_MQ2_FRONT)) + (0.75 * filt_f);
+  filt_r = (0.25 * analogRead(PIN_MQ3_RIGHT)) + (0.75 * filt_r);
+  filt_b = (0.25 * analogRead(PIN_MQ5_REAR))  + (0.75 * filt_b);
+  filt_l = (0.25 * analogRead(PIN_MQ135_LEFT)) + (0.75 * filt_l);
+
+  // 2. Relative % Excitation Above Baseline
+  float df = max(0.0, ((filt_f - base_f)/base_f)*100.0);
+  float dr = max(0.0, ((filt_r - base_r)/base_r)*100.0);
+  float db = max(0.0, ((filt_b - base_b)/base_b)*100.0);
+  float dl = max(0.0, ((filt_l - base_l)/base_l)*100.0);
+
+  // 3. 2D Vector Decomposition: X = Right-Left, Y = Front-Rear
+  float vx = dr - dl;
+  float vy = df - db;
+  float mag = sqrt(vx*vx + vy*vy);
+  float bearing = atan2(vx, vy) * (180.0 / 3.14159);
+  float dist_cm = getDistanceCm();
+
+  String action = "IDLE";
+  if (dist_cm < 30.0) action = "OBSTACLE_HOLD";
+  else if (mag >= 25.0) {
+    if (bearing >= -25.0 && bearing <= 25.0) action = "FORWARD";
+    else if (bearing > 25.0 && bearing <= 115.0) action = "TURN_RIGHT";
+    else if (bearing < -25.0 && bearing >= -115.0) action = "TURN_LEFT";
+    else action = "TURN_REVERSE";
+  }
+
+  // 4. Output JSON Telemetry to IR Vikrant Dashboard
+  Serial.print("{\\"front_mq2\\":"); Serial.print((int)filt_f);
+  Serial.print(",\\"right_mq3\\":"); Serial.print((int)filt_r);
+  Serial.print(",\\"rear_mq5\\":"); Serial.print((int)filt_b);
+  Serial.print(",\\"left_mq135\\":"); Serial.print((int)filt_l);
+  Serial.print(",\\"delta_front\\":"); Serial.print(df, 1);
+  Serial.print(",\\"delta_right\\":"); Serial.print(dr, 1);
+  Serial.print(",\\"delta_rear\\":"); Serial.print(db, 1);
+  Serial.print(",\\"delta_left\\":"); Serial.print(dl, 1);
+  Serial.print(",\\"bearing_deg\\":"); Serial.print(bearing, 1);
+  Serial.print(",\\"magnitude\\":"); Serial.print(mag, 1);
+  Serial.print(",\\"action\\":\\""); Serial.print(action);
+  Serial.print("\\",\\"distance_cm\\":"); Serial.print(dist_cm, 1);
+  Serial.println("}");
+  delay(250);
+}`
+                  : sketchTab === 'single_mq3'
                   ? `// IR VIKRANT - High-Accuracy MQ-3 & Ultrasonic Rangefinder
 const int PIN_MQ3 = A0;
 const int PIN_TRIG = 9;
@@ -896,6 +1009,9 @@ void loop() {
           </div>
         </div>
       )}
+
+      {/* 360° Directional Chemical Odor Radar & Quadruped Chemotaxis Compass */}
+      <DirectionalOdorRadar telemetry={directionalPlume} />
 
       {/* Telemetry Dials Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
