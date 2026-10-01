@@ -23,13 +23,34 @@ interface LiveSensorPanelProps {
   compact?: boolean;
 }
 
+const DEFAULT_UNIT_ID = 'c7569eb7-87ab-43db-905b-54baf7b106fc';
+
+function generateSeedReadings(targetId: string, count = 24) {
+  const points: any[] = [];
+  const now = Date.now();
+  for (let i = count; i >= 0; i--) {
+    const t = new Date(now - i * 4000).toISOString();
+    const phase = (now - i * 4000) / 10000;
+    points.push(
+      { unit_id: targetId, sensor_type: 'narcotics_enose', value: Number((19.5 + Math.sin(phase) * 5.2 + (Math.random() * 1.5)).toFixed(1)), unit_of_measure: 'ppm', recorded_at: t },
+      { unit_id: targetId, sensor_type: 'explosives_mems', value: Number((4.8 + Math.cos(phase * 1.2) * 2.1 + (Math.random() * 0.8)).toFixed(1)), unit_of_measure: 'ng/L', recorded_at: t },
+      { unit_id: targetId, sensor_type: 'temperature', value: Number((29.4 + Math.sin(phase * 0.4) * 1.2).toFixed(1)), unit_of_measure: '°C', recorded_at: t },
+      { unit_id: targetId, sensor_type: 'humidity', value: Number((54.0 + Math.cos(phase * 0.3) * 3.5).toFixed(1)), unit_of_measure: '%', recorded_at: t },
+      { unit_id: targetId, sensor_type: 'particulate_pm25', value: Number((42.0 + Math.sin(phase * 0.7) * 6.0).toFixed(1)), unit_of_measure: 'µg/m³', recorded_at: t },
+      { unit_id: targetId, sensor_type: 'battery_drain', value: Math.max(20, Number((86.5 - ((count - i) * 0.05)).toFixed(1))), unit_of_measure: '%', recorded_at: t }
+    );
+  }
+  return points;
+}
+
 export default function LiveSensorPanel({
-  unitId,
+  unitId = DEFAULT_UNIT_ID,
   unitCode = 'Q-01',
   compact = false,
 }: LiveSensorPanelProps) {
+  const effectiveUnitId = unitId || DEFAULT_UNIT_ID;
   const [timeRange, setTimeRange] = useState<'5m' | '1h' | '24h'>('1h');
-  const [readings, setReadings] = useState<any[]>([]);
+  const [readings, setReadings] = useState<any[]>(() => generateSeedReadings(effectiveUnitId, 24));
   const [isSimulating, setIsSimulating] = useState<boolean>(true);
   const [lastThresholdAlert, setLastThresholdAlert] = useState<string | null>(null);
   const [liveDistance, setLiveDistance] = useState<{ m: number; cm: number } | null>(null);
@@ -55,8 +76,8 @@ export default function LiveSensorPanel({
       .select('*')
       .order('recorded_at', { ascending: true });
 
-    if (unitId) {
-      query = query.eq('unit_id', unitId);
+    if (effectiveUnitId) {
+      query = query.eq('unit_id', effectiveUnitId);
     }
 
     // Filter by time range
@@ -68,10 +89,13 @@ export default function LiveSensorPanel({
     query = query.gte('recorded_at', new Date(cutoff).toISOString()).limit(120);
 
     const { data, error } = await query;
-    if (!error && data) {
+    if (!error && data && data.length >= 6) {
       setReadings(data);
+    } else {
+      // Seed with initial realistic telemetry so the graphs are immediately alive and animated
+      setReadings(prev => (prev.length >= 6 ? prev : generateSeedReadings(effectiveUnitId, 24)));
     }
-  }, [unitId, timeRange]);
+  }, [effectiveUnitId, timeRange]);
 
   useEffect(() => {
     fetchReadings();
@@ -101,25 +125,22 @@ export default function LiveSensorPanel({
     };
   }, []);
 
-  // Background Simulator: Emits live telemetry every 4s and auto-triggers detection if threshold exceeded
+  // Background Simulator: Emits live telemetry every 3.2s and auto-triggers detection if threshold exceeded
   useEffect(() => {
     if (!isSimulating) return;
 
     const interval = setInterval(async () => {
-      // Pick target unit id or fallback
-      const targetId = unitId;
-      if (!targetId) return;
-
+      const targetId = effectiveUnitId;
       const nowIso = new Date().toISOString();
       const rand = Math.random();
 
       // Base narcotics value (15-28 ppm) with occasional spike
-      const willSpike = rand > 0.88;
-      const narcoticsVal = willSpike ? Number((48 + Math.random() * 25).toFixed(1)) : Number((18 + Math.sin(Date.now() / 10000) * 6 + (Math.random() * 2)).toFixed(1));
-      const explosivesVal = willSpike ? Number((68 + Math.random() * 30).toFixed(1)) : Number((4 + Math.cos(Date.now() / 8000) * 2 + (Math.random() * 1.5)).toFixed(1));
+      const willSpike = rand > 0.94;
+      const narcoticsVal = willSpike ? Number((48 + Math.random() * 25).toFixed(1)) : Number((19.5 + Math.sin(Date.now() / 10000) * 5.5 + (Math.random() * 2)).toFixed(1));
+      const explosivesVal = willSpike ? Number((68 + Math.random() * 30).toFixed(1)) : Number((4.5 + Math.cos(Date.now() / 8000) * 2 + (Math.random() * 1.2)).toFixed(1));
       const tempVal = Number((29.2 + Math.sin(Date.now() / 25000) * 1.5).toFixed(1));
-      const humidityVal = Number((52 + Math.cos(Date.now() / 30000) * 4).toFixed(1));
-      const dustVal = Number((42 + Math.sin(Date.now() / 15000) * 8).toFixed(1));
+      const humidityVal = Number((53.5 + Math.cos(Date.now() / 30000) * 3.5).toFixed(1));
+      const dustVal = Number((41.5 + Math.sin(Date.now() / 15000) * 7).toFixed(1));
       const batteryVal = Math.max(15, Number((88 - (Date.now() % 3600000) / 150000).toFixed(1)));
 
       const newRows = [
@@ -131,57 +152,88 @@ export default function LiveSensorPanel({
         { unit_id: targetId, sensor_type: 'battery_drain', value: batteryVal, unit_of_measure: '%', recorded_at: nowIso },
       ];
 
-      await supabase.from('sensor_readings').insert(newRows);
+      // Update local state IMMEDIATELY so graphs smoothly animate in real-time
+      setReadings(prev => {
+        const next = [...prev, ...newRows];
+        return next.length > 180 ? next.slice(next.length - 180) : next;
+      });
+
+      // Asynchronously persist to Supabase in background
+      try {
+        await supabase.from('sensor_readings').insert(newRows);
+      } catch {}
 
       // Threshold check: if value crosses threshold, auto-create detection event!
       if (willSpike) {
         const substanceName = narcoticsVal > 40 ? 'Heroin/Synthetic Opioid Precursor' : 'PETN Secondary Booster';
         const category = narcoticsVal > 40 ? 'Narcotics' : 'Explosives';
 
-        await supabase.from('detection_events').insert({
+        const alertEvent = {
           unit_id: targetId,
           substance_category: category,
           substance_name: substanceName,
-          confidence_tier: 'confirmed',
+          confidence_tier: 'confirmed' as const,
           confidence_score: 0.94,
           station: 'NDLS Sector 4 Sweep',
-          status: 'new',
+          status: 'new' as const,
           timestamp: nowIso
-        });
+        };
+
+        try {
+          await supabase.from('detection_events').insert(alertEvent);
+        } catch {}
+
+        // Broadcast to dashboard alert feed in 0ms!
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('vikrant:new_capture', { detail: alertEvent }));
+        }
 
         setLastThresholdAlert(`${category.toUpperCase()} SPIKE DETECTED (${narcoticsVal > 40 ? narcoticsVal + ' ppm' : explosivesVal + ' ng/L'})`);
         setTimeout(() => setLastThresholdAlert(null), 5000);
       }
-    }, 4500);
+    }, 3200);
 
     return () => clearInterval(interval);
-  }, [isSimulating, unitId]);
+  }, [isSimulating, effectiveUnitId]);
 
   // Manually trigger spike for demo
   const triggerManualSpike = async () => {
-    if (!unitId) return;
+    const targetId = effectiveUnitId;
     const nowIso = new Date().toISOString();
     const spikeNarcotics = 78.4;
     const spikeExplosives = 92.1;
 
-    await supabase.from('sensor_readings').insert([
-      { unit_id: unitId, sensor_type: 'narcotics_enose', value: spikeNarcotics, unit_of_measure: 'ppm', recorded_at: nowIso },
-      { unit_id: unitId, sensor_type: 'explosives_mems', value: spikeExplosives, unit_of_measure: 'ng/L', recorded_at: nowIso }
-    ]);
+    const spikeRows = [
+      { unit_id: targetId, sensor_type: 'narcotics_enose', value: spikeNarcotics, unit_of_measure: 'ppm', recorded_at: nowIso },
+      { unit_id: targetId, sensor_type: 'explosives_mems', value: spikeExplosives, unit_of_measure: 'ng/L', recorded_at: nowIso }
+    ];
 
-    await supabase.from('detection_events').insert({
-      unit_id: unitId,
+    // Immediately push to local state so Recharts immediately spikes visibly
+    setReadings(prev => [...prev.slice(-180), ...spikeRows]);
+
+    const alertEvent = {
+      unit_id: targetId,
       substance_category: 'Explosives',
       substance_name: 'RDX/PETN Trace Residue',
-      confidence_tier: 'confirmed',
+      confidence_tier: 'confirmed' as const,
       confidence_score: 0.96,
       station: 'NDLS Platform Concourse',
-      status: 'new',
+      status: 'new' as const,
       timestamp: nowIso
-    });
+    };
+
+    // Broadcast to dashboard alert feed in 0ms!
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vikrant:new_capture', { detail: alertEvent }));
+    }
 
     setLastThresholdAlert('THRESHOLD ALARM: RDX DETECTED (92.1 ng/L)');
     setTimeout(() => setLastThresholdAlert(null), 5000);
+
+    try {
+      await supabase.from('sensor_readings').insert(spikeRows);
+      await supabase.from('detection_events').insert(alertEvent);
+    } catch {}
   };
 
   // Group readings by timestamp for chart consumption

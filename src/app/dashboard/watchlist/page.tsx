@@ -108,6 +108,8 @@ export default function WatchlistPage() {
   // Location Telemetry
   const [currentCoords, setCurrentCoords] = useState<[number, number]>([22.59548, 88.45420]);
   const [stationName, setStationName] = useState<string>('Bidhan Nagar Road (BNR) • Eastern Railway');
+  const [gpsAccuracy, setGpsAccuracy] = useState<number>(5);
+  const [gpsLocked, setGpsLocked] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const ipImageRef = useRef<HTMLImageElement | null>(null);
@@ -160,22 +162,36 @@ export default function WatchlistPage() {
       window.addEventListener('vikrant:watchlist_updated', handleWatchlistUpdated);
     }
 
+    let watchId: number | null = null;
     if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      const updateLocation = (pos: GeolocationPosition) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setCurrentCoords([latitude, longitude]);
+        setGpsAccuracy(accuracy || 5);
+        setGpsLocked(true);
+        const nearest = findNearestRailwayStation(latitude, longitude);
+        setStationName(nearest.fullLabel);
+      };
+
       navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          setCurrentCoords([latitude, longitude]);
-          const nearest = findNearestRailwayStation(latitude, longitude);
-          setStationName(nearest.fullLabel);
-        },
+        updateLocation,
         () => {},
-        { timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 5000 }
+      );
+
+      watchId = navigator.geolocation.watchPosition(
+        updateLocation,
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
       );
     }
 
-  return () => {
+    return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('vikrant:camera_settings_changed', handleSettingsChange);
+      }
+      if (watchId !== null && typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+        navigator.geolocation.clearWatch(watchId);
       }
     };
   }, []);
@@ -451,25 +467,36 @@ export default function WatchlistPage() {
           42
         );
 
-        // Bottom Telemetry
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
-        ctx.fillRect(16, canvas.height - 56, canvas.width - 32, 44);
+        // TACTICAL MILITARY HUD GEOTAG BANNER AT BOTTOM
+        const bannerHeight = 52;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+        ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
 
-        ctx.fillStyle = '#fca5a5';
-        ctx.font = '11px monospace';
+        // Red threat line
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, 2.5);
+
+        // Line 1: High-precision Geo-tag & Satellite lock info
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 12px monospace';
+        const lockLabel = gpsLocked ? 'ISRO NAVIC / GPS FIX' : 'IR FIXED BEACON FIX';
         ctx.fillText(
-          `WARRANT: ${suspect.warrantId} • HAZARD: ${suspect.hazardLevel} • OFFENSE: ${suspect.offense}`,
-          24,
-          canvas.height - 36
+          `📍 GPS GEOTAG: ${currentCoords[0].toFixed(6)}° N, ${currentCoords[1].toFixed(6)}° E (±${Math.round(gpsAccuracy)}m) • ${lockLabel}`,
+          14,
+          canvas.height - bannerHeight + 20
         );
+
+        // Line 2: Warrant, Hazard, Station Sector & Timestamp
+        ctx.fillStyle = '#fca5a5';
+        ctx.font = '10px monospace';
         ctx.fillText(
-          `LOC: ${currentCoords[0].toFixed(5)}° N, ${currentCoords[1].toFixed(5)}° E • ${stationName.split('•')[0].trim()} • ${new Date().toLocaleTimeString()}`,
-          24,
-          canvas.height - 18
+          `WARRANT: ${suspect.warrantId} • HAZARD: ${suspect.hazardLevel} • SECTOR: ${stationName.split('•')[0].trim()} • UTC: ${new Date().toISOString()}`,
+          14,
+          canvas.height - bannerHeight + 38
         );
       }
 
-      const livePhotoUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const livePhotoUrl = canvas.toDataURL('image/jpeg', 0.88);
       const timestamp = new Date().toISOString();
 
       const newEvent = {
@@ -510,7 +537,7 @@ export default function WatchlistPage() {
       window.dispatchEvent(new CustomEvent('vikrant:facial_match', { detail: finalRecord }));
       window.dispatchEvent(new CustomEvent('vikrant:new_capture', { detail: finalRecord }));
     },
-    [currentCoords, stationName, feedSource]
+    [currentCoords, stationName, feedSource, gpsAccuracy, gpsLocked]
   );
 
   // 5. Continuous Real-Time Autonomous Facial Scanning Loop

@@ -328,7 +328,7 @@ export default function DashboardPage() {
 
                 {/* 2. Live Sensor Telemetry Panel */}
                 <div className="flex-1 glass-liquid-panel rounded-3xl overflow-y-auto p-2 border border-white/80 shadow-md">
-                  <LiveSensorPanel unitCode="Q-01" />
+                  <LiveSensorPanel unitId="c7569eb7-87ab-43db-905b-54baf7b106fc" unitCode="Q-01" />
                 </div>
               </div>
             ) : bottomView === 'captures' ? (
@@ -387,7 +387,7 @@ export default function DashboardPage() {
             ) : (
               /* Sensor Panel Full */
               <div className="flex-1 glass-liquid-panel rounded-3xl overflow-y-auto p-3 border border-white/80 shadow-md">
-                <LiveSensorPanel unitCode="Q-01" />
+                <LiveSensorPanel unitId="c7569eb7-87ab-43db-905b-54baf7b106fc" unitCode="Q-01" />
               </div>
             )}
           </div>
