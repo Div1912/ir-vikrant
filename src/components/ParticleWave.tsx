@@ -26,16 +26,16 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
     void main() {
       vec3 p = position;
       
-      // Multi-frequency sinusoidal wave equation
-      float elevation = (sin(p.x * 0.35 + uTime * 1.5) * 0.8) + (cos(p.z * 0.3 + uTime * 1.2) * 0.8);
+      // High-definition multi-frequency sinusoidal wave equation
+      float elevation = (sin(p.x * 0.38 + uTime * 1.6) * 1.25) + (cos(p.z * 0.32 + uTime * 1.35) * 1.25);
       p.y += elevation;
-      vElevation = (elevation + 1.6) / 3.2; // 0 to 1 range
+      vElevation = (elevation + 2.5) / 5.0; // 0 to 1 normalized range
       
       vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
       
-      // Calculate perspective size with a guaranteed visible minimum
-      float size = (scale * 28.0) * (1.0 / max(0.1, -mvPosition.z));
-      gl_PointSize = clamp(size, 2.5, 14.0);
+      // Calculate perspective size with high-visibility particle glow
+      float size = (scale * 38.0) * (1.0 / max(0.08, -mvPosition.z));
+      gl_PointSize = clamp(size, 3.2, 18.0);
       gl_Position = projectionMatrix * mvPosition;
     }
   `;
@@ -49,12 +49,13 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
       if (dist > 0.5) discard;
       
       // Soft radial glow gradient
-      float alpha = smoothstep(0.5, 0.05, dist);
+      float alpha = smoothstep(0.5, 0.03, dist);
       
-      // Blend between ice blue at the bottom to luminous white at peaks
-      vec3 finalColor = mix(uColor, vec3(1.0, 1.0, 1.0), vElevation * 0.7);
+      // Luminous cyan-sky gradient blending to pure electric white at wave crests
+      vec3 crestColor = vec3(0.15, 0.75, 1.0);
+      vec3 finalColor = mix(uColor, crestColor, vElevation * 0.85);
       
-      gl_FragColor = vec4(finalColor, alpha * 0.9);
+      gl_FragColor = vec4(finalColor, alpha * 0.98);
     }
   `;
 
@@ -68,25 +69,25 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
 
     // Perspective Camera angled downwards across the wave plane
     const camera = new THREE.PerspectiveCamera(60, aspectRatio, 0.1, 1000);
-    camera.position.set(0, 6.0, 8.5);
-    camera.lookAt(0, -0.5, -4.0);
+    camera.position.set(0, 5.5, 8.2);
+    camera.lookAt(0, -0.6, -4.0);
 
     const scene = new THREE.Scene();
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: false,
+      antialias: true,
       alpha: true,
       powerPreference: "high-performance"
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(winWidth, winHeight);
     renderer.setClearColor(0x000000, 0);
 
-    // Optimized grid of wave particles (90x90 = 8,100 points for 60fps performance)
-    const gap = 0.52;
-    const amountX = 90;
-    const amountY = 90;
+    // Optimized dense grid of wave particles (100x100 = 10,000 points for ultra-smooth liquid wave)
+    const gap = 0.48;
+    const amountX = 100;
+    const amountY = 100;
     const particleNum = amountX * amountY;
     const particlePositions = new Float32Array(particleNum * 3);
     const particleScales = new Float32Array(particleNum);
@@ -114,7 +115,7 @@ export const ParticleWave: React.FC<ParticleWaveProps> = ({ className = '', tran
       fragmentShader: particleFragment,
       uniforms: {
         uTime: { value: 0 },
-        uColor: { value: new THREE.Vector3(0.08, 0.42, 0.82) } // Luminous Sapphire-Cobalt Blue for bright mode visibility
+        uColor: { value: new THREE.Vector3(0.01, 0.48, 0.95) } // High-Vibrancy Sky Cobalt Blue
       }
     });
 

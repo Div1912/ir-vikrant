@@ -6,11 +6,11 @@ import ParticleWave from './ParticleWave';
 export default function DashboardBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-[#FAFAFA]">
-      {/* Radiant Ambient Light Mesh & Glowing Orbs (Loda Bright Theme) */}
-      <div className="fixed -top-40 left-1/4 w-[750px] h-[750px] bg-gradient-to-br from-sky-200/60 via-blue-100/50 to-transparent rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed -bottom-24 right-1/4 w-[650px] h-[650px] bg-gradient-to-tl from-indigo-200/50 via-sky-100/40 to-transparent rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed top-1/3 right-10 w-[450px] h-[450px] bg-gradient-to-bl from-cyan-100/40 via-sky-50/30 to-transparent rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(56,189,248,0.18),rgba(248,250,252,0.6)_60%,#FAFAFA_100%)]" />
+      {/* Radiant Ambient Light Mesh & Glowing Orbs (Loda Bright Theme - High Vibrancy) */}
+      <div className="fixed -top-40 left-1/4 w-[850px] h-[850px] bg-gradient-to-br from-sky-300/70 via-cyan-200/60 to-transparent rounded-full blur-[130px] pointer-events-none z-0 animate-pulse duration-[8000ms]" />
+      <div className="fixed -bottom-24 right-1/4 w-[750px] h-[750px] bg-gradient-to-tl from-indigo-300/60 via-sky-200/50 to-transparent rounded-full blur-[130px] pointer-events-none z-0" />
+      <div className="fixed top-1/3 right-10 w-[550px] h-[550px] bg-gradient-to-bl from-cyan-200/55 via-sky-100/45 to-transparent rounded-full blur-[110px] pointer-events-none z-0" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_85%_65%_at_50%_-10%,rgba(56,189,248,0.32),rgba(248,250,252,0.5)_65%,#FAFAFA_100%)]" />
 
       {/* 3D Liquid Glass WebGL Particle Wave Background */}
       <ParticleWave className="opacity-100" transparent={true} />

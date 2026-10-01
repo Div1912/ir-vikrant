@@ -49,11 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardBackground />
 
       {/* iOS Liquid Crystal Side Navigation Rail */}
-      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/15 backdrop-blur-3xl border-r border-white/40 z-40 relative shadow-none">
+      <nav className="w-64 flex-shrink-0 flex flex-col h-full bg-white/35 backdrop-blur-3xl border-r border-white/60 z-40 relative shadow-[4px_0_24px_rgba(2,132,199,0.05)]">
         {/* Brand Logo & Ghost Header */}
-        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/40">
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-white/60">
           <Link href="/dashboard" className="flex items-center gap-3 group" title="IR Vikrant Ghost Command Center">
-            <div className="w-9.5 h-9.5 rounded-2xl bg-white/60 border border-white/80 flex items-center justify-center shadow-xs group-hover:scale-105 transition-all">
+            <div className="w-9.5 h-9.5 rounded-2xl bg-white/70 border border-white/90 flex items-center justify-center shadow-xs group-hover:scale-105 transition-all">
               <VikrantLogo size={22} />
             </div>
             <div className="flex flex-col">
@@ -81,8 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group relative
                   ${
                     isActive
-                      ? 'bg-gradient-to-r from-sky-500/25 to-sky-600/15 text-sky-950 font-bold border border-white/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_4px_16px_rgba(2,132,199,0.15)]'
-                      : 'text-slate-800 hover:bg-white/30 hover:text-slate-950 font-medium'
+                      ? 'bg-gradient-to-r from-sky-500/35 to-blue-600/20 text-sky-950 font-bold border border-white/90 shadow-[inset_0_1.5px_2px_rgba(255,255,255,0.95),0_4px_16px_rgba(2,132,199,0.2)] backdrop-blur-xl'
+                      : 'text-slate-800 hover:bg-white/50 hover:border hover:border-white/60 hover:text-slate-950 font-semibold'
                   }
                 `}
               >
@@ -104,15 +104,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Bottom Utility / Settings */}
-        <div className="p-3 border-t border-white/40 flex flex-col gap-1.5">
+        <div className="p-3 border-t border-white/60 flex flex-col gap-1.5">
           <Link
             href="/dashboard/settings"
             className={`
               flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-mono transition-all group
               ${
                 pathname === '/dashboard/settings'
-                  ? 'bg-gradient-to-r from-sky-500/25 to-sky-600/15 text-sky-950 font-bold border border-white/80 shadow-xs'
-                  : 'text-slate-800 hover:bg-white/30 hover:text-slate-950 font-medium'
+                  ? 'bg-gradient-to-r from-sky-500/35 to-blue-600/20 text-sky-950 font-bold border border-white/90 shadow-xs'
+                  : 'text-slate-800 hover:bg-white/50 hover:border hover:border-white/60 hover:text-slate-950 font-semibold'
               }
             `}
           >
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content Area with Ghost Top Header */}
       <div className="flex-1 relative overflow-hidden flex flex-col z-10 bg-transparent min-w-0">
         {/* Top Header */}
-        <header className="h-20 bg-white/20 backdrop-blur-3xl border-b border-white/40 flex items-center justify-between px-8 sticky top-0 z-30 shadow-none">
+        <header className="h-20 bg-white/35 backdrop-blur-3xl border-b border-white/60 flex items-center justify-between px-8 sticky top-0 z-30 shadow-xs">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight uppercase text-slate-900 font-mono flex items-center gap-2">
               <span className="text-sky-600">/</span> {activeTitle}
