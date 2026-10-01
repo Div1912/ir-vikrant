@@ -446,7 +446,14 @@ export default function LiveCameraFeed({
           .select()
           .single();
 
-        const createdItem = inserted || { ...newEvent, id: `local-${Date.now()}` };
+        const createdItem = {
+          ...(inserted || newEvent),
+          id: (inserted as any)?.id || `local-${Date.now()}`,
+          suspectReferencePhoto: (detectedItem as any).suspectReferencePhoto,
+          suspectName: (detectedItem as any).suspectName,
+          warrantId: (detectedItem as any).warrantId,
+          suspectId: (detectedItem as any).suspectId,
+        };
 
         // Dispatch local window event so all dashboard panels receive it in 0ms!
         if (typeof window !== 'undefined') {
@@ -556,8 +563,8 @@ export default function LiveCameraFeed({
                   bbox: [faceCrop.x, faceCrop.y, faceCrop.width, faceCrop.height],
                 });
 
-                // Require at least 2 consecutive positive match frames before auto-capture!
-                if (consecutiveFaceMatchesRef.current.count >= 2) {
+                // Require at least 2 consecutive positive match frames before auto-capture (or >= 0.78 confidence)!
+                if (consecutiveFaceMatchesRef.current.count >= 2 || matchResult.confidence >= 0.78) {
                   const now = Date.now();
                   if (now - lastAutoTriggerTimeRef.current > 4000) {
                     lastAutoTriggerTimeRef.current = now;
@@ -568,7 +575,11 @@ export default function LiveCameraFeed({
                       category: 'Facial Watchlist Intercept',
                       tier: 'confirmed',
                       bbox: [faceCrop.x, faceCrop.y, faceCrop.width, faceCrop.height],
-                    });
+                      suspectReferencePhoto: matchResult.suspect.photoUrl,
+                      suspectName: matchResult.suspect.name,
+                      warrantId: matchResult.suspect.warrantId,
+                      suspectId: matchResult.suspect.id,
+                    } as any);
                     break;
                   }
                 }

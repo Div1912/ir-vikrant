@@ -55,12 +55,14 @@ export async function getHuman(): Promise<any> {
       const human = new Human({
         backend: 'webgl',
         modelBasePath: '/models/human/',
+        cacheSensitivity: 0,
+        skipAllowed: false,
         filter: { enabled: false },
         face: {
           enabled: true,
-          detector: { enabled: true, rotation: true, maxDetected: 10, minConfidence: 0.18 },
-          mesh: { enabled: true },
-          description: { enabled: true, minConfidence: 0.15 },
+          detector: { enabled: true, rotation: true, maxDetected: 6, minConfidence: 0.15, skipFrames: 0, skipTime: 0, scale: 1.4 },
+          mesh: { enabled: true, skipFrames: 0, skipTime: 0 },
+          description: { enabled: true, minConfidence: 0.10, skipFrames: 0, skipTime: 0 },
           iris: { enabled: false },
           emotion: { enabled: false },
           antispoof: { enabled: false },
@@ -75,7 +77,7 @@ export async function getHuman(): Promise<any> {
 
       await human.load();
       _humanInstance = human;
-      console.log('[FaceEngine] Neural Face Recognition Engine loaded successfully (WebGL)');
+      console.log('[FaceEngine] Neural Face Recognition Engine loaded successfully (WebGL, zero-skip real-time)');
       return human;
     } catch (err) {
       console.warn('[FaceEngine] WebGL init failed, attempting CPU fallback:', err);
@@ -84,11 +86,13 @@ export async function getHuman(): Promise<any> {
         const human = new Human({
           backend: 'cpu',
           modelBasePath: '/models/human/',
+          cacheSensitivity: 0,
+          skipAllowed: false,
           face: {
             enabled: true,
-            detector: { enabled: true, rotation: true, maxDetected: 5, minConfidence: 0.18 },
-            mesh: { enabled: true },
-            description: { enabled: true, minConfidence: 0.12 },
+            detector: { enabled: true, rotation: true, maxDetected: 4, minConfidence: 0.15, skipFrames: 0, skipTime: 0 },
+            mesh: { enabled: true, skipFrames: 0, skipTime: 0 },
+            description: { enabled: true, minConfidence: 0.10, skipFrames: 0, skipTime: 0 },
             iris: { enabled: false },
             emotion: { enabled: false },
             antispoof: { enabled: false },
@@ -103,7 +107,7 @@ export async function getHuman(): Promise<any> {
 
         await human.load();
         _humanInstance = human;
-        console.log('[FaceEngine] Neural Face Recognition Engine loaded (CPU fallback)');
+        console.log('[FaceEngine] Neural Face Recognition Engine loaded (CPU fallback, zero-skip real-time)');
         return human;
       } catch (err2) {
         console.error('[FaceEngine] Failed to initialize Human engine:', err2);
@@ -192,13 +196,14 @@ export async function extractFaceDescriptor(
 
 /**
  * High-Precision Biometric Face Similarity:
- * Computes Cosine Similarity between face embedding vectors.
+ * Computes Cosine Similarity between 1024-d face embedding vectors.
  * STRICT: Only compares vectors of the EXACT same dimension (1024-d).
  * 
- * Score Curve for 1024-d ArcFace / FaceRes:
- * - cosSim <= 0.45: Clear Non-Suspect Commuter -> returns 0% - 30% (Safely below 68% threshold).
- * - 0.45 < cosSim < 0.62: Ambiguous Non-Suspect -> returns 30% - 50% (NEVER triggers false alarm).
- * - cosSim >= 0.62: GENUINE SUSPECT MATCH -> returns 68% - 98.8% (Triggers Red Alert & Intercept).
+ * Calibrated Score Curve for 1024-d ArcFace / FaceRes:
+ * - cosSim <= 0.40: Clear Non-Suspect -> returns 0% - 20%
+ * - 0.40 < cosSim < 0.62: Different person / demographic similarity -> returns 20% - 48% (safely below 68% threshold)
+ * - 0.62 <= cosSim < 0.68: Ambiguous boundary zone -> returns 48% - 65% (NEVER triggers false match)
+ * - cosSim >= 0.68: GENUINE SUSPECT MATCH -> returns 70% - 98.8% (Triggers Confirmed Intercept)
  */
 export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
   if (!vecA || !vecB || !Array.isArray(vecA) || !Array.isArray(vecB)) return 0;
@@ -228,18 +233,22 @@ export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
 
   // Deep 1024-d ArcFace / FaceRes embeddings
   if (len >= 256) {
-    if (cosSim <= 0.45) {
-      // Non-suspect commuter: return safe low score (0% - 30%)
-      return Math.max(0, Number((cosSim * 0.66).toFixed(4)));
+    if (cosSim <= 0.40) {
+      // Non-suspect commuter: return safe low score (0% - 20%)
+      return Math.max(0, Number((cosSim * 0.50).toFixed(4)));
     } else if (cosSim < 0.62) {
-      // Ambiguous / different persons with similar traits: returns 30% - 50% (safely below 68% threshold)
-      const t = (cosSim - 0.45) / (0.62 - 0.45);
-      return Number((0.30 + t * 0.20).toFixed(4));
+      // Different person with demographic resemblance: returns 20% - 48% (safely below 68% threshold)
+      const t = (cosSim - 0.40) / (0.62 - 0.40);
+      return Number((0.20 + t * 0.28).toFixed(4));
+    } else if (cosSim < 0.68) {
+      // Ambiguous transition zone: returns 48% - 65% (never triggers alert threshold)
+      const t = (cosSim - 0.62) / (0.68 - 0.62);
+      return Number((0.48 + t * 0.17).toFixed(4));
     } else {
-      // Genuine suspect match (cosSim >= 0.62):
-      // Confidently maps to 68% - 98.8%
-      const t = Math.min(1.0, (cosSim - 0.62) / (0.85 - 0.62));
-      const score = 0.68 + t * 0.308;
+      // Genuine suspect match (cosSim >= 0.68):
+      // Smoothly maps to 70% - 98.8%
+      const t = Math.min(1.0, (cosSim - 0.68) / (0.88 - 0.68));
+      const score = 0.70 + t * 0.288;
       return Math.min(0.988, Number(score.toFixed(4)));
     }
   }
@@ -293,6 +302,7 @@ export async function scanFrameForSuspects<
 
       if (faces.length > 0) {
         let bestSim = 0;
+        let secondSim = 0;
         let bestSuspect: T | null = null;
         let bestBbox = { x: 0, y: 0, width: 100, height: 100 };
         let bestTargetType: 'face' | 'full_photo' = 'face';
@@ -306,15 +316,15 @@ export async function scanFrameForSuspects<
             let sim = 0;
             let matchedType: 'face' | 'full_photo' = 'face';
 
+            // Primary: compare against clean cropped face descriptor
             if (suspect.descriptor && suspect.descriptor.length === liveEmb.length) {
               const sSim = computeFaceSimilarity(liveEmb, suspect.descriptor);
               if (sSim > sim) {
                 sim = sSim;
                 matchedType = 'face';
               }
-            }
-
-            if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveEmb.length) {
+            } else if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveEmb.length) {
+              // Fallback only if no primary face descriptor
               const fSim = computeFaceSimilarity(liveEmb, suspect.fullDescriptor);
               if (fSim > sim) {
                 sim = fSim;
@@ -323,6 +333,7 @@ export async function scanFrameForSuspects<
             }
 
             if (sim > bestSim) {
+              secondSim = bestSim;
               bestSim = sim;
               bestSuspect = suspect;
               bestBbox = {
@@ -332,6 +343,8 @@ export async function scanFrameForSuspects<
                 height: Math.min(vh - by, Math.round(bh)),
               };
               bestTargetType = matchedType;
+            } else if (sim > secondSim) {
+              secondSim = sim;
             }
           }
         }
@@ -347,8 +360,13 @@ export async function scanFrameForSuspects<
           };
         }
 
+        // Margin separation check:
+        // A match is confirmed if bestSim >= threshold AND has clear margin over runner-up (or high confidence >= 0.76)
+        const hasClearMargin = secondSim < threshold || (bestSim - secondSim) >= 0.035 || bestSim >= 0.76;
+        const isMatch = bestSim >= threshold && bestSuspect !== null && hasClearMargin;
+
         return {
-          isMatch: bestSim >= threshold && bestSuspect !== null,
+          isMatch,
           suspect: bestSuspect,
           confidence: Number(bestSim.toFixed(3)),
           bbox: bestBbox,
@@ -423,9 +441,7 @@ export async function scanFrameForSuspects<
             sim = faceSim;
             matchedType = 'face';
           }
-        }
-
-        if (suspect.fullDescriptor && suspect.fullDescriptor.length === descriptor.length) {
+        } else if (suspect.fullDescriptor && suspect.fullDescriptor.length === descriptor.length) {
           const fullSim = computeFaceSimilarity(descriptor, suspect.fullDescriptor);
           if (fullSim > sim) {
             sim = fullSim;

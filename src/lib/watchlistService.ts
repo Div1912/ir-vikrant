@@ -17,7 +17,7 @@ export interface SuspectProfile {
   descriptorVersion?: number;
 }
 
-const STORAGE_KEY = 'vikrant_suspect_watchlist_v8';
+const STORAGE_KEY = 'vikrant_suspect_watchlist_v9';
 
 // Active Enrolled Culprits with tight face portrait reference photos
 export const DEFAULT_SUSPECTS: SuspectProfile[] = [
@@ -31,7 +31,7 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     photoUrl: '/watchlist/suspect_1_face.jpg',
     fullPhotoUrl: '/watchlist/photo_2026-09-07_00-55-28.jpg',
     enrolledAt: '2026-09-07T00:55:28.000Z',
-    descriptorVersion: 8,
+    descriptorVersion: 9,
   },
   {
     id: 'wl-002',
@@ -43,12 +43,12 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     photoUrl: '/watchlist/suspect_2_face.jpg',
     fullPhotoUrl: '/watchlist/photo_2026-09-07_00-55-34.jpg',
     enrolledAt: '2026-09-07T00:55:34.000Z',
-    descriptorVersion: 8,
+    descriptorVersion: 9,
   },
 ];
 
-function isInvalidV8Descriptor(desc?: number[], version?: number): boolean {
-  if (version !== 8) return true;
+function isInvalidV9Descriptor(desc?: number[], version?: number): boolean {
+  if (version !== 9) return true;
   if (!desc || desc.length !== 1024) return true;
   if (desc.every(v => v === 0)) return true;
   return false;
@@ -107,9 +107,10 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
 
   try {
     let cached = localStorage.getItem(STORAGE_KEY);
-    // Backward compatibility: load previous enrolled suspects from v7, v6, or v5
+    // Backward compatibility: load previous enrolled suspects from v8, v7, v6, or v5
     if (!cached) {
       const prevCached =
+        localStorage.getItem('vikrant_suspect_watchlist_v8') ||
         localStorage.getItem('vikrant_suspect_watchlist_v7') ||
         localStorage.getItem('vikrant_suspect_watchlist_v6') ||
         localStorage.getItem('vikrant_suspect_watchlist_v5');
@@ -143,31 +144,34 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
       }
     }
 
-    // Identify any suspects that need v8 1024-d neural embedding calculation
+    // Identify any suspects that need v9 1024-d neural embedding calculation
     const pendingSuspects = list.filter(
-      s => isInvalidV8Descriptor(s.descriptor, s.descriptorVersion) && s.photoUrl
+      s => isInvalidV9Descriptor(s.descriptor, s.descriptorVersion) && s.photoUrl
     );
 
     if (pendingSuspects.length > 0) {
-      Promise.all(
-        pendingSuspects.map(async suspect => {
+      // Process sequentially to eliminate neural net race conditions & cache contamination
+      (async () => {
+        for (const suspect of pendingSuspects) {
           try {
             const { descriptor, fullDescriptor } = await computeSuspectEmbeddingFromPhoto(suspect.photoUrl);
             if (descriptor && descriptor.length === 1024 && !descriptor.every(v => v === 0)) {
               suspect.descriptor = descriptor;
               suspect.fullDescriptor = fullDescriptor;
-              suspect.descriptorVersion = 8;
+              suspect.descriptorVersion = 9;
               needsUpdate = true;
             }
-          } catch {}
-        })
-      ).then(() => {
+          } catch (e) {
+            console.warn('[Watchlist] Sequential embedding computation error:', suspect.name, e);
+          }
+        }
+
         if (needsUpdate && typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
           window.dispatchEvent(new CustomEvent('vikrant:watchlist_updated', { detail: list }));
-          console.log('[Watchlist] Synchronized v8 1024-d neural embeddings for suspects');
+          console.log('[Watchlist] Synchronized v9 1024-d neural embeddings for suspects');
         }
-      });
+      })();
     }
 
     if (needsUpdate || !localStorage.getItem(STORAGE_KEY)) {
@@ -195,7 +199,7 @@ export async function enrollSuspect(
   let descriptor = suspectData.descriptor;
   let fullDescriptor = suspectData.fullDescriptor;
 
-  if (isInvalidV8Descriptor(descriptor, suspectData.descriptorVersion) && suspectData.photoUrl) {
+  if (isInvalidV9Descriptor(descriptor, suspectData.descriptorVersion) && suspectData.photoUrl) {
     try {
       const result = await computeSuspectEmbeddingFromPhoto(suspectData.photoUrl, customFaceCrop);
       if (result.descriptor && result.descriptor.length === 1024) {
@@ -213,7 +217,7 @@ export async function enrollSuspect(
     enrolledAt,
     descriptor,
     fullDescriptor,
-    descriptorVersion: 8,
+    descriptorVersion: 9,
   };
 
   const updated = [newSuspect, ...list];
@@ -252,6 +256,7 @@ export function findBestSuspectMatch(
   matchedType: 'face' | 'full_photo';
 } {
   let bestSim = 0;
+  let secondSim = 0;
   let bestSuspect: SuspectProfile | null = null;
   let bestType: 'face' | 'full_photo' = 'face';
 
@@ -263,17 +268,14 @@ export function findBestSuspectMatch(
     let sim = 0;
     let currentType: 'face' | 'full_photo' = 'face';
 
-    // 1. Check against primary facial descriptor (strictly equal dimensions)
+    // 1. Primary: compare against cropped face descriptor (1024-d)
     if (suspect.descriptor && suspect.descriptor.length === liveFaceDescriptor.length) {
       const faceSim = computeFaceSimilarity(liveFaceDescriptor, suspect.descriptor);
       if (faceSim > sim) {
         sim = faceSim;
         currentType = 'face';
       }
-    }
-
-    // 2. Also check against full photo descriptor (strictly equal dimensions)
-    if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveFaceDescriptor.length) {
+    } else if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveFaceDescriptor.length) {
       const fullSim = computeFaceSimilarity(liveFaceDescriptor, suspect.fullDescriptor);
       if (fullSim > sim) {
         sim = fullSim;
@@ -282,14 +284,21 @@ export function findBestSuspectMatch(
     }
 
     if (sim > bestSim) {
+      secondSim = bestSim;
       bestSim = sim;
       bestSuspect = suspect;
       bestType = currentType;
+    } else if (sim > secondSim) {
+      secondSim = sim;
     }
   }
 
+  // Margin check: if runner-up also crossed threshold, require clean separation unless score >= 0.76
+  const hasClearMargin = secondSim < threshold || (bestSim - secondSim) >= 0.035 || bestSim >= 0.76;
+  const isMatch = bestSim >= threshold && bestSuspect !== null && hasClearMargin;
+
   return {
-    isMatch: bestSim >= threshold && bestSuspect !== null,
+    isMatch,
     suspect: bestSuspect,
     confidence: Number(bestSim.toFixed(3)),
     matchedType: bestType,
