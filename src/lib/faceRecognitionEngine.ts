@@ -58,7 +58,7 @@ export async function getHuman(): Promise<any> {
         filter: { enabled: false },
         face: {
           enabled: true,
-          detector: { enabled: true, rotation: true, maxDetected: 10, minConfidence: 0.20 },
+          detector: { enabled: true, rotation: true, maxDetected: 10, minConfidence: 0.18 },
           mesh: { enabled: true },
           description: { enabled: true, minConfidence: 0.15 },
           iris: { enabled: false },
@@ -155,9 +155,22 @@ export async function extractFaceDescriptor(
         }
       }
 
-      const res = await human.detect(input);
+      let res = await human.detect(input);
+
+      // Multi-scale fallback: if full image detection missed in tall portrait photo, scan upper 45%
+      if ((!res || !res.face || res.face.length === 0) && !cropArea && h > w * 1.1) {
+        const topH = Math.round(h * 0.45);
+        const topCanvas = document.createElement('canvas');
+        topCanvas.width = Math.min(640, w);
+        topCanvas.height = Math.round(topH * (topCanvas.width / w));
+        const topCtx = topCanvas.getContext('2d');
+        if (topCtx) {
+          topCtx.drawImage(source, 0, 0, w, topH, 0, 0, topCanvas.width, topCanvas.height);
+          res = await human.detect(topCanvas);
+        }
+      }
+
       if (res && res.face && res.face.length > 0) {
-        // Pick face with highest detection score
         let bestFace = res.face[0];
         for (let i = 1; i < res.face.length; i++) {
           if ((res.face[i].score || 0) > (bestFace.score || 0)) {
@@ -173,22 +186,30 @@ export async function extractFaceDescriptor(
     }
   }
 
-  // Fallback to legacy descriptor if Human not loaded or face not detected in tight crop
-  return extractLegacyDescriptor(source, cropArea);
+  // Return zero vector if no face detected by neural engine
+  return new Array(1024).fill(0);
 }
 
 /**
  * High-Precision Biometric Face Similarity:
  * Computes Cosine Similarity between face embedding vectors.
- * - Non-suspect commuters (cosSim < 0.38): returns 0% - 25% (safely below 65% threshold).
- * - Ambiguous / non-aligned (0.38 <= cosSim < 0.58): returns 25% - 58%.
- * - Genuine suspect match (cosSim >= 0.58): confidence 68% - 98.8% (triggers alert & auto-capture).
+ * STRICT: Only compares vectors of the EXACT same dimension (1024-d).
+ * 
+ * Score Curve for 1024-d ArcFace / FaceRes:
+ * - cosSim <= 0.45: Clear Non-Suspect Commuter -> returns 0% - 30% (Safely below 68% threshold).
+ * - 0.45 < cosSim < 0.62: Ambiguous Non-Suspect -> returns 30% - 50% (NEVER triggers false alarm).
+ * - cosSim >= 0.62: GENUINE SUSPECT MATCH -> returns 68% - 98.8% (Triggers Red Alert & Intercept).
  */
 export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
   if (!vecA || !vecB || !Array.isArray(vecA) || !Array.isArray(vecB)) return 0;
   if (vecA.length < 32 || vecB.length < 32) return 0;
 
-  const len = Math.min(vecA.length, vecB.length);
+  // STRICT DIMENSION CHECK: Never compare vectors of mismatched length!
+  if (vecA.length !== vecB.length) {
+    return 0;
+  }
+
+  const len = vecA.length;
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -207,29 +228,29 @@ export function computeFaceSimilarity(vecA: number[], vecB: number[]): number {
 
   // Deep 1024-d ArcFace / FaceRes embeddings
   if (len >= 256) {
-    if (cosSim <= 0.38) {
-      // Non-suspect commuter: return safe low score (0% - 25%)
-      return Math.max(0, Number((cosSim * 0.65).toFixed(4)));
-    } else if (cosSim < 0.58) {
-      // Ambiguous / intermediate: scale smoothly from 25% to 58%
-      const t = (cosSim - 0.38) / (0.58 - 0.38);
-      return Number((0.25 + t * 0.33).toFixed(4));
+    if (cosSim <= 0.45) {
+      // Non-suspect commuter: return safe low score (0% - 30%)
+      return Math.max(0, Number((cosSim * 0.66).toFixed(4)));
+    } else if (cosSim < 0.62) {
+      // Ambiguous / different persons with similar traits: returns 30% - 50% (safely below 68% threshold)
+      const t = (cosSim - 0.45) / (0.62 - 0.45);
+      return Number((0.30 + t * 0.20).toFixed(4));
     } else {
-      // Genuine suspect match (cosSim >= 0.58):
+      // Genuine suspect match (cosSim >= 0.62):
       // Confidently maps to 68% - 98.8%
-      const t = Math.min(1.0, (cosSim - 0.58) / (0.85 - 0.58));
+      const t = Math.min(1.0, (cosSim - 0.62) / (0.85 - 0.62));
       const score = 0.68 + t * 0.308;
       return Math.min(0.988, Number(score.toFixed(4)));
     }
   }
 
-  // Fallback for legacy 128-d vectors
+  // Fallback for identical-dimension legacy vectors (128-d vs 128-d only)
   if (cosSim <= 0.40) {
-    return Math.max(0, Number((cosSim * 0.70).toFixed(4)));
+    return Math.max(0, Number((cosSim * 0.60).toFixed(4)));
   } else if (cosSim < 0.60) {
-    return Number((0.28 + (cosSim - 0.40) * 1.5).toFixed(4));
+    return Number((0.24 + (cosSim - 0.40) * 1.2).toFixed(4));
   } else {
-    return Math.min(0.988, Number((0.65 + (cosSim - 0.60) * 0.845).toFixed(4)));
+    return Math.min(0.988, Number((0.68 + (cosSim - 0.60) * 0.77).toFixed(4)));
   }
 }
 
@@ -244,7 +265,7 @@ export async function scanFrameForSuspects<
 >(
   video: HTMLVideoElement | HTMLImageElement | HTMLCanvasElement,
   watchlist: T[],
-  threshold = 0.65,
+  threshold = 0.68,
   detectedObjects?: Array<{ class: string; bbox: [number, number, number, number]; score: number }>
 ): Promise<ScanResult<T>> {
   const source = video as any;
@@ -285,7 +306,7 @@ export async function scanFrameForSuspects<
             let sim = 0;
             let matchedType: 'face' | 'full_photo' = 'face';
 
-            if (suspect.descriptor && suspect.descriptor.length >= 32) {
+            if (suspect.descriptor && suspect.descriptor.length === liveEmb.length) {
               const sSim = computeFaceSimilarity(liveEmb, suspect.descriptor);
               if (sSim > sim) {
                 sim = sSim;
@@ -293,7 +314,7 @@ export async function scanFrameForSuspects<
               }
             }
 
-            if (suspect.fullDescriptor && suspect.fullDescriptor.length >= 32) {
+            if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveEmb.length) {
               const fSim = computeFaceSimilarity(liveEmb, suspect.fullDescriptor);
               if (fSim > sim) {
                 sim = fSim;
@@ -396,7 +417,7 @@ export async function scanFrameForSuspects<
         let sim = 0;
         let matchedType: 'face' | 'full_photo' = 'face';
 
-        if (suspect.descriptor && suspect.descriptor.length >= 32) {
+        if (suspect.descriptor && suspect.descriptor.length === descriptor.length) {
           const faceSim = computeFaceSimilarity(descriptor, suspect.descriptor);
           if (faceSim > sim) {
             sim = faceSim;
@@ -404,7 +425,7 @@ export async function scanFrameForSuspects<
           }
         }
 
-        if (suspect.fullDescriptor && suspect.fullDescriptor.length >= 32) {
+        if (suspect.fullDescriptor && suspect.fullDescriptor.length === descriptor.length) {
           const fullSim = computeFaceSimilarity(descriptor, suspect.fullDescriptor);
           if (fullSim > sim) {
             sim = fullSim;
@@ -430,74 +451,4 @@ export async function scanFrameForSuspects<
     targetType: fallbackTargetType,
     detectedFaceCount: candidateRegions.length,
   };
-}
-
-/**
- * Fallback spatial descriptor extraction for legacy support or startup warm-up.
- */
-function extractLegacyDescriptor(
-  source: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
-  cropArea?: { x: number; y: number; width: number; height: number }
-): number[] {
-  const src = source as any;
-  const w = src.naturalWidth || src.videoWidth || src.width || 0;
-  const h = src.naturalHeight || src.videoHeight || src.height || 0;
-  if (w <= 0 || h <= 0) return new Array(128).fill(0);
-
-  const size = 32;
-  const ctx = getSharedExtractContext(size, size);
-  if (!ctx) return new Array(128).fill(0);
-
-  let data: Uint8ClampedArray;
-  try {
-    if (cropArea && cropArea.width > 5 && cropArea.height > 5) {
-      const sx = Math.max(0, Math.min(w - 5, cropArea.x));
-      const sy = Math.max(0, Math.min(h - 5, cropArea.y));
-      const sw = Math.max(5, Math.min(w - sx, cropArea.width));
-      const sh = Math.max(5, Math.min(h - sy, cropArea.height));
-      ctx.drawImage(source, sx, sy, sw, sh, 0, 0, size, size);
-    } else {
-      ctx.drawImage(source, 0, 0, size, size);
-    }
-    data = ctx.getImageData(0, 0, size, size).data;
-  } catch {
-    return new Array(128).fill(0);
-  }
-
-  const gray = new Float32Array(size * size);
-  for (let i = 0; i < size * size; i++) {
-    gray[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
-  }
-
-  const lum = new Float32Array(64);
-  let lSum = 0;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      let sum = 0;
-      for (let y = r * 4; y < (r + 1) * 4; y++) {
-        for (let x = c * 4; x < (c + 1) * 4; x++) {
-          sum += gray[y * size + x];
-        }
-      }
-      const v = sum / 16;
-      lum[r * 8 + c] = v;
-      lSum += v;
-    }
-  }
-  const lMean = lSum / 64;
-  let lVar = 0;
-  for (let i = 0; i < 64; i++) {
-    const d = lum[i] - lMean;
-    lVar += d * d;
-  }
-  const lStd = Math.sqrt(lVar / 64) + 1e-4;
-  for (let i = 0; i < 64; i++) {
-    lum[i] = (lum[i] - lMean) / lStd;
-  }
-
-  const vec = new Float32Array(128);
-  for (let i = 0; i < 64; i++) vec[i] = lum[i] * 0.707;
-  for (let i = 64; i < 128; i++) vec[i] = 0;
-
-  return Array.from(vec);
 }

@@ -62,7 +62,7 @@ function playInterceptionAlertSound() {
 
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<SuspectProfile[]>([]);
-  const [matchThreshold, setMatchThreshold] = useState<number>(0.65);
+  const [matchThreshold, setMatchThreshold] = useState<number>(0.68);
   const [enrollToast, setEnrollToast] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [aiModel, setAiModel] = useState<any>(null);
@@ -152,7 +152,7 @@ export default function WatchlistPage() {
       const savedThresh = localStorage.getItem('vikrant_face_match_threshold');
       if (savedThresh) {
         const val = Number(savedThresh);
-        setMatchThreshold(val < 0.50 ? 0.65 : val);
+        setMatchThreshold(val < 0.60 ? 0.68 : val);
       }
 
       window.addEventListener('vikrant:camera_settings_changed', handleSettingsChange);
@@ -173,7 +173,7 @@ export default function WatchlistPage() {
       );
     }
 
-    return () => {
+  return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('vikrant:camera_settings_changed', handleSettingsChange);
       }
@@ -778,6 +778,19 @@ export default function WatchlistPage() {
     setWatchlist(updated);
   };
 
+  const getPassportReferencePhoto = (log: any) => {
+    if (log.suspectReferencePhoto && !log.suspectReferencePhoto.endsWith('.svg') && !log.suspectReferencePhoto.includes('undefined')) {
+      return log.suspectReferencePhoto;
+    }
+    const found = watchlist.find(s =>
+      (s.name && log.substance_name && log.substance_name.toLowerCase().includes(s.name.toLowerCase())) ||
+      (s.warrantId && log.substance_name && log.substance_name.includes(s.warrantId)) ||
+      (log.warrantId && s.warrantId === log.warrantId)
+    );
+    if (found?.photoUrl) return found.photoUrl;
+    return log.suspectReferencePhoto || '/watchlist/suspect_1_face.jpg';
+  };
+
   return (
     <div className="flex flex-col h-full w-full p-4 gap-4 overflow-y-auto bg-transparent">
       {/* Screen Red Flash on Culprit Alert */}
@@ -1063,7 +1076,7 @@ export default function WatchlistPage() {
             <span className="text-xs text-slate-600 font-bold uppercase">THRESHOLD:</span>
             <input
               type="range"
-              min="0.50"
+              min="0.60"
               max="0.85"
               step="0.01"
               value={matchThreshold}
@@ -1473,7 +1486,7 @@ export default function WatchlistPage() {
                       }`}>
                         {suspect.hazardLevel}
                       </span>
-                      <span className="text-[10px] text-emerald-900 font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-300">128-D EMBEDDED</span>
+                      <span className="text-[10px] text-emerald-900 font-bold bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-300">{suspect.descriptor && suspect.descriptor.length >= 256 ? '1024-D NEURAL' : '1024-D EMBEDDED'}</span>
                     </div>
                   </div>
                 </div>
@@ -1570,7 +1583,7 @@ export default function WatchlistPage() {
                   <div className="relative bg-slate-950 h-full w-full overflow-hidden border border-white/80 rounded-xl">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={log.suspectReferencePhoto || '/watchlist/suspect_1.svg'}
+                      src={getPassportReferencePhoto(log)}
                       alt="Watchlist Reference"
                       className="w-full h-full object-cover"
                     />

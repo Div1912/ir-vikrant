@@ -1,6 +1,6 @@
 'use client';
 
-import { computeFaceSimilarity, extractFaceDescriptor } from './faceRecognitionEngine';
+import { computeFaceSimilarity, extractFaceDescriptor, getHuman } from './faceRecognitionEngine';
 
 export interface SuspectProfile {
   id: string;
@@ -10,6 +10,7 @@ export interface SuspectProfile {
   hazardLevel: 'CRITICAL' | 'HIGH' | 'MODERATE';
   offense: string;
   photoUrl: string;
+  fullPhotoUrl?: string;
   enrolledAt: string;
   descriptor?: number[];
   fullDescriptor?: number[];
@@ -18,7 +19,7 @@ export interface SuspectProfile {
 
 const STORAGE_KEY = 'vikrant_suspect_watchlist_v8';
 
-// Active Enrolled Culprits with default reference photos
+// Active Enrolled Culprits with tight face portrait reference photos
 export const DEFAULT_SUSPECTS: SuspectProfile[] = [
   {
     id: 'wl-001',
@@ -27,7 +28,8 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     warrantId: 'RPF-2026-4091',
     hazardLevel: 'CRITICAL',
     offense: 'Inter-State Contraband Transit & Railway Property Sabotage',
-    photoUrl: '/watchlist/photo_2026-09-07_00-55-28.jpg',
+    photoUrl: '/watchlist/suspect_1_face.jpg',
+    fullPhotoUrl: '/watchlist/photo_2026-09-07_00-55-28.jpg',
     enrolledAt: '2026-09-07T00:55:28.000Z',
     descriptorVersion: 8,
   },
@@ -38,7 +40,8 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
     warrantId: 'RPF-2026-8824',
     hazardLevel: 'HIGH',
     offense: 'Organized Baggage Theft Syndicate & Platform Trespass',
-    photoUrl: '/watchlist/photo_2026-09-07_00-55-34.jpg',
+    photoUrl: '/watchlist/suspect_2_face.jpg',
+    fullPhotoUrl: '/watchlist/photo_2026-09-07_00-55-34.jpg',
     enrolledAt: '2026-09-07T00:55:34.000Z',
     descriptorVersion: 8,
   },
@@ -46,7 +49,7 @@ export const DEFAULT_SUSPECTS: SuspectProfile[] = [
 
 function isInvalidV8Descriptor(desc?: number[], version?: number): boolean {
   if (version !== 8) return true;
-  if (!desc || desc.length < 256) return true;
+  if (!desc || desc.length !== 1024) return true;
   if (desc.every(v => v === 0)) return true;
   return false;
 }
@@ -75,8 +78,18 @@ export async function computeSuspectEmbeddingFromPhoto(
       img.onerror = () => reject(new Error('Failed to load image for embedding'));
     });
 
-    const descriptor = await extractFaceDescriptor(img, customCrop);
-    const fullDescriptor = customCrop ? await extractFaceDescriptor(img) : descriptor;
+    // Draw to an offscreen canvas to guarantee WebGL texture compatibility
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return { descriptor: new Array(1024).fill(0), fullDescriptor: new Array(1024).fill(0) };
+    }
+    ctx.drawImage(img, 0, 0);
+
+    const descriptor = await extractFaceDescriptor(canvas, customCrop);
+    const fullDescriptor = customCrop ? await extractFaceDescriptor(canvas) : descriptor;
 
     return { descriptor, fullDescriptor };
   } catch (err) {
@@ -108,11 +121,24 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
     let list: SuspectProfile[] = cached ? JSON.parse(cached) : [...DEFAULT_SUSPECTS];
     let needsUpdate = false;
 
+    // Upgrade default suspects to clean face portraits if pointing to old wide images
+    for (const item of list) {
+      if (item.id === 'wl-001' && item.photoUrl.includes('photo_2026-09-07_00-55-28')) {
+        item.photoUrl = '/watchlist/suspect_1_face.jpg';
+        item.fullPhotoUrl = '/watchlist/photo_2026-09-07_00-55-28.jpg';
+        needsUpdate = true;
+      } else if (item.id === 'wl-002' && item.photoUrl.includes('photo_2026-09-07_00-55-34')) {
+        item.photoUrl = '/watchlist/suspect_2_face.jpg';
+        item.fullPhotoUrl = '/watchlist/photo_2026-09-07_00-55-34.jpg';
+        needsUpdate = true;
+      }
+    }
+
     // Ensure default trained suspects are always present
     for (const def of DEFAULT_SUSPECTS) {
       const idx = list.findIndex(s => s.id === def.id);
       if (idx === -1) {
-        list.unshift(def);
+        list.push(def);
         needsUpdate = true;
       }
     }
@@ -123,12 +149,11 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
     );
 
     if (pendingSuspects.length > 0) {
-      // Compute in background and save
       Promise.all(
         pendingSuspects.map(async suspect => {
           try {
             const { descriptor, fullDescriptor } = await computeSuspectEmbeddingFromPhoto(suspect.photoUrl);
-            if (descriptor && descriptor.length >= 256 && !descriptor.every(v => v === 0)) {
+            if (descriptor && descriptor.length === 1024 && !descriptor.every(v => v === 0)) {
               suspect.descriptor = descriptor;
               suspect.fullDescriptor = fullDescriptor;
               suspect.descriptorVersion = 8;
@@ -140,7 +165,7 @@ export async function getWatchlist(): Promise<SuspectProfile[]> {
         if (needsUpdate && typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
           window.dispatchEvent(new CustomEvent('vikrant:watchlist_updated', { detail: list }));
-          console.log('[Watchlist] Synchronized v8 neural embeddings for suspects');
+          console.log('[Watchlist] Synchronized v8 1024-d neural embeddings for suspects');
         }
       });
     }
@@ -173,8 +198,10 @@ export async function enrollSuspect(
   if (isInvalidV8Descriptor(descriptor, suspectData.descriptorVersion) && suspectData.photoUrl) {
     try {
       const result = await computeSuspectEmbeddingFromPhoto(suspectData.photoUrl, customFaceCrop);
-      descriptor = result.descriptor;
-      fullDescriptor = result.fullDescriptor;
+      if (result.descriptor && result.descriptor.length === 1024) {
+        descriptor = result.descriptor;
+        fullDescriptor = result.fullDescriptor;
+      }
     } catch (err) {
       console.warn('[Watchlist] Enroll descriptor extraction error:', err);
     }
@@ -217,7 +244,7 @@ export async function removeSuspect(id: string): Promise<SuspectProfile[]> {
 export function findBestSuspectMatch(
   liveFaceDescriptor: number[],
   watchlist: SuspectProfile[],
-  threshold = 0.65
+  threshold = 0.68
 ): {
   isMatch: boolean;
   suspect: SuspectProfile | null;
@@ -236,8 +263,8 @@ export function findBestSuspectMatch(
     let sim = 0;
     let currentType: 'face' | 'full_photo' = 'face';
 
-    // 1. Check against primary facial descriptor
-    if (suspect.descriptor && suspect.descriptor.length >= 32) {
+    // 1. Check against primary facial descriptor (strictly equal dimensions)
+    if (suspect.descriptor && suspect.descriptor.length === liveFaceDescriptor.length) {
       const faceSim = computeFaceSimilarity(liveFaceDescriptor, suspect.descriptor);
       if (faceSim > sim) {
         sim = faceSim;
@@ -245,8 +272,8 @@ export function findBestSuspectMatch(
       }
     }
 
-    // 2. Also check against full photo descriptor
-    if (suspect.fullDescriptor && suspect.fullDescriptor.length >= 32) {
+    // 2. Also check against full photo descriptor (strictly equal dimensions)
+    if (suspect.fullDescriptor && suspect.fullDescriptor.length === liveFaceDescriptor.length) {
       const fullSim = computeFaceSimilarity(liveFaceDescriptor, suspect.fullDescriptor);
       if (fullSim > sim) {
         sim = fullSim;
