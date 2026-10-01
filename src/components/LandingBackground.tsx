@@ -187,7 +187,7 @@ export default function LandingBackground() {
   }, []);
 
   return (
-    <div aria-hidden="true" className="fixed inset-0 pointer-events-none select-none z-0 overflow-hidden bg-slate-50">
+    <div aria-hidden="true" className="fixed inset-0 pointer-events-none select-none z-0 overflow-hidden bg-transparent">
       {/* 1. Tactical Constellation Canvas */}
       <canvas
         ref={canvasRef}
