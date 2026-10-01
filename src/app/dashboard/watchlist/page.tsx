@@ -62,7 +62,7 @@ function playInterceptionAlertSound() {
 
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<SuspectProfile[]>([]);
-  const [matchThreshold, setMatchThreshold] = useState<number>(0.48);
+  const [matchThreshold, setMatchThreshold] = useState<number>(0.70);
   const [enrollToast, setEnrollToast] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [aiModel, setAiModel] = useState<any>(null);
@@ -150,7 +150,10 @@ export default function WatchlistPage() {
       if (savedMode) setIpStreamMode(savedMode);
 
       const savedThresh = localStorage.getItem('vikrant_face_match_threshold');
-      if (savedThresh) setMatchThreshold(Number(savedThresh));
+      if (savedThresh) {
+        const val = Number(savedThresh);
+        setMatchThreshold(val < 0.60 ? 0.70 : val);
+      }
 
       window.addEventListener('vikrant:camera_settings_changed', handleSettingsChange);
     }
@@ -612,20 +615,17 @@ export default function WatchlistPage() {
             let sim = 0;
             let matchedType: 'face' | 'full_photo' = 'face';
 
-            if (suspect.descriptor && suspect.descriptor.length === 128) {
-              const faceSim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
-              if (faceSim > sim) {
-                sim = faceSim;
-                matchedType = 'face';
-              }
-            }
-
-            if (suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
-              const fullSim = computeFaceSimilarity(liveDescriptor, suspect.fullDescriptor);
-              if (fullSim > sim) {
-                sim = fullSim;
-                matchedType = 'full_photo';
-              }
+            // 1. Primary: Match live face crop against suspect's tight facial descriptor
+            if (region.type === 'face' && suspect.descriptor && suspect.descriptor.length === 128) {
+              sim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
+              matchedType = 'face';
+            } else if (region.type === 'full_photo' && suspect.fullDescriptor && suspect.fullDescriptor.length === 128) {
+              // 2. Photo-on-phone or document scan: match against suspect's full photo descriptor
+              sim = computeFaceSimilarity(liveDescriptor, suspect.fullDescriptor);
+              matchedType = 'full_photo';
+            } else if (suspect.descriptor && suspect.descriptor.length === 128) {
+              sim = computeFaceSimilarity(liveDescriptor, suspect.descriptor);
+              matchedType = 'face';
             }
 
             if (sim > bestSim) {
@@ -664,8 +664,10 @@ export default function WatchlistPage() {
             targetType: bestTargetType,
           });
 
-          // INSTANT INTERCEPTION: Fire alert immediately upon verified biometric match!
-          triggerSuspectInterception(bestSuspect, bestSim, scaledBbox);
+          // Require at least 2 consecutive positive match frames before auto-capture!
+          if (consecutiveMatchesRef.current.count >= 2) {
+            triggerSuspectInterception(bestSuspect, bestSim, scaledBbox);
+          }
         } else {
           consecutiveMatchesRef.current = { suspectId: '', count: 0 };
           setActiveMatchTarget(null);
@@ -763,7 +765,6 @@ export default function WatchlistPage() {
       });
 
       setWatchlist(prev => [enrolled, ...prev]);
-      setMatchThreshold(prev => Math.min(prev, 0.48));
       setEnrollToast(`✅ FACE ENROLLED: "${enrolled.name}" added to Watchlist! Monitoring camera for instant match...`);
       setTimeout(() => setEnrollToast(null), 5000);
     } catch (e: any) {
@@ -1170,9 +1171,9 @@ export default function WatchlistPage() {
             <span className="text-xs text-slate-600 font-bold uppercase">THRESHOLD:</span>
             <input
               type="range"
-              min="0.30"
-              max="0.80"
-              step="0.02"
+              min="0.55"
+              max="0.90"
+              step="0.01"
               value={matchThreshold}
               onChange={e => {
                 const val = Number(e.target.value);

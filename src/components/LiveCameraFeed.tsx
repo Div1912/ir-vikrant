@@ -48,9 +48,7 @@ const TARGET_PROPS: Record<string, { label: string; category: string; tier: 'con
   remote: { label: 'Remote Detonator Trigger', category: 'IED Precursor', tier: 'confirmed', minScore: 0.38 },
   scissors: { label: 'Sharp Weapon / Cutting Tool', category: 'Restricted Weapon', tier: 'confirmed', minScore: 0.38 },
   laptop: { label: 'Tactical Computing Node', category: 'Cyber Recon', tier: 'presumptive', minScore: 0.45 },
-
-  // Intruders & Threat Targets
-  person: { label: 'Active Threat / Person Zone', category: 'Intruder Target', tier: 'confirmed', minScore: 0.48 },
+  // Intruders & Threat Targets (Generic persons are NOT threats; they undergo biometric facial verification below)
 };
 
 // Synthesize camera shutter sound via Web Audio API
@@ -191,10 +189,18 @@ export default function LiveCameraFeed({
   const [isAiLoading, setIsAiLoading] = useState<boolean>(true);
   const [isAiActive, setIsAiActive] = useState<boolean>(true);
   const [aiModel, setAiModel] = useState<any>(null);
+  const [blazeModel, setBlazeModel] = useState<any>(null);
   const [detectedObjects, setDetectedObjects] = useState<any[]>([]);
   const [triggerNotification, setTriggerNotification] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [shutterFlash, setShutterFlash] = useState<boolean>(false);
+  const consecutiveFaceMatchesRef = useRef<{ suspectId: string; count: number }>({ suspectId: '', count: 0 });
+  const [activeSuspectLock, setActiveSuspectLock] = useState<{
+    name: string;
+    warrant: string;
+    score: number;
+    bbox: [number, number, number, number];
+  } | null>(null);
 
   // 1. Initialize Phone / Device Camera (Device Camera ONLY starts if feedSource === 'device')
   const startDeviceCamera = useCallback(async () => {
@@ -274,7 +280,7 @@ export default function LiveCameraFeed({
     }
   }, [stream, feedSource]);
 
-  // 2. Load Pretrained Object Detection Model (COCO-SSD / MobileNet)
+  // 2. Load Pretrained Object Detection & Face Locator Models (COCO-SSD & BlazeFace)
   useEffect(() => {
     let isCancelled = false;
 
@@ -282,13 +288,20 @@ export default function LiveCameraFeed({
       try {
         setIsAiLoading(true);
         await import('@tensorflow/tfjs');
-        const cocoSsd = await import('@tensorflow-models/coco-ssd');
-        const model = await cocoSsd.load({ base: 'mobilenet_v2' });
+        const [cocoSsd, blazeface] = await Promise.all([
+          import('@tensorflow-models/coco-ssd'),
+          import('@tensorflow-models/blazeface'),
+        ]);
+        const [model, bModel] = await Promise.all([
+          cocoSsd.load({ base: 'mobilenet_v2' }),
+          blazeface.load(),
+        ]);
 
         if (!isCancelled) {
           setAiModel(model);
+          setBlazeModel(bModel);
           setIsAiLoading(false);
-          console.log('[AI Vision] Object detection engine armed & scanning');
+          console.log('[AI Vision] Object detection & BlazeFace biometric engine armed');
         }
       } catch (err: any) {
         console.error('[AI Vision] Failed to load model:', err);
@@ -490,24 +503,73 @@ export default function LiveCameraFeed({
           if (className === 'person' && watchlistRef.current && watchlistRef.current.length > 0) {
             try {
               const [px, py, pw, ph] = pred.bbox;
-              const headCrop = { x: px, y: py, width: pw, height: Math.max(20, ph * 0.45) };
-              const faceDescriptor = await extractFaceDescriptor(sourceEl, headCrop);
-              const matchResult = findBestSuspectMatch(faceDescriptor, watchlistRef.current, 0.68);
+              let faceCrop = {
+                x: Math.max(0, px + pw * 0.12),
+                y: Math.max(0, py),
+                width: Math.max(25, pw * 0.76),
+                height: Math.max(25, ph * 0.38),
+              };
+
+              // Use BlazeFace landmark face detector if available
+              if (blazeModel) {
+                try {
+                  const bFaces = await blazeModel.estimateFaces(sourceEl, false);
+                  if (bFaces && bFaces.length > 0) {
+                    const bf = bFaces[0];
+                    const x1 = Array.isArray(bf.topLeft) ? bf.topLeft[0] : (bf.topLeft as any)[0];
+                    const y1 = Array.isArray(bf.topLeft) ? bf.topLeft[1] : (bf.topLeft as any)[1];
+                    const x2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[0] : (bf.bottomRight as any)[0];
+                    const y2 = Array.isArray(bf.bottomRight) ? bf.bottomRight[1] : (bf.bottomRight as any)[1];
+                    const fw = Math.max(25, x2 - x1);
+                    const fh = Math.max(25, y2 - y1);
+                    faceCrop = {
+                      x: Math.max(0, x1 - fw * 0.05),
+                      y: Math.max(0, y1 - fh * 0.05),
+                      width: fw * 1.10,
+                      height: fh * 1.10,
+                    };
+                  }
+                } catch {}
+              }
+
+              const faceDescriptor = await extractFaceDescriptor(sourceEl, faceCrop);
+              const matchResult = findBestSuspectMatch(faceDescriptor, watchlistRef.current, 0.70);
 
               if (matchResult.isMatch && matchResult.suspect) {
-                const now = Date.now();
-                if (now - lastAutoTriggerTimeRef.current > 4000) {
-                  lastAutoTriggerTimeRef.current = now;
-                  captureAndLogEvent({
-                    class: 'person',
-                    score: matchResult.confidence,
-                    label: `WANTED CULPRIT: ${matchResult.suspect.name} (${matchResult.suspect.warrantId})`,
-                    category: 'Facial Watchlist Intercept',
-                    tier: 'confirmed',
-                    bbox: pred.bbox,
-                  });
-                  break;
+                const sId = matchResult.suspect.id;
+                if (consecutiveFaceMatchesRef.current.suspectId === sId) {
+                  consecutiveFaceMatchesRef.current.count += 1;
+                } else {
+                  consecutiveFaceMatchesRef.current = { suspectId: sId, count: 1 };
                 }
+
+                setActiveSuspectLock({
+                  name: matchResult.suspect.name,
+                  warrant: matchResult.suspect.warrantId,
+                  score: matchResult.confidence,
+                  bbox: [faceCrop.x, faceCrop.y, faceCrop.width, faceCrop.height],
+                });
+
+                // Require at least 2 consecutive positive match frames before auto-capture!
+                if (consecutiveFaceMatchesRef.current.count >= 2) {
+                  const now = Date.now();
+                  if (now - lastAutoTriggerTimeRef.current > 4000) {
+                    lastAutoTriggerTimeRef.current = now;
+                    captureAndLogEvent({
+                      class: 'person',
+                      score: matchResult.confidence,
+                      label: `WANTED CULPRIT: ${matchResult.suspect.name} (${matchResult.suspect.warrantId})`,
+                      category: 'Facial Watchlist Intercept',
+                      tier: 'confirmed',
+                      bbox: [faceCrop.x, faceCrop.y, faceCrop.width, faceCrop.height],
+                    });
+                    break;
+                  }
+                }
+              } else {
+                // Verified non-suspect: reset consecutive lock, no alarm, no capture
+                consecutiveFaceMatchesRef.current = { suspectId: '', count: 0 };
+                setActiveSuspectLock(null);
               }
             } catch {}
           }
@@ -518,7 +580,7 @@ export default function LiveCameraFeed({
     }, 350); // High-speed 350ms loop
 
     return () => clearInterval(interval);
-  }, [aiModel, isAiActive, captureAndLogEvent, feedSource]);
+  }, [aiModel, blazeModel, isAiActive, captureAndLogEvent, feedSource]);
 
   // 5. Draw Live High-Precision Bounding Box Overlay
   useEffect(() => {
@@ -544,7 +606,9 @@ export default function LiveCameraFeed({
     const scaleY = canvas.height / (sourceH || canvas.height);
 
     detectedObjects.forEach(obj => {
-      const isTarget = TARGET_PROPS[obj.class.toLowerCase()];
+      const cLower = obj.class.toLowerCase();
+      const isTarget = TARGET_PROPS[cLower];
+      const isSuspect = activeSuspectLock && cLower === 'person';
       const [x, y, width, height] = obj.bbox;
 
       const drawX = x * scaleX;
@@ -552,21 +616,37 @@ export default function LiveCameraFeed({
       const drawW = width * scaleX;
       const drawH = height * scaleY;
 
-      // Illuminated cyan for target demo props, translucent white for others
-      const strokeColor = isTarget ? '#38bdf8' : 'rgba(255,255,255,0.2)';
-      const labelText = isTarget
-        ? `[TARGET LOCK] ${isTarget.label} (${Math.round(obj.score * 100)}%)`
-        : `${obj.class} ${Math.round(obj.score * 100)}%`;
+      // Color scheme:
+      // Red for verified Wanted Suspect Match
+      // Cyan for suspicious props (bags, bottles, weapons)
+      // Subtle Slate/Cyan for regular verified non-suspect person
+      let strokeColor = 'rgba(255,255,255,0.2)';
+      let labelText = `${obj.class} ${Math.round(obj.score * 100)}%`;
+      let tagBg = 'rgba(0, 0, 0, 0.65)';
+
+      if (isSuspect) {
+        strokeColor = '#ef4444';
+        labelText = `🚨 WANTED: ${activeSuspectLock.name.toUpperCase()} (${Math.round(activeSuspectLock.score * 100)}%)`;
+        tagBg = 'rgba(220, 38, 38, 0.95)';
+      } else if (isTarget) {
+        strokeColor = '#38bdf8';
+        labelText = `[TARGET LOCK] ${isTarget.label} (${Math.round(obj.score * 100)}%)`;
+        tagBg = 'rgba(2, 132, 199, 0.92)';
+      } else if (cLower === 'person') {
+        strokeColor = 'rgba(56, 189, 248, 0.4)';
+        labelText = `PERSON [CLEAR]`;
+        tagBg = 'rgba(15, 23, 42, 0.75)';
+      }
 
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = isTarget ? 2.5 : 1;
+      ctx.lineWidth = isSuspect ? 3.5 : isTarget ? 2.5 : 1.2;
       ctx.strokeRect(drawX, drawY, drawW, drawH);
 
       // Corner target brackets
-      if (isTarget) {
-        const bracketLen = 8;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
+      if (isTarget || isSuspect) {
+        const bracketLen = 10;
+        ctx.strokeStyle = isSuspect ? '#ef4444' : '#ffffff';
+        ctx.lineWidth = isSuspect ? 3 : 2;
         ctx.beginPath();
         ctx.moveTo(drawX, drawY + bracketLen);
         ctx.lineTo(drawX, drawY);
@@ -581,7 +661,7 @@ export default function LiveCameraFeed({
       }
 
       // Label tag banner
-      ctx.fillStyle = isTarget ? 'rgba(2, 132, 199, 0.92)' : 'rgba(0, 0, 0, 0.65)';
+      ctx.fillStyle = tagBg;
       ctx.font = 'bold 10px monospace';
       const textWidth = ctx.measureText(labelText).width;
       ctx.fillRect(drawX, Math.max(0, drawY - 18), textWidth + 8, 18);
