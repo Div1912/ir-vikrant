@@ -31,28 +31,26 @@ interface LiveCameraFeedProps {
   onEventCreated?: (event: any) => void;
 }
 
-// Comprehensive target props dictionary for COCO-SSD
-const TARGET_PROPS: Record<string, { label: string; category: string; tier: 'confirmed' | 'presumptive' }> = {
-  // Bottles & Vials
-  bottle: { label: 'Chemical Precursor Bottle', category: 'Chemical Precursor', tier: 'presumptive' },
-  'wine glass': { label: 'Liquid Contraband Vial', category: 'Chemical Precursor', tier: 'presumptive' },
-  cup: { label: 'Suspicious Liquid Reagent', category: 'Chemical Precursor', tier: 'presumptive' },
-  vase: { label: 'Concealed Liquid Vessel', category: 'Chemical Precursor', tier: 'presumptive' },
-  bowl: { label: 'Liquid Preparation Container', category: 'Chemical Precursor', tier: 'presumptive' },
-
+// Comprehensive high-efficiency security target props dictionary for COCO-SSD
+const TARGET_PROPS: Record<string, { label: string; category: string; tier: 'confirmed' | 'presumptive'; minScore: number }> = {
   // Bags, Backpacks & Luggage
-  handbag: { label: 'Suspicious Pouch / Small Bag', category: 'Narcotics Concealment', tier: 'confirmed' },
-  backpack: { label: 'Unattended Tactical Bag', category: 'Explosives Suspect', tier: 'confirmed' },
-  suitcase: { label: 'Contraband Parcel / Luggage', category: 'Narcotics Concealment', tier: 'confirmed' },
+  handbag: { label: 'Suspicious Pouch / Small Bag', category: 'Narcotics Concealment', tier: 'confirmed', minScore: 0.40 },
+  backpack: { label: 'Unattended Tactical Bag', category: 'Explosives Suspect', tier: 'confirmed', minScore: 0.40 },
+  suitcase: { label: 'Contraband Parcel / Luggage', category: 'Narcotics Concealment', tier: 'confirmed', minScore: 0.40 },
 
-  // Electronics & Packets
-  'cell phone': { label: 'Electronic Trigger / Detonator', category: 'IED Precursor', tier: 'presumptive' },
-  book: { label: 'Concealed Hollowed Packet', category: 'Contraband Packet', tier: 'presumptive' },
-  remote: { label: 'Remote Detonator Trigger', category: 'IED Precursor', tier: 'confirmed' },
-  laptop: { label: 'Tactical Computing Node', category: 'Cyber Recon', tier: 'presumptive' },
-  mouse: { label: 'Electronic Component Prop', category: 'Electronic Precursor', tier: 'presumptive' },
-  scissors: { label: 'Sharp Weapon / Cutting Prop', category: 'Restricted Item', tier: 'confirmed' },
-  umbrella: { label: 'Concealed Container Shaft', category: 'Restricted Item', tier: 'presumptive' },
+  // Bottles & Vials
+  bottle: { label: 'Chemical Precursor Bottle', category: 'Chemical Precursor', tier: 'presumptive', minScore: 0.38 },
+  cup: { label: 'Suspicious Liquid Reagent', category: 'Chemical Precursor', tier: 'presumptive', minScore: 0.45 },
+  'wine glass': { label: 'Liquid Contraband Vial', category: 'Chemical Precursor', tier: 'presumptive', minScore: 0.45 },
+
+  // Detonators, Weapons & Tech
+  'cell phone': { label: 'Electronic Detonator / Display', category: 'IED Precursor', tier: 'presumptive', minScore: 0.38 },
+  remote: { label: 'Remote Detonator Trigger', category: 'IED Precursor', tier: 'confirmed', minScore: 0.38 },
+  scissors: { label: 'Sharp Weapon / Cutting Tool', category: 'Restricted Weapon', tier: 'confirmed', minScore: 0.38 },
+  laptop: { label: 'Tactical Computing Node', category: 'Cyber Recon', tier: 'presumptive', minScore: 0.45 },
+
+  // Intruders & Threat Targets
+  person: { label: 'Active Threat / Person Zone', category: 'Intruder Target', tier: 'confirmed', minScore: 0.48 },
 };
 
 // Synthesize camera shutter sound via Web Audio API
@@ -466,12 +464,12 @@ export default function LiveCameraFeed({
         const predictions = await aiModel.detect(sourceEl);
         setDetectedObjects(predictions);
 
-        // Check if any prediction matches target demo props with score >= 0.32
+        // Check if any prediction matches target demo props with class-specific minScore threshold
         for (const pred of predictions) {
           const className = pred.class.toLowerCase();
           const match = TARGET_PROPS[className];
 
-          if (match && pred.score >= 0.32) {
+          if (match && pred.score >= (match.minScore || 0.38)) {
             const now = Date.now();
             // 3.0s cooldown via ref so it doesn't flood, but reacts very fast to props!
             if (now - lastAutoTriggerTimeRef.current > 3000) {
