@@ -538,6 +538,10 @@ export default function NarcoticsSensorPage() {
                 const bearingMatch = trimmed.match(/Bearing:\s*([+-]?\d+(?:\.\d+)?)/);
                 const magMatch = trimmed.match(/Mag:\s*([+-]?\d+(?:\.\d+)?)/);
                 const actionMatch = trimmed.match(/Action:\s*([A-Za-z_]+)/);
+                const peakDirMatch = trimmed.match(/PeakDir:\s*([A-Za-z]+)/);
+                const peakSensorMatch = trimmed.match(/PeakSensor:\s*([A-Za-z0-9-]+)/);
+                const peakGasMatch = trimmed.match(/PeakGas:\s*([^|]+)/);
+                const peakDeltaMatch = trimmed.match(/PeakDelta:\s*([+-]?\d+(?:\.\d+)?)/);
 
                 const vMq2 = mq2Match ? Number(mq2Match[1]) : 41;
                 const vMq3 = mq3Match ? Number(mq3Match[1]) : 26;
@@ -548,6 +552,11 @@ export default function NarcoticsSensorPage() {
                 const pMq3 = mq3PctMatch ? Number(mq3PctMatch[1]) : 0;
                 const pMq5 = mq5PctMatch ? Number(mq5PctMatch[1]) : 0;
                 const pMq135 = mq135PctMatch ? Number(mq135PctMatch[1]) : 0;
+
+                const peakDir = peakDirMatch ? peakDirMatch[1].trim() as any : undefined;
+                const peakSensor = peakSensorMatch ? peakSensorMatch[1].trim() : undefined;
+                const peakGas = peakGasMatch ? peakGasMatch[1].trim() : undefined;
+                const peakDelta = peakDeltaMatch ? Number(peakDeltaMatch[1]) : undefined;
 
                 const distCm = distMatch ? Number(distMatch[1]) : undefined;
                 const distM = distCm !== undefined ? distCm / 100 : undefined;
@@ -590,6 +599,10 @@ export default function NarcoticsSensorPage() {
                   magnitude: mag,
                   action,
                   distance_cm: distCm,
+                  highest_dir: peakDir,
+                  highest_sensor: peakSensor,
+                  highest_gas: peakGas,
+                  highest_delta: peakDelta,
                 };
                 setDirectionalPlume(pData);
                 window.dispatchEvent(new CustomEvent('vikrant:directional_plume', { detail: pData }));

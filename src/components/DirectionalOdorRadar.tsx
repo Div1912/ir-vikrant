@@ -1,19 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Compass,
   Navigation,
   Wind,
-  ShieldAlert,
   Flame,
   Pill,
   Sparkles,
-  Zap,
   Activity,
   AlertTriangle,
   RotateCcw,
   CheckCircle2,
+  Target,
+  Radio,
+  ArrowUp,
+  ArrowRight,
+  ArrowDown,
+  ArrowLeft,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,6 +38,10 @@ export interface DirectionalPlumeTelemetry {
   magnitude: number;   // 0 to 200+
   action: 'IDLE' | 'FORWARD' | 'TURN_RIGHT' | 'TURN_LEFT' | 'TURN_REVERSE' | 'OBSTACLE_HOLD';
   distance_cm?: number;
+  highest_dir?: 'FRONT' | 'RIGHT' | 'REAR' | 'LEFT' | 'CALM';
+  highest_sensor?: string;
+  highest_gas?: string;
+  highest_delta?: number;
 }
 
 interface DirectionalOdorRadarProps {
@@ -87,13 +95,85 @@ export default function DirectionalOdorRadar({
     return () => window.removeEventListener('vikrant:directional_plume', handlePlumeEvent);
   }, []);
 
+  // Compute 4 Quadrants & Identify Highest Gas Direction
+  const quadrantSensors = useMemo(() => {
+    const dFront = Number(telemetry.delta_front ?? 0);
+    const dRight = Number(telemetry.delta_right ?? 0);
+    const dRear  = Number(telemetry.delta_rear ?? 0);
+    const dLeft  = Number(telemetry.delta_left ?? 0);
+
+    const rawFront = telemetry.front_mq3 ?? telemetry.right_mq3 ?? 26;
+    const rawRight = telemetry.right_mq2 ?? telemetry.front_mq2 ?? 41;
+    const rawRear  = telemetry.rear_mq135 ?? telemetry.left_mq135 ?? 49;
+    const rawLeft  = telemetry.left_mq5 ?? telemetry.rear_mq5 ?? 496;
+
+    return [
+      {
+        dir: 'FRONT' as const,
+        label: 'FRONT',
+        angle: 0,
+        sensor: 'MQ-3',
+        substance: 'Alcohol / Narcotics / Solvent Vapors',
+        delta: dFront,
+        raw: rawFront,
+        pin: 'A0',
+        color: 'rose',
+        glowColor: '#f43f5e',
+      },
+      {
+        dir: 'RIGHT' as const,
+        label: 'RIGHT',
+        angle: 90,
+        sensor: 'MQ-2',
+        substance: 'Combustible Gas / LPG / Smoke',
+        delta: dRight,
+        raw: rawRight,
+        pin: 'A1',
+        color: 'sky',
+        glowColor: '#0ea5e9',
+      },
+      {
+        dir: 'REAR' as const,
+        label: 'REAR',
+        angle: 180,
+        sensor: 'MQ-135',
+        substance: 'Air Quality / Toxic Precursors / NH₃',
+        delta: dRear,
+        raw: rawRear,
+        pin: 'A2',
+        color: 'teal',
+        glowColor: '#14b8a6',
+      },
+      {
+        dir: 'LEFT' as const,
+        label: 'LEFT',
+        angle: -90,
+        sensor: 'MQ-5',
+        substance: 'Natural Gas / Methane / LPG',
+        delta: dLeft,
+        raw: rawLeft,
+        pin: 'A3',
+        color: 'amber',
+        glowColor: '#f59e0b',
+      },
+    ];
+  }, [telemetry]);
+
+  // Determine dominant sensor with highest delta
+  const dominant = useMemo(() => {
+    return quadrantSensors.reduce((max, cur) => (cur.delta > max.delta ? cur : max), quadrantSensors[0]);
+  }, [quadrantSensors]);
+
+  // Is an active plume detected?
+  const isPlumeActive = dominant.delta >= 8.0 || telemetry.magnitude >= 12.0;
+
   // Preset Simulated Plume Scenarios
-  const triggerSimulation = (direction: 'right' | 'left' | 'front' | 'rear' | 'clean') => {
+  const triggerSimulation = (direction: 'front' | 'right' | 'rear' | 'left' | 'clean') => {
     setActiveSimulationMode(direction);
     let sim: DirectionalPlumeTelemetry;
 
     if (direction === 'front') {
-      // High Narcotics / Solvent vapor spike directly in FRONT (MQ-3) + Front Ultrasonic
+      // High Narcotics / Solvent vapor spike directly in FRONT (MQ-3)
       sim = {
         front_mq3: 145,
         right_mq2: 42,
@@ -107,10 +187,14 @@ export default function DirectionalOdorRadar({
         delta_right: 3.5,
         delta_rear: 1.0,
         delta_left: 0.2,
-        bearing_deg: 1.5,
+        bearing_deg: 0.0,
         magnitude: 181.0,
         action: 'FORWARD',
         distance_cm: 85.0,
+        highest_dir: 'FRONT',
+        highest_sensor: 'MQ-3',
+        highest_gas: 'Alcohol / Narcotics / Solvent Vapors',
+        highest_delta: 182.0,
       };
     } else if (direction === 'right') {
       // High Combustible Gas / Smoke spike on RIGHT (MQ-2)
@@ -127,10 +211,14 @@ export default function DirectionalOdorRadar({
         delta_right: 175.4,
         delta_rear: 2.1,
         delta_left: 0.5,
-        bearing_deg: 88.5,
+        bearing_deg: 90.0,
         magnitude: 174.0,
         action: 'TURN_RIGHT',
         distance_cm: 110.0,
+        highest_dir: 'RIGHT',
+        highest_sensor: 'MQ-2',
+        highest_gas: 'Combustible Gas / LPG / Smoke',
+        highest_delta: 175.4,
       };
     } else if (direction === 'rear') {
       // Chemical Precursor / Toxic Vapor trace behind robot in REAR (MQ-135)
@@ -147,10 +235,14 @@ export default function DirectionalOdorRadar({
         delta_right: 2.0,
         delta_rear: 168.0,
         delta_left: 0.8,
-        bearing_deg: 178.5,
+        bearing_deg: 180.0,
         magnitude: 166.5,
         action: 'TURN_REVERSE',
         distance_cm: 130.0,
+        highest_dir: 'REAR',
+        highest_sensor: 'MQ-135',
+        highest_gas: 'Air Quality / Toxic Precursors / NH₃',
+        highest_delta: 168.0,
       };
     } else if (direction === 'left') {
       // Natural Gas / Methane / LPG spike on LEFT (MQ-5)
@@ -167,10 +259,14 @@ export default function DirectionalOdorRadar({
         delta_right: 3.0,
         delta_rear: 1.2,
         delta_left: 97.7,
-        bearing_deg: -88.0,
+        bearing_deg: -90.0,
         magnitude: 96.5,
         action: 'TURN_LEFT',
         distance_cm: 105.0,
+        highest_dir: 'LEFT',
+        highest_sensor: 'MQ-5',
+        highest_gas: 'Natural Gas / Methane / LPG',
+        highest_delta: 97.7,
       };
     } else {
       // Clean Ambient Air
@@ -191,6 +287,10 @@ export default function DirectionalOdorRadar({
         magnitude: 1.2,
         action: 'IDLE',
         distance_cm: 125.0,
+        highest_dir: 'CALM',
+        highest_sensor: 'NONE',
+        highest_gas: 'CLEAN AIR',
+        highest_delta: 0.0,
       };
     }
 
@@ -199,129 +299,269 @@ export default function DirectionalOdorRadar({
     window.dispatchEvent(new CustomEvent('vikrant:directional_plume', { detail: sim }));
   };
 
-  const isPlumeActive = telemetry.magnitude >= 25.0;
-
   // Determine compass rotation angle
   const arrowAngle = telemetry.bearing_deg;
 
   return (
-    <div className={`glass-panel rounded-3xl p-5 border border-white/80 shadow-md flex flex-col gap-4 font-sans ${className}`}>
-      {/* Header Bar */}
+    <div className={`glass-panel rounded-3xl p-5 sm:p-6 border border-white/80 shadow-md flex flex-col gap-4 font-sans ${className}`}>
+      {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/60 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-2xl bg-sky-500/15 border border-sky-300 text-sky-700 shadow-xs">
-            <Compass size={18} className={isPlumeActive ? 'animate-spin' : ''} />
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-sky-500/15 border border-sky-300 text-sky-700 shadow-xs">
+            <Compass size={20} className={isPlumeActive ? 'animate-spin' : ''} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-sans text-xs font-bold text-slate-900 tracking-tight uppercase">
-                360° CHEMICAL ODOR RADAR • CHEMOTAXIS COMPASS
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-sans text-sm font-black text-slate-900 tracking-tight uppercase">
+                360° Chemical Odor Radar • Chemotaxis Compass
               </h3>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border ${
-                isPlumeActive ? 'bg-red-500/15 text-red-800 border-red-300 animate-pulse' : 'bg-emerald-500/15 text-emerald-800 border-emerald-300'
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border transition-all ${
+                isPlumeActive
+                  ? 'bg-rose-500/20 text-rose-900 border-rose-400 animate-pulse shadow-xs'
+                  : 'bg-emerald-500/15 text-emerald-800 border-emerald-300'
               }`}>
-                {isPlumeActive ? 'PLUME LOCK ENGAGED' : 'CALM AMBIENT AIR'}
+                {isPlumeActive ? '⚡ ACTIVE PLUME TRACKED' : 'CALM AMBIENT AIR'}
               </span>
             </div>
             <p className="text-[11px] font-sans text-slate-600 font-medium">
-              Autonomous quadruped gradient navigation across 4 orthogonal MQ sensors
+              Autonomous quadruped gradient navigation across 4 orthogonal MQ sensors (MQ-3 Front, MQ-2 Right, MQ-135 Rear, MQ-5 Left)
             </p>
           </div>
         </div>
 
         {/* Quadruped Motion Action Status Pill */}
         <div className={`px-3.5 py-1.5 rounded-xl border flex items-center gap-2 font-mono text-xs font-bold shadow-xs ${
-          telemetry.action === 'FORWARD' ? 'bg-emerald-500/20 text-emerald-900 border-emerald-400' :
+          telemetry.action === 'FORWARD' ? 'bg-emerald-500/20 text-emerald-950 border-emerald-400' :
           telemetry.action === 'TURN_RIGHT' ? 'bg-sky-500/20 text-sky-950 border-sky-400' :
           telemetry.action === 'TURN_LEFT' ? 'bg-purple-500/20 text-purple-950 border-purple-400' :
           telemetry.action === 'TURN_REVERSE' ? 'bg-rose-500/20 text-rose-950 border-rose-400' :
           telemetry.action === 'OBSTACLE_HOLD' ? 'bg-amber-500/20 text-amber-950 border-amber-400 animate-pulse' :
           'bg-slate-100 text-slate-700 border-slate-300'
         }`}>
-          <Navigation size={13} className={isPlumeActive ? 'animate-bounce text-sky-600' : 'text-slate-500'} />
+          <Navigation size={14} className={isPlumeActive ? 'animate-bounce text-sky-600' : 'text-slate-500'} />
           <span>ROBOT: {telemetry.action.replace('_', ' ')}</span>
-          {isPlumeActive && <span className="text-[10px] text-sky-700">({telemetry.bearing_deg > 0 ? `+${telemetry.bearing_deg.toFixed(0)}°` : `${telemetry.bearing_deg.toFixed(0)}°`})</span>}
+          {isPlumeActive && (
+            <span className="text-[10px] font-mono text-sky-800">
+              ({telemetry.bearing_deg >= 0 ? `+${telemetry.bearing_deg.toFixed(0)}°` : `${telemetry.bearing_deg.toFixed(0)}°`})
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Main Radar & 4-Quadrant Display Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-        {/* Left Column: Interactive Circular Radar Dial (7 Cols) */}
-        <div className="md:col-span-7 flex flex-col items-center justify-center p-3 relative">
-          <div className="relative w-64 h-64 rounded-full border-2 border-slate-300/80 bg-slate-900/90 shadow-xl flex items-center justify-center overflow-hidden">
-            {/* Concentric distance rings */}
-            <div className="absolute inset-4 rounded-full border border-sky-500/20 border-dashed" />
-            <div className="absolute inset-12 rounded-full border border-sky-500/30" />
-            <div className="absolute inset-20 rounded-full border border-sky-500/40 border-dashed" />
-            <div className="absolute inset-28 rounded-full border border-sky-500/50" />
-
-            {/* Crosshairs */}
-            <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/30 -translate-x-1/2" />
-            <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-sky-500/30 -translate-y-1/2" />
-
-            {/* Sweep radar ray animation */}
-            <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(56,189,248,0.25)_360deg)] animate-[spin_4s_linear_infinite]" />
-
-            {/* Radial Plume Glow if Active */}
-            {isPlumeActive && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 0.85, scale: 1 }}
-                className="absolute w-24 h-24 rounded-full bg-rose-500/40 blur-xl pointer-events-none"
-                style={{
-                  transform: `translate(${Math.sin((telemetry.bearing_deg * Math.PI) / 180) * 60}px, ${-Math.cos((telemetry.bearing_deg * Math.PI) / 180) * 60}px)`,
-                }}
-              />
-            )}
-
-            {/* Rotating Directional Compass Needle */}
-            <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-500 ease-out"
-              style={{ transform: `rotate(${arrowAngle}deg)` }}
-            >
-              <div className="relative flex flex-col items-center">
-                {/* Arrow Head */}
-                <div
-                  className={`w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent ${
-                    isPlumeActive
-                      ? 'border-b-[38px] border-b-rose-500 drop-shadow-[0_0_12px_#f43f5e]'
-                      : 'border-b-[28px] border-b-sky-400 drop-shadow-[0_0_8px_#38bdf8]'
-                  }`}
-                />
-                {/* Arrow Shaft */}
-                <div className={`w-1.5 h-16 ${isPlumeActive ? 'bg-rose-500' : 'bg-sky-400/80'} rounded-full`} />
-                {/* Tail Counterweight */}
-                <div className="w-3 h-3 rounded-full bg-slate-200 mt-1" />
+      {/* 2. DEDICATED HIGH GAS SOURCE BANNER (CLEAR DIRECTION INDICATION) */}
+      <AnimatePresence mode="wait">
+        {isPlumeActive ? (
+          <motion.div
+            key="active-plume-banner"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-500/15 via-amber-500/15 to-rose-500/15 border-2 border-rose-500/60 shadow-md flex flex-wrap items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-600 text-white shadow-md animate-pulse shrink-0">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white font-mono text-[10px] font-black uppercase tracking-wider">
+                    PRIMARY ODOR SOURCE DETECTED
+                  </span>
+                  <span className="text-rose-950 font-black text-sm uppercase tracking-wide flex items-center gap-1.5">
+                    DIRECTION: <span className="underline decoration-rose-500 font-extrabold text-rose-700">{dominant.label}</span>
+                    <span className="text-xs text-rose-700">
+                      ({dominant.angle >= 0 ? `+${dominant.angle}°` : `${dominant.angle}°`})
+                    </span>
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-rose-900 mt-0.5">
+                  Sensor: <strong className="text-rose-950">{dominant.sensor}</strong> ({dominant.substance}) • Excitation Surge:{' '}
+                  <strong className="font-mono text-rose-700">+{dominant.delta.toFixed(1)}% ΔS</strong>
+                </p>
               </div>
             </div>
 
-            {/* Center Robot Pivot Hub */}
-            <div className="relative z-10 w-8 h-8 rounded-full bg-slate-950 border-2 border-white flex items-center justify-center shadow-lg">
-              <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-mono text-rose-800 font-bold uppercase tracking-wide">
+                  AUTONOMOUS STEERING
+                </span>
+                <span className="px-3 py-1 rounded-xl bg-slate-900 text-rose-300 font-mono font-black text-xs shadow-inner flex items-center gap-1.5">
+                  <Navigation size={12} className="text-rose-400" />
+                  {telemetry.action.replace('_', ' ')}
+                </span>
+              </div>
             </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="calm-ambient-banner"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-400/50 flex flex-wrap items-center justify-between gap-2 text-xs"
+          >
+            <div className="flex items-center gap-2 text-emerald-950 font-bold">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <span>AMBIENT CLEAN AIR • ALL 4 SENSORS BALANCED BELOW THRESHOLD (NO GAS PLUME)</span>
+            </div>
+            <div className="flex items-center gap-3 font-mono text-[11px] text-emerald-800 font-semibold">
+              <span>SPIKE THRESHOLD: +10% BASELINE</span>
+              <span>•</span>
+              <span>FRONT US: {telemetry.distance_cm !== undefined ? `${telemetry.distance_cm.toFixed(0)} cm` : 'CLEAR'}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* 3. MAIN COCKPIT: EXPANDED RADAR (FILLS CARD) + TELEMETRY GAUGES */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        {/* Left Column: Expanded Interactive Radar Dial (7 Cols on large screen, centered, fills card) */}
+        <div className="lg:col-span-7 flex flex-col items-center justify-center relative p-1 sm:p-3">
+          {/* Radar Outer Canvas with Cardinal Docking Pods */}
+          <div className="relative w-full max-w-[360px] sm:max-w-[420px] aspect-square flex items-center justify-center">
             {/* North / Front Pod Badge (0°) */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-rose-400 text-[10px] font-mono font-bold text-rose-300">
-              FRONT • MQ-3 + US (0°)
+            <div
+              className={`absolute -top-1 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-xl border backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 font-mono text-[11px] font-bold ${
+                dominant.dir === 'FRONT' && isPlumeActive
+                  ? 'bg-rose-600 text-white border-rose-300 ring-4 ring-rose-500/30 scale-105 animate-pulse'
+                  : 'bg-slate-900/90 text-rose-300 border-rose-500/40 hover:border-rose-400'
+              }`}
+            >
+              <ArrowUp size={13} className={dominant.dir === 'FRONT' && isPlumeActive ? 'text-white animate-bounce' : 'text-rose-400'} />
+              <span>FRONT (0°): MQ-3</span>
+              <span className="text-[10px] opacity-90">
+                ({telemetry.delta_front > 0 ? `+${telemetry.delta_front.toFixed(1)}%` : '0%'})
+              </span>
             </div>
 
-            {/* East / Right Pod Badge (90°) */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-sky-400 text-[10px] font-mono font-bold text-sky-300">
-              RIGHT • MQ-2 (+90°)
+            {/* East / Right Pod Badge (+90°) */}
+            <div
+              className={`absolute -right-2 top-1/2 -translate-y-1/2 z-20 px-3 py-1 rounded-xl border backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 font-mono text-[11px] font-bold ${
+                dominant.dir === 'RIGHT' && isPlumeActive
+                  ? 'bg-sky-600 text-white border-sky-300 ring-4 ring-sky-500/30 scale-105 animate-pulse'
+                  : 'bg-slate-900/90 text-sky-300 border-sky-500/40 hover:border-sky-400'
+              }`}
+            >
+              <span>RIGHT (+90°): MQ-2</span>
+              <span className="text-[10px] opacity-90">
+                ({telemetry.delta_right > 0 ? `+${telemetry.delta_right.toFixed(1)}%` : '0%'})
+              </span>
+              <ArrowRight size={13} className={dominant.dir === 'RIGHT' && isPlumeActive ? 'text-white animate-bounce' : 'text-sky-400'} />
             </div>
 
             {/* South / Rear Pod Badge (180°) */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-teal-400 text-[10px] font-mono font-bold text-teal-300">
-              REAR • MQ-135 (180°)
+            <div
+              className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-xl border backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 font-mono text-[11px] font-bold ${
+                dominant.dir === 'REAR' && isPlumeActive
+                  ? 'bg-teal-600 text-white border-teal-300 ring-4 ring-teal-500/30 scale-105 animate-pulse'
+                  : 'bg-slate-900/90 text-teal-300 border-teal-500/40 hover:border-teal-400'
+              }`}
+            >
+              <ArrowDown size={13} className={dominant.dir === 'REAR' && isPlumeActive ? 'text-white animate-bounce' : 'text-teal-400'} />
+              <span>REAR (180°): MQ-135</span>
+              <span className="text-[10px] opacity-90">
+                ({telemetry.delta_rear > 0 ? `+${telemetry.delta_rear.toFixed(1)}%` : '0%'})
+              </span>
             </div>
 
-            {/* West / Left Pod Badge (270°) */}
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-amber-400 text-[10px] font-mono font-bold text-amber-300">
-              LEFT • MQ-5 (-90°)
+            {/* West / Left Pod Badge (-90°) */}
+            <div
+              className={`absolute -left-2 top-1/2 -translate-y-1/2 z-20 px-3 py-1 rounded-xl border backdrop-blur-md transition-all shadow-md flex items-center gap-1.5 font-mono text-[11px] font-bold ${
+                dominant.dir === 'LEFT' && isPlumeActive
+                  ? 'bg-amber-600 text-white border-amber-300 ring-4 ring-amber-500/30 scale-105 animate-pulse'
+                  : 'bg-slate-900/90 text-amber-300 border-amber-500/40 hover:border-amber-400'
+              }`}
+            >
+              <ArrowLeft size={13} className={dominant.dir === 'LEFT' && isPlumeActive ? 'text-white animate-bounce' : 'text-amber-400'} />
+              <span>LEFT (-90°): MQ-5</span>
+              <span className="text-[10px] opacity-90">
+                ({telemetry.delta_left > 0 ? `+${telemetry.delta_left.toFixed(1)}%` : '0%'})
+              </span>
+            </div>
+
+            {/* Circular Radar Screen (Fills interior canvas with zero label collisions) */}
+            <div className="relative w-[82%] h-[82%] rounded-full border-4 border-slate-700/80 bg-slate-950 shadow-2xl flex items-center justify-center overflow-hidden">
+              {/* Concentric Distance & Intensity Rings */}
+              <div className="absolute inset-4 rounded-full border border-sky-500/20 border-dashed" />
+              <div className="absolute inset-12 rounded-full border border-sky-500/25" />
+              <div className="absolute inset-20 rounded-full border border-sky-500/30 border-dashed" />
+              <div className="absolute inset-28 rounded-full border border-sky-500/40" />
+
+              {/* 8-Axis Radial Crosshairs (N, NE, E, SE, S, SW, W, NW) */}
+              <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/30 -translate-x-1/2" />
+              <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-sky-500/30 -translate-y-1/2" />
+              <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/15 -translate-x-1/2 rotate-45" />
+              <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/15 -translate-x-1/2 -rotate-45" />
+
+              {/* Sweep Radar Ray Animation */}
+              <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(56,189,248,0.22)_360deg)] animate-[spin_3.5s_linear_infinite]" />
+
+              {/* Dynamic Plume Heat Fan (Wedge glowing in direction of smell) */}
+              {isPlumeActive && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.85 }}
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    background: `conic-gradient(from ${arrowAngle - 45}deg, transparent 0deg, ${dominant.glowColor}55 45deg, transparent 90deg)`,
+                  }}
+                />
+              )}
+
+              {/* Radial Plume Core Glow */}
+              {isPlumeActive && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 0.9, scale: [1, 1.15, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.8 }}
+                  className="absolute w-28 h-28 rounded-full blur-xl pointer-events-none"
+                  style={{
+                    backgroundColor: dominant.glowColor,
+                    transform: `translate(${Math.sin((telemetry.bearing_deg * Math.PI) / 180) * 65}px, ${-Math.cos((telemetry.bearing_deg * Math.PI) / 180) * 65}px)`,
+                  }}
+                />
+              )}
+
+              {/* Rotating Directional Compass Needle */}
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none transition-transform duration-500 ease-out"
+                style={{ transform: `rotate(${arrowAngle}deg)` }}
+              >
+                <div className="relative flex flex-col items-center">
+                  {/* Arrow Head */}
+                  <div
+                    className={`w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent ${
+                      isPlumeActive
+                        ? 'border-b-[44px] drop-shadow-[0_0_16px_currentColor]'
+                        : 'border-b-[32px] border-b-sky-400 drop-shadow-[0_0_8px_#38bdf8]'
+                    }`}
+                    style={isPlumeActive ? { borderBottomColor: dominant.glowColor, color: dominant.glowColor } : {}}
+                  />
+                  {/* Arrow Shaft */}
+                  <div
+                    className="w-2 h-20 rounded-full transition-colors"
+                    style={{ backgroundColor: isPlumeActive ? dominant.glowColor : 'rgba(56, 189, 248, 0.8)' }}
+                  />
+                  {/* Tail Counterweight */}
+                  <div className="w-3.5 h-3.5 rounded-full bg-slate-200 mt-1 shadow-sm" />
+                </div>
+              </div>
+
+              {/* Center Quadruped Pivot Hub */}
+              <div className="relative z-10 w-10 h-10 rounded-full bg-slate-950 border-2 border-white flex items-center justify-center shadow-2xl">
+                <span className={`w-3 h-3 rounded-full ${isPlumeActive ? 'animate-ping' : ''}`} style={{ backgroundColor: dominant.glowColor }} />
+              </div>
+
+              {/* Internal Cardinal Degree Rings (Subtle inner ticks) */}
+              <span className="absolute top-2 text-[9px] font-mono text-slate-400 font-bold">0°</span>
+              <span className="absolute right-2 text-[9px] font-mono text-slate-400 font-bold">90°</span>
+              <span className="absolute bottom-2 text-[9px] font-mono text-slate-400 font-bold">180°</span>
+              <span className="absolute left-2 text-[9px] font-mono text-slate-400 font-bold">270°</span>
             </div>
           </div>
 
-          {/* Compass Telemetry Readout */}
+          {/* Compass Live Vector Telemetry Readout */}
           <div className="flex items-center gap-4 mt-3 text-xs font-mono font-bold">
             <span className="text-slate-800">
               BEARING: <strong className="text-sky-700">{telemetry.bearing_deg.toFixed(1)}°</strong>
@@ -330,161 +570,142 @@ export default function DirectionalOdorRadar({
             <span className="text-slate-800">
               GRADIENT: <strong className={isPlumeActive ? 'text-rose-600' : 'text-slate-600'}>+{telemetry.magnitude.toFixed(1)}% ΔS</strong>
             </span>
+            <span className="text-slate-300">•</span>
+            <span className="text-slate-800">
+              SOURCE:{' '}
+              <strong className={isPlumeActive ? 'text-rose-600 underline' : 'text-slate-600'}>
+                {isPlumeActive ? `${dominant.dir} (${dominant.sensor})` : 'CALM'}
+              </strong>
+            </span>
           </div>
         </div>
 
         {/* Right Column: 4 Directional Sensor Telemetry Bars & Simulator (5 Cols) */}
-        <div className="md:col-span-5 flex flex-col gap-3">
+        <div className="lg:col-span-5 flex flex-col gap-3">
           <div className="text-xs font-sans font-bold text-slate-900 border-b border-slate-200 pb-1.5 flex justify-between items-center">
             <span>QUADRANT EXCITATION (Δ% ABOVE CLEAN AIR)</span>
-            <span className="text-[10px] text-slate-500 font-semibold">Normalized Baseline</span>
+            <span className="text-[10px] text-slate-500 font-semibold">Max Threshold: +10%</span>
           </div>
 
-          {/* 1. FRONT (MQ-3) - Narcotics & Solvents Specialist */}
-          <div className="p-2.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-rose-950 flex items-center gap-1.5">
-                <Pill size={13} className="text-rose-600" />
-                <span>FRONT (MQ-3): Alcohol / Narcotics Vapors</span>
-              </span>
-              <span className="font-mono font-bold text-rose-700">+{telemetry.delta_front.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+          {/* Render 4 Directional Sensor Cards */}
+          {quadrantSensors.map(sensor => {
+            const isHighest = isPlumeActive && dominant.dir === sensor.dir;
+            return (
               <div
-                className="h-full bg-rose-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_front / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.front_mq3 ?? telemetry.right_mq3 ?? 26} ADC</span>
-              <span>HEADING: 0° (FRONT)</span>
-            </div>
-          </div>
+                key={sensor.dir}
+                className={`p-3 rounded-2xl transition-all shadow-xs flex flex-col gap-1.5 ${
+                  isHighest
+                    ? 'bg-rose-50/90 border-2 border-rose-400 shadow-md ring-2 ring-rose-300/40'
+                    : 'bg-white/60 border border-white/90 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex justify-between items-center text-xs font-sans">
+                  <div className="flex items-center gap-2">
+                    {sensor.dir === 'FRONT' && <Pill size={14} className="text-rose-600" />}
+                    {sensor.dir === 'RIGHT' && <Flame size={14} className="text-sky-600" />}
+                    {sensor.dir === 'REAR' && <Wind size={14} className="text-teal-600" />}
+                    {sensor.dir === 'LEFT' && <Activity size={14} className="text-amber-600" />}
+                    <span className="font-bold text-slate-900">
+                      {sensor.label} ({sensor.sensor}): <span className="text-[11px] text-slate-600 font-normal">{sensor.substance}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-mono">
+                    {isHighest && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-600 text-white animate-pulse">
+                        ★ HIGH
+                      </span>
+                    )}
+                    <span className={`font-bold ${isHighest ? 'text-rose-700' : 'text-slate-700'}`}>
+                      +{sensor.delta.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
 
-          {/* 2. RIGHT (MQ-2) - Combustible Gas & Smoke */}
-          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Flame size={13} className="text-sky-600" />
-                <span>RIGHT (MQ-2): Combustible Gas / Smoke</span>
-              </span>
-              <span className="font-mono font-bold text-sky-700">+{telemetry.delta_right.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-sky-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_right / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.right_mq2 ?? telemetry.front_mq2 ?? 41} ADC</span>
-              <span>HEADING: +90° (RIGHT)</span>
-            </div>
-          </div>
+                {/* Excitation progress bar */}
+                <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      sensor.dir === 'FRONT' ? 'bg-rose-600' :
+                      sensor.dir === 'RIGHT' ? 'bg-sky-600' :
+                      sensor.dir === 'REAR' ? 'bg-teal-600' : 'bg-amber-600'
+                    }`}
+                    style={{ width: `${Math.min(100, (sensor.delta / 150) * 100)}%` }}
+                  />
+                </div>
 
-          {/* 3. REAR (MQ-135) - Air Quality & Toxic Precursors */}
-          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Wind size={13} className="text-teal-600" />
-                <span>REAR (MQ-135): Hazardous Precursors / NH₃</span>
-              </span>
-              <span className="font-mono font-bold text-teal-700">+{telemetry.delta_rear.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-teal-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_rear / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.rear_mq135 ?? telemetry.left_mq135 ?? 49} ADC</span>
-              <span>HEADING: 180° (REAR)</span>
-            </div>
-          </div>
-
-          {/* 4. LEFT (MQ-5) - Natural Gas & Methane */}
-          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Activity size={13} className="text-amber-600" />
-                <span>LEFT (MQ-5): Natural Gas / Methane / LPG</span>
-              </span>
-              <span className="font-mono font-bold text-amber-700">+{telemetry.delta_left.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-amber-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_left / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.left_mq5 ?? telemetry.rear_mq5 ?? 496} ADC</span>
-              <span>HEADING: -90° (LEFT)</span>
-            </div>
-          </div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                  <span>RAW: {sensor.raw} ADC (PIN {sensor.pin})</span>
+                  <span>HEADING: {sensor.angle >= 0 ? `+${sensor.angle}°` : `${sensor.angle}°`}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Simulator Test Controls Row */}
+      {/* 4. Simulator Test Controls Row */}
       <div className="pt-3 border-t border-white/60 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-1.5 text-xs font-sans text-slate-700 font-semibold">
-          <Sparkles size={13} className="text-amber-600" />
+          <Sparkles size={14} className="text-amber-600" />
           <span>DEMO PLUME INJECTOR:</span>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => triggerSimulation('right')}
-            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs ${
-              activeSimulationMode === 'right'
+            onClick={() => triggerSimulation('front')}
+            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs flex items-center gap-1 ${
+              activeSimulationMode === 'front'
                 ? 'bg-rose-600 text-white border-rose-700'
                 : 'bg-white/80 hover:bg-white text-slate-900 border-slate-300'
             }`}
-            title="Simulate narcotics solvent plume approaching from the right flank"
+            title="Simulate narcotics/alcohol vapor approaching directly from FRONT (MQ-3)"
           >
-            👉 RIGHT (NARCOTICS MQ-3)
+            <span>☝️</span>
+            <span>FRONT (MQ-3 NARCOTICS)</span>
           </button>
 
           <button
-            onClick={() => triggerSimulation('left')}
-            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs ${
-              activeSimulationMode === 'left'
-                ? 'bg-teal-600 text-white border-teal-700'
-                : 'bg-white/80 hover:bg-white text-slate-900 border-slate-300'
-            }`}
-            title="Simulate chemical precursor vapor on the left"
-          >
-            👈 LEFT (PRECURSORS MQ-135)
-          </button>
-
-          <button
-            onClick={() => triggerSimulation('front')}
-            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs ${
-              activeSimulationMode === 'front'
+            onClick={() => triggerSimulation('right')}
+            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs flex items-center gap-1 ${
+              activeSimulationMode === 'right'
                 ? 'bg-sky-600 text-white border-sky-700'
                 : 'bg-white/80 hover:bg-white text-slate-900 border-slate-300'
             }`}
-            title="Simulate front gas plume"
+            title="Simulate combustible gas/smoke approaching from RIGHT (MQ-2)"
           >
-            ☝ FRONT (MQ-2)
+            <span>👉</span>
+            <span>RIGHT (MQ-2 SMOKE/LPG)</span>
           </button>
 
           <button
             onClick={() => triggerSimulation('rear')}
-            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs ${
+            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs flex items-center gap-1 ${
               activeSimulationMode === 'rear'
+                ? 'bg-teal-600 text-white border-teal-700'
+                : 'bg-white/80 hover:bg-white text-slate-900 border-slate-300'
+            }`}
+            title="Simulate toxic precursor vapor behind robot in REAR (MQ-135)"
+          >
+            <span>👇</span>
+            <span>REAR (MQ-135 TOXIC/NH3)</span>
+          </button>
+
+          <button
+            onClick={() => triggerSimulation('left')}
+            className={`px-3 py-1 rounded-xl text-xs font-sans font-bold border transition-all active:scale-95 shadow-xs flex items-center gap-1 ${
+              activeSimulationMode === 'left'
                 ? 'bg-amber-600 text-white border-amber-700'
                 : 'bg-white/80 hover:bg-white text-slate-900 border-slate-300'
             }`}
-            title="Simulate plume behind robot"
+            title="Simulate natural gas/methane approaching from LEFT (MQ-5)"
           >
-            👇 REAR (MQ-5)
+            <span>👈</span>
+            <span>LEFT (MQ-5 METHANE)</span>
           </button>
 
           <button
             onClick={() => triggerSimulation('clean')}
-            className="p-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-xs font-sans font-bold flex items-center gap-1 border border-slate-300"
+            className="p-1.5 px-3 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-700 text-xs font-sans font-bold flex items-center gap-1 border border-slate-300"
             title="Reset to clean ambient air"
           >
             <RotateCcw size={12} />

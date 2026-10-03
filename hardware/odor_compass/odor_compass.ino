@@ -19,16 +19,20 @@
 //                  SCL    -> Analog A5
 //   • SERIAL     : 115200 Baud (High-Speed Diagnostic & Web Serial Stream)
 //
-// WHY READINGS ARE NOW 100% ACCURATE & STABLE:
-//   1. Anti-Crosstalk Settling: Discards multiplexer sample-and-hold charge before reads.
-//   2. 8-Sample Trimmed Mean: Rejects heater coil electrical ripple and voltage spikes.
-//   3. EMA Filter: Dual-stage smoothing delivers 0.1 ADC precision with <150ms response.
-//   4. Decoupled Ultrasonic: Single clean ping per cycle with rolling 3-ping median filter;
+// HIGH-ACCURACY FEATURES & DIRECTIONAL DETECTION:
+//   1. Real-Time Odor Direction Determination:
+//      Continuously compares all 4 orthogonal sensors to identify EXACTLY which
+//      direction (FRONT, RIGHT, REAR, or LEFT) the highest concentration of gas/smell
+//      is originating from, and transmits it both via Serial and directly onto the OLED.
+//   2. Anti-Crosstalk Settling: Discards multiplexer sample-and-hold charge before reads.
+//   3. 8-Sample Trimmed Mean: Rejects heater coil electrical ripple and voltage spikes.
+//   4. EMA Filter: Dual-stage smoothing delivers 0.1 ADC precision with <150ms response.
+//   5. Decoupled Ultrasonic: Single clean ping per cycle with rolling 3-ping median filter;
 //      eliminates acoustic self-interference (echo bouncing) and blocking pulseIn() stalls.
-//   5. Fast I2C (400kHz): Increases OLED data rate by 4x, preventing CPU timing starvation.
-//   6. Auto-Zeroing at Startup: 4-second clean-air ambient calibration calibrates baselines
+//   6. Fast I2C (400kHz): Increases OLED data rate by 4x, preventing CPU timing starvation.
+//   7. Auto-Zeroing at Startup: 3-second clean-air ambient calibration calibrates baselines
 //      to the room's current temperature/humidity/potentiometer setting (prevents false alarms).
-//   7. Live Serial Commands:
+//   8. Live Serial Commands:
 //      - Send 'C': Re-zero baselines to current clean air immediately
 //      - Send 'D': Restore default fixed baselines (MQ3=25.8, MQ2=40.6, 135=48.6, MQ5=495.6)
 //      - Send 'P': Cycle OLED page
@@ -59,7 +63,6 @@ bool oledReady = false;
 // -----------------------------------------------------
 // BASELINES & THRESHOLDS (+10% SENSITIVITY)
 // -----------------------------------------------------
-// Default reference values
 const float DEFAULT_BASE_MQ3_FRONT   = 25.8f;
 const float DEFAULT_BASE_MQ2_RIGHT   = 40.6f;
 const float DEFAULT_BASE_MQ135_REAR  = 48.6f;
@@ -118,6 +121,15 @@ bool previousMq3Detected = false;
 bool previousMq2Detected = false;
 bool previousMq135Detected = false;
 bool previousMq5Detected = false;
+
+// -----------------------------------------------------
+// PEAK ODOR SOURCE / DIRECTION TRACKING
+// -----------------------------------------------------
+String peakDirection = "CALM";    // FRONT, RIGHT, REAR, LEFT, CALM
+String peakSensorName = "NONE";   // MQ-3, MQ-2, MQ-135, MQ-5
+String peakGasType = "CLEAN AIR"; // NARCOTICS, COMBUSTIBLE, TOXIC/NH3, METHANE
+float peakDeltaPercent = 0.0f;    // % surge above clean air baseline
+int peakRawVal = 0;
 
 // -----------------------------------------------------
 // 2D CHEMOTAXIS VECTOR & ULTRASONIC STATE
@@ -275,10 +287,59 @@ void evaluateGasAndVector() {
   plumeMagnitude = sqrt(vx * vx + vy * vy);
   plumeBearingDeg = atan2(vx, vy) * (180.0f / 3.14159265f);
 
+  // 4b. Find which direction has the HIGHEST gas concentration
+  float maxDelta = -999.0f;
+  peakDirection = "CALM";
+  peakSensorName = "NONE";
+  peakGasType = "CLEAN AIR";
+  peakDeltaPercent = 0.0f;
+  peakRawVal = 0;
+
+  if (mq3PercentFront > maxDelta) {
+    maxDelta = mq3PercentFront;
+    peakDirection = "FRONT";
+    peakSensorName = "MQ-3";
+    peakGasType = "NARCOTICS";
+    peakDeltaPercent = mq3PercentFront;
+    peakRawVal = mq3RawFront;
+  }
+  if (mq2PercentRight > maxDelta) {
+    maxDelta = mq2PercentRight;
+    peakDirection = "RIGHT";
+    peakSensorName = "MQ-2";
+    peakGasType = "SMOKE/LPG";
+    peakDeltaPercent = mq2PercentRight;
+    peakRawVal = mq2RawRight;
+  }
+  if (mq135PercentRear > maxDelta) {
+    maxDelta = mq135PercentRear;
+    peakDirection = "REAR";
+    peakSensorName = "MQ-135";
+    peakGasType = "TOXIC/NH3";
+    peakDeltaPercent = mq135PercentRear;
+    peakRawVal = mq135RawRear;
+  }
+  if (mq5PercentLeft > maxDelta) {
+    maxDelta = mq5PercentLeft;
+    peakDirection = "LEFT";
+    peakSensorName = "MQ-5";
+    peakGasType = "METHANE/LPG";
+    peakDeltaPercent = mq5PercentLeft;
+    peakRawVal = mq5RawLeft;
+  }
+
+  // If all deltas are below 7% and no threshold reached
+  if (maxDelta < 7.0f && !gasDetected) {
+    peakDirection = "CALM";
+    peakSensorName = "NONE";
+    peakGasType = "CLEAN AIR";
+    peakDeltaPercent = 0.0f;
+  }
+
   // 5. Locomotion Recommendation
   if (frontDistanceCM > 0.0f && frontDistanceCM < 30.0f) {
     robotAction = "OBSTACLE_HOLD";
-  } else if (gasDetected || plumeMagnitude >= 10.0f) {
+  } else if (gasDetected || plumeMagnitude >= 10.0f || peakDeltaPercent >= 8.0f) {
     if (plumeBearingDeg >= -25.0f && plumeBearingDeg <= 25.0f) {
       robotAction = "FORWARD";
     } else if (plumeBearingDeg > 25.0f && plumeBearingDeg <= 115.0f) {
@@ -305,7 +366,7 @@ void evaluateGasAndVector() {
 
   previousReadingsReady = true;
 
-  if (mq3NewEvent || mq2NewEvent || mq135NewEvent || mq5NewEvent) {
+  if (mq3NewEvent || mq2NewEvent || mq135NewEvent || mq5NewEvent || gasDetected || peakDeltaPercent >= 10.0f) {
     gasAlertUntil = millis() + GAS_ALERT_HOLD_MS;
   }
 }
@@ -327,6 +388,10 @@ void printTelemetry() {
   Serial.print(F(" | Bearing:")); Serial.print(plumeBearingDeg, 1);
   Serial.print(F(" | Mag:")); Serial.print(plumeMagnitude, 1);
   Serial.print(F(" | Action:")); Serial.print(robotAction);
+  Serial.print(F(" | PeakDir:")); Serial.print(peakDirection);
+  Serial.print(F(" | PeakSensor:")); Serial.print(peakSensorName);
+  Serial.print(F(" | PeakGas:")); Serial.print(peakGasType);
+  Serial.print(F(" | PeakDelta:")); Serial.print(peakDeltaPercent, 1);
   Serial.print(F(" | Distance:"));
   if (frontDistanceCM > 0.0f) {
     Serial.print(frontDistanceCM, 1);
@@ -339,6 +404,7 @@ void printTelemetry() {
   if (mq3NewEvent || mq2NewEvent || mq135NewEvent || mq5NewEvent) {
     Serial.println(F("========================================"));
     Serial.println(F(">>> GAS DETECTION EVENT TRIGGERED <<<"));
+    Serial.print(F("  PRIMARY SMELL DIRECTION: ")); Serial.println(peakDirection);
     if (mq3NewEvent) {
       Serial.print(F("  FRONT (MQ-3)   : ")); Serial.print(mq3RawFront);
       Serial.print(F(" ADC | Base: ")); Serial.print(baseline_MQ3_front, 1);
@@ -455,8 +521,8 @@ void drawOdorCompassScreen() {
   display.clearDisplay();
   display.setTextColor(WHITE);
 
-  // Left: Circular compass dial (Center: 32, 32, Radius: 25)
-  const int cx = 32, cy = 32, r = 24;
+  // Left: Circular compass dial (Center: 30, 32, Radius: 25)
+  const int cx = 30, cy = 32, r = 25;
   display.drawCircle(cx, cy, r, WHITE);
   display.drawCircle(cx, cy, r - 6, WHITE);
 
@@ -476,53 +542,35 @@ void drawOdorCompassScreen() {
   display.fillCircle(cx, cy, 2, WHITE);
 
   // Right Side Telemetry Readout
-  display.setCursor(68, 2);
-  display.print(F("360 ODOR"));
-  display.drawLine(68, 12, 127, 12, WHITE);
+  display.setCursor(64, 2);
+  display.print(F("360 COMPASS"));
+  display.drawLine(64, 11, 127, 11, WHITE);
 
-  display.setCursor(68, 16);
-  display.print(F("DIR:"));
-  if (plumeMagnitude >= 10.0f) {
-    if (abs(plumeBearingDeg) <= 25.0f) display.print(F("FRONT"));
-    else if (plumeBearingDeg > 25.0f && plumeBearingDeg <= 115.0f) display.print(F("RIGHT"));
-    else if (plumeBearingDeg < -25.0f && plumeBearingDeg >= -115.0f) display.print(F("LEFT"));
-    else display.print(F("REAR"));
-  } else {
-    display.print(F("CALM"));
-  }
+  display.setCursor(64, 14);
+  display.print(F("SRC: "));
+  display.print(peakDirection);
 
-  display.setCursor(68, 27);
-  display.print(F("ANG:"));
-  if (plumeBearingDeg > 0) display.print(F("+"));
-  display.print((int)plumeBearingDeg);
-  display.print(F((char)247)); // degree symbol
+  display.setCursor(64, 25);
+  display.print(F("SNR: "));
+  display.print(peakSensorName);
 
-  display.setCursor(68, 38);
-  display.print(F("MAG:"));
-  display.print((int)plumeMagnitude);
+  display.setCursor(64, 36);
+  display.print(F("DEL: "));
+  if (peakDeltaPercent > 0) display.print(F("+"));
+  display.print((int)peakDeltaPercent);
   display.print(F("%"));
 
-  display.setCursor(68, 49);
-  if (frontDistanceCM > 0.0f && frontDistanceCM < 30.0f) {
-    display.print(F("!HALT:"));
-    display.print((int)frontDistanceCM);
-    display.print(F("c"));
-  } else if (frontDistanceCM > 0.0f) {
-    display.print(F("US:"));
+  display.setCursor(64, 47);
+  display.print(F("ACT: "));
+  display.print(robotAction);
+
+  display.setCursor(64, 57);
+  if (frontDistanceCM > 0.0f) {
+    display.print(F("US : "));
     display.print((int)frontDistanceCM);
     display.print(F("cm"));
   } else {
-    display.print(F("US:CLEAR"));
-  }
-
-  // Action status footer
-  if (gasDetected || plumeMagnitude >= 10.0f || (frontDistanceCM > 0.0f && frontDistanceCM < 30.0f)) {
-    display.fillRect(0, 56, 128, 8, WHITE);
-    display.setTextColor(BLACK);
-    display.setCursor(6, 56);
-    display.print(F("ACT: "));
-    display.print(robotAction);
-    display.setTextColor(WHITE);
+    display.print(F("US : CLR"));
   }
 
   display.display();
@@ -542,78 +590,100 @@ void drawFourDirectionGrid() {
   display.setCursor(2, 2);  display.print(F("FRONT MQ3"));
   display.setCursor(2, 14); display.print(mq3RawFront);
   display.print(F("/"));    display.print((int)threshold_MQ3_front);
-  if (mq3DetectedFront) display.print(F(" *"));
+  if (peakDirection == "FRONT") display.print(F(" *"));
 
   // TOP-RIGHT: RIGHT MQ-2
   display.setCursor(68, 2);  display.print(F("RIGHT MQ2"));
   display.setCursor(68, 14); display.print(mq2RawRight);
   display.print(F("/"));     display.print((int)threshold_MQ2_right);
-  if (mq2DetectedRight) display.print(F(" *"));
+  if (peakDirection == "RIGHT") display.print(F(" *"));
 
   // BOTTOM-LEFT: LEFT MQ-5
   display.setCursor(2, 30);  display.print(F("LEFT MQ5"));
   display.setCursor(2, 42); display.print(mq5RawLeft);
   display.print(F("/"));    display.print((int)threshold_MQ5_left);
-  if (mq5DetectedLeft) display.print(F(" *"));
+  if (peakDirection == "LEFT") display.print(F(" *"));
 
   // BOTTOM-RIGHT: REAR MQ-135
   display.setCursor(68, 30);  display.print(F("REAR 135"));
   display.setCursor(68, 42); display.print(mq135RawRear);
   display.print(F("/"));     display.print((int)threshold_MQ135_rear);
-  if (mq135DetectedRear) display.print(F(" *"));
+  if (peakDirection == "REAR") display.print(F(" *"));
 
   display.drawLine(0, 54, 127, 54, WHITE);
   display.setCursor(2, 56);
-  display.print(F("FRONT US: "));
+  display.print(F("SRC: "));
+  display.print(peakDirection);
+  display.print(F(" | US:"));
   if (frontDistanceCM > 0.0f) {
-    display.print(frontDistanceCM, 1);
-    display.print(F(" cm"));
-    if (frontDistanceCM < 30.0f) display.print(F(" [OBSTACLE!]"));
+    display.print((int)frontDistanceCM);
+    display.print(F("cm"));
   } else {
-    display.print(F("CLEAR (>400cm)"));
+    display.print(F("CLEAR"));
   }
 
   display.display();
 }
 
 // -----------------------------------------------------
-// Priority Gas Alert Screen
+// High-Visibility Odor Source Direction Alert Screen
+// (Shows prominently from which direction smell is coming)
 // -----------------------------------------------------
 void drawGasAlertScreen() {
   display.clearDisplay();
   display.setTextColor(WHITE);
 
-  display.fillRect(0, 0, 128, 14, WHITE);
+  // Inverted Alert Header
+  display.fillRect(0, 0, 128, 12, WHITE);
   display.setTextColor(BLACK);
-  centerText("GAS DETECTED", 1, 3);
+  centerText("! ODOR SOURCE LOCATED !", 1, 2);
   display.setTextColor(WHITE);
 
-  const char* sensorName = "MQ-3";
-  const char* side = "FRONT";
-  int val = mq3RawFront;
-  float thr = threshold_MQ3_front;
-
-  if (mq3DetectedFront) {
-    sensorName = "MQ-3"; side = "FRONT"; val = mq3RawFront; thr = threshold_MQ3_front;
-  } else if (mq2DetectedRight) {
-    sensorName = "MQ-2"; side = "RIGHT"; val = mq2RawRight; thr = threshold_MQ2_right;
-  } else if (mq135DetectedRear) {
-    sensorName = "MQ-135"; side = "REAR"; val = mq135RawRear; thr = threshold_MQ135_rear;
-  } else if (mq5DetectedLeft) {
-    sensorName = "MQ-5"; side = "LEFT"; val = mq5RawLeft; thr = threshold_MQ5_left;
+  // HUGE DIRECTION TEXT (Size 2 font)
+  char dirBanner[20];
+  if (peakDirection == "FRONT") {
+    snprintf(dirBanner, sizeof(dirBanner), "^ FRONT ^");
+  } else if (peakDirection == "RIGHT") {
+    snprintf(dirBanner, sizeof(dirBanner), ">> RIGHT >>");
+  } else if (peakDirection == "LEFT") {
+    snprintf(dirBanner, sizeof(dirBanner), "<< LEFT <<");
+  } else if (peakDirection == "REAR") {
+    snprintf(dirBanner, sizeof(dirBanner), "v REAR v");
+  } else {
+    snprintf(dirBanner, sizeof(dirBanner), "SMELL LOCATED");
   }
+  centerText(dirBanner, 2, 16);
 
-  char title[25];
-  snprintf(title, sizeof(title), "%s (%s)", sensorName, side);
-  centerText(title, 2, 18);
+  // Subtitle: Sensor name and target gas
+  char subInfo[30];
+  snprintf(subInfo, sizeof(subInfo), "%s [%s]", peakSensorName.c_str(), peakGasType.c_str());
+  centerText(subInfo, 1, 34);
 
-  char info[30];
-  snprintf(info, sizeof(info), "VAL: %d  THR: %d", val, (int)thr);
-  centerText(info, 1, 38);
+  // Divider
+  display.drawLine(4, 44, 123, 44, WHITE);
 
-  char nav[30];
-  snprintf(nav, sizeof(nav), "VEC: %d%c [%s]", (int)plumeBearingDeg, (char)247, robotAction.c_str());
-  centerText(nav, 1, 52);
+  // Bottom telemetry line: Delta surge and Bearing angle
+  display.setCursor(4, 47);
+  display.print(F("SURGE: +"));
+  display.print((int)peakDeltaPercent);
+  display.print(F("% | "));
+  if (plumeBearingDeg > 0) display.print(F("+"));
+  display.print((int)plumeBearingDeg);
+  display.print(F((char)247));
+
+  // Action & Obstacle footer
+  display.setCursor(4, 56);
+  display.print(F("ACT:"));
+  display.print(robotAction);
+
+  display.setCursor(76, 56);
+  if (frontDistanceCM > 0.0f) {
+    display.print(F("US:"));
+    display.print((int)frontDistanceCM);
+    display.print(F("cm"));
+  } else {
+    display.print(F("US:CLR"));
+  }
 
   display.display();
 }
@@ -621,15 +691,15 @@ void drawGasAlertScreen() {
 void renderOledDisplay() {
   if (!oledReady) return;
 
-  if (gasAlertUntil > millis()) {
+  // When gas/smell is actively detected, prioritize showing the high gas direction screen!
+  if (gasDetected || peakDeltaPercent >= 10.0f || gasAlertUntil > millis()) {
     drawGasAlertScreen();
     return;
   }
 
   switch (currentPage) {
     case 0:
-      if (!gasDetected) drawCuteEyesScreen();
-      else drawOdorCompassScreen();
+      drawCuteEyesScreen();
       break;
     case 1:
       drawOdorCompassScreen();
@@ -639,7 +709,7 @@ void renderOledDisplay() {
       break;
     default:
       currentPage = 0;
-      drawOdorCompassScreen();
+      drawCuteEyesScreen();
       break;
   }
 }
@@ -649,42 +719,65 @@ void renderOledDisplay() {
 // ========================================================================================
 void calibrateCleanAirBaselines(bool interactive = true) {
   if (interactive) {
-    Serial.println(F("\n>>> CALIBRATING CLEAN-AIR BASELINES (Please hold in clean air)... <<<"));
+    Serial.println(F("\n[CALIBRATION] Sampling clean air baselines across all 4 sensors..."));
   }
+
   if (oledReady) {
     display.clearDisplay();
-    centerText("CALIBRATING...", 1, 16);
-    centerText("KEEP IN CLEAN AIR", 1, 32);
+    centerText("AUTO CALIBRATING", 1, 10);
+    centerText("ZERO BASELINE", 1, 24);
+    centerText("Sampling clean air...", 1, 40);
     display.display();
   }
 
   long s3 = 0, s2 = 0, s135 = 0, s5 = 0;
-  const int SAMPLES = 40;
-  for (int i = 0; i < SAMPLES; i++) {
+  const int CAL_SAMPLES = 25;
+
+  for (int i = 0; i < CAL_SAMPLES; i++) {
     s3   += readSensorAccurate(MQ3_PIN_FRONT);
     s2   += readSensorAccurate(MQ2_PIN_RIGHT);
     s135 += readSensorAccurate(MQ135_PIN_REAR);
     s5   += readSensorAccurate(MQ5_PIN_LEFT);
-    delay(25);
+    delay(40);
   }
 
-  baseline_MQ3_front   = s3 / (float)SAMPLES;
-  baseline_MQ2_right   = s2 / (float)SAMPLES;
-  baseline_MQ135_rear  = s135 / (float)SAMPLES;
-  baseline_MQ5_left    = s5 / (float)SAMPLES;
+  float newBase3   = (float)s3 / CAL_SAMPLES;
+  float newBase2   = (float)s2 / CAL_SAMPLES;
+  float newBase135 = (float)s135 / CAL_SAMPLES;
+  float newBase5   = (float)s5 / CAL_SAMPLES;
 
-  // Set +10% detection thresholds
-  threshold_MQ3_front  = baseline_MQ3_front * 1.10f;
-  threshold_MQ2_right  = baseline_MQ2_right * 1.10f;
+  // Sanity validation: must be within reasonable non-zero ADC bounds
+  if (newBase3 > 5.0f && newBase3 < 800.0f)   baseline_MQ3_front  = newBase3;
+  if (newBase2 > 5.0f && newBase2 < 800.0f)   baseline_MQ2_right  = newBase2;
+  if (newBase135 > 5.0f && newBase135 < 800.0f) baseline_MQ135_rear = newBase135;
+  if (newBase5 > 5.0f && newBase5 < 950.0f)   baseline_MQ5_left   = newBase5;
+
+  // Calculate new +10% thresholds
+  threshold_MQ3_front  = baseline_MQ3_front  * 1.10f;
+  threshold_MQ2_right  = baseline_MQ2_right  * 1.10f;
   threshold_MQ135_rear = baseline_MQ135_rear * 1.10f;
-  threshold_MQ5_left   = baseline_MQ5_left * 1.10f;
+  threshold_MQ5_left   = baseline_MQ5_left   * 1.10f;
 
   if (interactive) {
-    Serial.println(F("CALIBRATION COMPLETE:"));
-    Serial.print(F("  FRONT MQ-3   Base: ")); Serial.print(baseline_MQ3_front, 1);   Serial.print(F(" | Thr: ")); Serial.println(threshold_MQ3_front, 1);
-    Serial.print(F("  RIGHT MQ-2   Base: ")); Serial.print(baseline_MQ2_right, 1);   Serial.print(F(" | Thr: ")); Serial.println(threshold_MQ2_right, 1);
-    Serial.print(F("  REAR  MQ-135 Base: ")); Serial.print(baseline_MQ135_rear, 1);  Serial.print(F(" | Thr: ")); Serial.println(threshold_MQ135_rear, 1);
-    Serial.print(F("  LEFT  MQ-5   Base: ")); Serial.print(baseline_MQ5_left, 1);    Serial.print(F(" | Thr: ")); Serial.println(threshold_MQ5_left, 1);
+    Serial.println(F("[CALIBRATION COMPLETE] New Clean Air Baselines & +10% Thresholds:"));
+    Serial.print(F("  FRONT MQ-3   : Base=")); Serial.print(baseline_MQ3_front, 1);
+    Serial.print(F(" | Thr=")); Serial.println(threshold_MQ3_front, 1);
+    Serial.print(F("  RIGHT MQ-2   : Base=")); Serial.print(baseline_MQ2_right, 1);
+    Serial.print(F(" | Thr=")); Serial.println(threshold_MQ2_right, 1);
+    Serial.print(F("  REAR  MQ-135 : Base=")); Serial.print(baseline_MQ135_rear, 1);
+    Serial.print(F(" | Thr=")); Serial.println(threshold_MQ135_rear, 1);
+    Serial.print(F("  LEFT  MQ-5   : Base=")); Serial.print(baseline_MQ5_left, 1);
+    Serial.print(F(" | Thr=")); Serial.println(threshold_MQ5_left, 1);
+    Serial.println(F("========================================================\n"));
+  }
+
+  if (oledReady) {
+    display.clearDisplay();
+    centerText("CALIBRATION DONE", 1, 10);
+    centerText("BASELINES ZEROED", 1, 26);
+    centerText("Threshold = Base+10%", 1, 42);
+    display.display();
+    delay(700);
   }
 }
 
@@ -699,7 +792,13 @@ void restoreDefaultBaselines() {
   threshold_MQ135_rear = 54.0f;
   threshold_MQ5_left   = 546.0f;
 
-  Serial.println(F("RESTORED DEFAULT BASELINES (MQ3=25.8, MQ2=40.6, MQ135=48.6, MQ5=495.6)"));
+  Serial.println(F("\n[RESET] Restored default fixed baselines (25.8, 40.6, 48.6, 495.6)"));
+  if (oledReady) {
+    display.clearDisplay();
+    centerText("DEFAULTS RESTORED", 1, 24);
+    display.display();
+    delay(600);
+  }
 }
 
 // ========================================================================================
@@ -708,11 +807,13 @@ void restoreDefaultBaselines() {
 void setup() {
   Serial.begin(115200);
 
+  // Analog Pins Configuration
   pinMode(MQ3_PIN_FRONT, INPUT);
   pinMode(MQ2_PIN_RIGHT, INPUT);
   pinMode(MQ135_PIN_REAR, INPUT);
   pinMode(MQ5_PIN_LEFT, INPUT);
 
+  // Ultrasonic HC-SR04 Pins Configuration
   pinMode(TRIG_PIN_FRONT, OUTPUT);
   pinMode(ECHO_PIN_FRONT, INPUT);
   digitalWrite(TRIG_PIN_FRONT, LOW);
