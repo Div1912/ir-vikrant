@@ -92,6 +92,8 @@ export default function ExplosivesSensorPage() {
   const [stationName, setStationName] = useState<string>('Bidhan Nagar Road (BNR) • Eastern Railway');
 
   const serialPortRef = useRef<any>(null);
+  const serialReaderRef = useRef<any>(null);
+  const readableStreamClosedRef = useRef<Promise<void> | null>(null);
   const lastAutoCaptureTimeRef = useRef<number>(0);
   const [cameraSource, setCameraSource] = useState<'ip_webcam' | 'device'>('ip_webcam');
   const [ipWebcamUrl, setIpWebcamUrl] = useState<string>('http://10.35.147.105:8080/video');
@@ -375,6 +377,34 @@ export default function ExplosivesSensorPage() {
     [currentCoords, stationName]
   );
 
+  // Web Serial API: Disconnect cleanly
+  const disconnectArduinoSerial = async () => {
+    try {
+      if (serialReaderRef.current) {
+        await serialReaderRef.current.cancel().catch(() => {});
+        serialReaderRef.current = null;
+      }
+      if (readableStreamClosedRef.current) {
+        await readableStreamClosedRef.current.catch(() => {});
+        readableStreamClosedRef.current = null;
+      }
+      if (serialPortRef.current) {
+        await serialPortRef.current.close().catch(() => {});
+        serialPortRef.current = null;
+      }
+    } catch (cleanupErr) {
+      console.warn('[Arduino Serial] Disconnect cleanup warning:', cleanupErr);
+    }
+    setIsSerialConnected(false);
+  };
+
+  // Clean up serial port on unmount
+  useEffect(() => {
+    return () => {
+      disconnectArduinoSerial();
+    };
+  }, []);
+
   // Web Serial API: Connect directly to Arduino Uno via USB
   const connectArduinoSerial = async () => {
     try {
@@ -384,15 +414,19 @@ export default function ExplosivesSensorPage() {
       }
 
       setSerialError(null);
+      await disconnectArduinoSerial();
+
       const port = await (navigator as any).serial.requestPort();
       await port.open({ baudRate: 9600 });
       serialPortRef.current = port;
       setIsSerialConnected(true);
-      setIsUsingMockData(false); // Disable mock data immediately on hardware connection!
+      setIsUsingMockData(false);
 
       const textDecoder = new TextDecoderStream();
-      port.readable.pipeTo(textDecoder.writable);
+      const streamClosedPromise = port.readable.pipeTo(textDecoder.writable);
+      readableStreamClosedRef.current = streamClosedPromise;
       const reader = textDecoder.readable.getReader();
+      serialReaderRef.current = reader;
 
       let buffer = '';
       while (true) {
@@ -421,9 +455,19 @@ export default function ExplosivesSensorPage() {
         }
       }
     } catch (err: any) {
-      if (err.name !== 'NotFoundError') {
-        setSerialError(`Serial Connection Error: ${err.message}`);
+      console.warn('[Arduino Serial] Connection error:', err);
+      if (err.name === 'NotFoundError') {
+        return;
       }
+      const msg = err.message || '';
+      if (msg.includes('Failed to open serial port') || err.name === 'NetworkError') {
+        setSerialError(
+          'Failed to open serial port: The COM port is locked or already in use. Please close Arduino IDE Serial Monitor / Plotter, close any other tabs using this port, re-plug the USB cable, and click Connect again.'
+        );
+      } else {
+        setSerialError(`Serial Connection Error: ${msg || 'Unknown error'}`);
+      }
+      setIsSerialConnected(false);
     }
   };
 
@@ -731,7 +775,7 @@ void loop() {
 
           {/* Connect Arduino Button */}
           <button
-            onClick={connectArduinoSerial}
+            onClick={() => (isSerialConnected ? disconnectArduinoSerial() : connectArduinoSerial())}
             className={`px-3 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 transition-all border shadow-xs ${
               isSerialConnected
                 ? 'bg-emerald-600 text-white border-emerald-700'
@@ -739,7 +783,7 @@ void loop() {
             }`}
           >
             <Usb size={14} />
-            <span>{isSerialConnected ? 'ARDUINO CONNECTED' : 'CONNECT ARDUINO (USB)'}</span>
+            <span>{isSerialConnected ? 'DISCONNECT USB' : 'CONNECT ARDUINO (USB)'}</span>
           </button>
 
           {/* Flash Code Modal Button */}
@@ -777,9 +821,29 @@ void loop() {
       </div>
 
       {serialError && (
-        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-mono text-xs flex items-center gap-2">
-          <AlertTriangle size={15} />
-          <span>{serialError}</span>
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm backdrop-blur-xs">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle size={18} className="text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="font-bold text-red-100 flex items-center gap-2">
+                <span>SERIAL CONNECTION ISSUE</span>
+              </div>
+              <p className="text-red-200/90 text-xs mt-0.5 leading-relaxed font-mono">{serialError}</p>
+              <div className="mt-2 text-[11px] text-slate-300 bg-red-950/40 p-2.5 rounded-lg border border-red-500/20 space-y-1">
+                <div className="font-semibold text-white">How to fix this:</div>
+                <div>1. <strong>Close Arduino IDE Serial Monitor / Plotter:</strong> It locks the COM port exclusively on Windows.</div>
+                <div>2. <strong>Close other tabs:</strong> Make sure no other browser window or tab is connected to this device.</div>
+                <div>3. <strong>Re-plug USB Cable:</strong> Unplug and re-insert the USB cable to reset the Windows COM port driver.</div>
+                <div>4. <strong>Select Arduino device:</strong> In the browser prompt, select the USB/CH340/Arduino port, not Bluetooth.</div>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setSerialError(null)}
+            className="self-end md:self-center px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 font-sans text-xs border border-red-500/30 transition-colors shrink-0"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
