@@ -419,43 +419,49 @@ export default function DirectionalOdorRadar({
         )}
       </AnimatePresence>
 
-      {/* 3. RECTANGULAR RADAR DISPLAY (FILLS CARD COMPLETELY, NO CIRCLE!) */}
+      {/* 3. RECTANGULAR RADAR DISPLAY (TACTICAL PHOSPHOR GREEN RADAR BACKGROUND) */}
       <div
-        className={`relative w-full h-[360px] sm:h-[420px] md:h-[450px] rounded-3xl bg-slate-950 border-2 overflow-hidden shadow-2xl transition-all duration-500 flex items-center justify-center ${
+        className={`relative w-full h-[360px] sm:h-[420px] md:h-[450px] rounded-3xl border-2 overflow-hidden shadow-2xl transition-all duration-500 flex items-center justify-center ${
           isPlumeActive && dominant.dir === 'FRONT'
-            ? 'border-t-4 border-t-rose-500 shadow-[0_-8px_30px_rgba(244,63,94,0.35)] border-slate-800'
+            ? 'border-t-4 border-t-rose-500 shadow-[0_-8px_30px_rgba(244,63,94,0.35)] border-emerald-800'
             : isPlumeActive && dominant.dir === 'RIGHT'
-            ? 'border-r-4 border-r-sky-500 shadow-[8px_0_30px_rgba(14,165,233,0.35)] border-slate-800'
+            ? 'border-r-4 border-r-sky-500 shadow-[8px_0_30px_rgba(14,165,233,0.35)] border-emerald-800'
             : isPlumeActive && dominant.dir === 'REAR'
-            ? 'border-b-4 border-b-teal-500 shadow-[0_8px_30px_rgba(20,184,166,0.35)] border-slate-800'
+            ? 'border-b-4 border-b-teal-500 shadow-[0_8px_30px_rgba(20,184,166,0.35)] border-emerald-800'
             : isPlumeActive && dominant.dir === 'LEFT'
-            ? 'border-l-4 border-l-amber-500 shadow-[-8px_0_30px_rgba(245,158,11,0.35)] border-slate-800'
-            : 'border-slate-800'
+            ? 'border-l-4 border-l-amber-500 shadow-[-8px_0_30px_rgba(245,158,11,0.35)] border-emerald-800'
+            : 'border-emerald-600/50'
         }`}
+        style={{
+          background: 'radial-gradient(ellipse at center, #063a1c 0%, #032411 55%, #011409 100%)',
+        }}
       >
-        {/* Background Cartesian Tactical Grid (Rectangular HUD Pattern) */}
+        {/* Background Cartesian Tactical Grid (Phosphor Green Grid Pattern) */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-30"
+          className="absolute inset-0 pointer-events-none opacity-40"
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(56, 189, 248, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(56, 189, 248, 0.15) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(to right, rgba(52, 211, 153, 0.25) 1px, transparent 1px), linear-gradient(to bottom, rgba(52, 211, 153, 0.25) 1px, transparent 1px)`,
             backgroundSize: '36px 36px',
           }}
         />
 
-        {/* Concentric Distance & Gradient Rings (Aviation / Marine Radar style) */}
-        <div className="absolute w-[200px] h-[200px] rounded-full border border-sky-500/20 border-dashed pointer-events-none" />
-        <div className="absolute w-[320px] h-[320px] rounded-full border border-sky-500/25 pointer-events-none" />
-        <div className="absolute w-[440px] h-[440px] rounded-full border border-sky-500/20 border-dashed pointer-events-none" />
-        <div className="absolute w-[580px] h-[580px] rounded-full border border-sky-500/15 pointer-events-none" />
+        {/* Ambient CRT Phosphor Glow */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18)_0%,transparent_75%)]" />
 
-        {/* Axial Crosshairs */}
-        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/40 -translate-x-1/2 pointer-events-none" />
-        <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-sky-500/40 -translate-y-1/2 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/15 -translate-x-1/2 rotate-45 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-sky-500/15 -translate-x-1/2 -rotate-45 pointer-events-none" />
+        {/* Concentric Distance & Gradient Rings (Phosphor Green Aviation/Marine Style) */}
+        <div className="absolute w-[200px] h-[200px] rounded-full border border-emerald-400/30 border-dashed pointer-events-none" />
+        <div className="absolute w-[320px] h-[320px] rounded-full border border-emerald-400/35 pointer-events-none" />
+        <div className="absolute w-[440px] h-[440px] rounded-full border border-emerald-400/25 border-dashed pointer-events-none" />
+        <div className="absolute w-[580px] h-[580px] rounded-full border border-emerald-400/20 pointer-events-none" />
 
-        {/* 360° Radar Sweep Line (Sweeping across the rectangular canvas) */}
-        <div className="absolute inset-0 pointer-events-none bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(56,189,248,0.20)_360deg)] animate-[spin_4s_linear_infinite]" />
+        {/* Axial Crosshairs (Glowing Emerald) */}
+        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-emerald-400/50 -translate-x-1/2 pointer-events-none shadow-[0_0_8px_#10b981]" />
+        <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-emerald-400/50 -translate-y-1/2 pointer-events-none shadow-[0_0_8px_#10b981]" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-emerald-400/20 -translate-x-1/2 rotate-45 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-emerald-400/20 -translate-x-1/2 -rotate-45 pointer-events-none" />
+
+        {/* 360° Radar Sweep Line (Phosphor Green Beam Sweeping across rectangular canvas) */}
+        <div className="absolute inset-0 pointer-events-none bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(52,211,153,0.32)_360deg)] animate-[spin_4s_linear_infinite]" />
 
         {/* Dynamic Edge Plume Glow (Illuminates the active rectangular perimeter side) */}
         {isPlumeActive && (
@@ -590,22 +596,22 @@ export default function DirectionalOdorRadar({
         {/* ---------------------------------------------------- */}
 
         {/* Top-Left Corner HUD: Bearing & Plume Gradient */}
-        <div className="absolute top-3 left-3 z-10 hidden sm:flex flex-col gap-0.5 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30 font-mono text-[10px] text-slate-300 shadow-md">
-          <span className="text-sky-400 font-bold tracking-wider">ODOR VECTOR</span>
+        <div className="absolute top-3 left-3 z-10 hidden sm:flex flex-col gap-0.5 bg-[#02180c]/90 p-2.5 rounded-xl border border-emerald-500/40 font-mono text-[10px] text-emerald-200 shadow-md">
+          <span className="text-emerald-400 font-bold tracking-wider">ODOR VECTOR</span>
           <span>
             BEARING: <strong className="text-white text-xs">{telemetry.bearing_deg.toFixed(1)}°</strong>
           </span>
           <span>
             GRADIENT:{' '}
-            <strong className={isPlumeActive ? 'text-rose-400 text-xs' : 'text-slate-200'}>
+            <strong className={isPlumeActive ? 'text-rose-400 text-xs' : 'text-emerald-300'}>
               +{telemetry.magnitude.toFixed(1)}% ΔS
             </strong>
           </span>
         </div>
 
         {/* Top-Right Corner HUD: Ultrasonic Front Range */}
-        <div className="absolute top-3 right-3 z-10 hidden sm:flex flex-col gap-0.5 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30 font-mono text-[10px] text-slate-300 shadow-md items-end">
-          <span className="text-sky-400 font-bold tracking-wider">FRONT ULTRASONIC</span>
+        <div className="absolute top-3 right-3 z-10 hidden sm:flex flex-col gap-0.5 bg-[#02180c]/90 p-2.5 rounded-xl border border-emerald-500/40 font-mono text-[10px] text-emerald-200 shadow-md items-end">
+          <span className="text-emerald-400 font-bold tracking-wider">FRONT ULTRASONIC</span>
           <span>
             DISTANCE:{' '}
             <strong className="text-white text-xs">
@@ -625,23 +631,23 @@ export default function DirectionalOdorRadar({
         </div>
 
         {/* Bottom-Left Corner HUD: Dominant Sensor Status */}
-        <div className="absolute bottom-3 left-3 z-10 hidden sm:flex flex-col gap-0.5 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30 font-mono text-[10px] text-slate-300 shadow-md">
-          <span className="text-sky-400 font-bold tracking-wider">DOMINANT SOURCE</span>
+        <div className="absolute bottom-3 left-3 z-10 hidden sm:flex flex-col gap-0.5 bg-[#02180c]/90 p-2.5 rounded-xl border border-emerald-500/40 font-mono text-[10px] text-emerald-200 shadow-md">
+          <span className="text-emerald-400 font-bold tracking-wider">DOMINANT SOURCE</span>
           <span>
             SENSOR: <strong className="text-white text-xs">{isPlumeActive ? dominant.sensor : 'BALANCED'}</strong>
           </span>
           <span>
-            DIRECTION: <strong className={isPlumeActive ? 'text-rose-400 font-bold' : 'text-slate-300'}>{isPlumeActive ? dominant.label : 'CALM'}</strong>
+            DIRECTION: <strong className={isPlumeActive ? 'text-rose-400 font-bold' : 'text-emerald-300'}>{isPlumeActive ? dominant.label : 'CALM'}</strong>
           </span>
         </div>
 
         {/* Bottom-Right Corner HUD: Quadruped Locomotion Action */}
-        <div className="absolute bottom-3 right-3 z-10 hidden sm:flex flex-col gap-0.5 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30 font-mono text-[10px] text-slate-300 shadow-md items-end">
-          <span className="text-sky-400 font-bold tracking-wider">STEERING COMMAND</span>
+        <div className="absolute bottom-3 right-3 z-10 hidden sm:flex flex-col gap-0.5 bg-[#02180c]/90 p-2.5 rounded-xl border border-emerald-500/40 font-mono text-[10px] text-emerald-200 shadow-md items-end">
+          <span className="text-emerald-400 font-bold tracking-wider">STEERING COMMAND</span>
           <span className="text-xs font-black text-rose-300 tracking-wider">
             {telemetry.action.replace('_', ' ')}
           </span>
-          <span className="text-[9px] text-slate-400">AUTONOMOUS PURSUIT</span>
+          <span className="text-[9px] text-emerald-400/80">AUTONOMOUS PURSUIT</span>
         </div>
       </div>
 
