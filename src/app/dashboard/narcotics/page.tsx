@@ -77,6 +77,7 @@ export default function NarcoticsSensorPage() {
   const [serialError, setSerialError] = useState<string | null>(null);
   const [sketchTab, setSketchTab] = useState<'chemotaxis_4direction' | 'single_mq3' | 'dual'>('chemotaxis_4direction');
   const [directionalPlume, setDirectionalPlume] = useState<DirectionalPlumeTelemetry | null>(null);
+  const [baudRate, setBaudRate] = useState<number>(115200);
 
   // Live Telemetry Streams
   const [readings, setReadings] = useState<any[]>([]);
@@ -467,7 +468,7 @@ export default function NarcoticsSensorPage() {
 
     try {
       const port = await (navigator as any).serial.requestPort();
-      await port.open({ baudRate: 9600 });
+      await port.open({ baudRate });
       serialPortRef.current = port;
       setIsSerialConnected(true);
       setIsUsingMockData(false);
@@ -522,6 +523,68 @@ export default function NarcoticsSensorPage() {
                 const distCm = parsed.distance_cm !== undefined ? Number(parsed.distance_cm) : undefined;
 
                 handleIncomingSensorData(ppm3, ppm135, trimmed, raw3, raw135, distM, distCm);
+              } else if (trimmed.includes('MQ2:') && trimmed.includes('MQ3:')) {
+                // Parse pipe-delimited 4-MQ format from odor_compass.ino
+                // Format: MQ2:40 | MQ3:25 | MQ5:495 | MQ135:48 | MQ2%:0.0 | MQ3%:0.0 | MQ5%:0.0 | MQ135%:0.0 | GAS:NO | Distance:12.4cm
+                const mq2Match = trimmed.match(/MQ2:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq3Match = trimmed.match(/MQ3:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq5Match = trimmed.match(/MQ5:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq135Match = trimmed.match(/MQ135:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq2PctMatch = trimmed.match(/MQ2%:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq3PctMatch = trimmed.match(/MQ3%:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq5PctMatch = trimmed.match(/MQ5%:\s*([+-]?\d+(?:\.\d+)?)/);
+                const mq135PctMatch = trimmed.match(/MQ135%:\s*([+-]?\d+(?:\.\d+)?)/);
+                const distMatch = trimmed.match(/Distance:\s*([+-]?\d+(?:\.\d+)?)cm/);
+
+                const vMq2 = mq2Match ? Number(mq2Match[1]) : 40;
+                const vMq3 = mq3Match ? Number(mq3Match[1]) : 25;
+                const vMq5 = mq5Match ? Number(mq5Match[1]) : 495;
+                const vMq135 = mq135Match ? Number(mq135Match[1]) : 48;
+
+                const pMq2 = mq2PctMatch ? Number(mq2PctMatch[1]) : 0;
+                const pMq3 = mq3PctMatch ? Number(mq3PctMatch[1]) : 0;
+                const pMq5 = mq5PctMatch ? Number(mq5PctMatch[1]) : 0;
+                const pMq135 = mq135PctMatch ? Number(mq135PctMatch[1]) : 0;
+
+                const distCm = distMatch ? Number(distMatch[1]) : undefined;
+                const distM = distCm !== undefined ? distCm / 100 : undefined;
+
+                // Sketch pin layout: MQ3 = FRONT, MQ2 = RIGHT, MQ135 = REAR, MQ5 = LEFT
+                const vx = pMq2 - pMq5;
+                const vy = pMq3 - pMq135;
+                const mag = Number(Math.sqrt(vx * vx + vy * vy).toFixed(1));
+                const bearing = Number((Math.atan2(vx, vy) * (180.0 / Math.PI)).toFixed(1));
+
+                let action: DirectionalPlumeTelemetry['action'] = 'IDLE';
+                if (distCm !== undefined && distCm > 0 && distCm < 30.0) {
+                  action = 'OBSTACLE_HOLD';
+                } else if (mag >= 8.0) {
+                  if (bearing >= -25.0 && bearing <= 25.0) action = 'FORWARD';
+                  else if (bearing > 25.0 && bearing <= 115.0) action = 'TURN_RIGHT';
+                  else if (bearing < -25.0 && bearing >= -115.0) action = 'TURN_LEFT';
+                  else action = 'TURN_REVERSE';
+                }
+
+                const pData: DirectionalPlumeTelemetry = {
+                  front_mq2: vMq3, // front sensor is MQ3
+                  right_mq3: vMq2, // right sensor is MQ2
+                  rear_mq5: vMq135, // rear sensor is MQ135
+                  left_mq135: vMq5, // left sensor is MQ5
+                  delta_front: pMq3,
+                  delta_right: pMq2,
+                  delta_rear: pMq135,
+                  delta_left: pMq5,
+                  bearing_deg: bearing,
+                  magnitude: mag,
+                  action,
+                  distance_cm: distCm,
+                };
+                setDirectionalPlume(pData);
+                window.dispatchEvent(new CustomEvent('vikrant:directional_plume', { detail: pData }));
+
+                const ppm3 = Number(((vMq3 / 1023.0) * 85.0).toFixed(1));
+                const ppm135 = Number(((vMq135 / 1023.0) * 65.0).toFixed(1));
+                handleIncomingSensorData(ppm3, ppm135, trimmed, vMq3, vMq135, distM, distCm);
               } else if (!isNaN(Number(trimmed))) {
                 const raw = Number(trimmed);
                 const ppm = (raw / 1023.0) * 85.0;
@@ -722,86 +785,208 @@ export default function NarcoticsSensorPage() {
             <div className="p-4 rounded-xl bg-black/80 border border-white/10 font-mono text-xs text-zinc-300">
               <pre className="overflow-x-auto text-[11px] text-[#b8d4f0] leading-relaxed select-all">
                 {sketchTab === 'chemotaxis_4direction'
-                  ? `// ========================================================================================
-// IR VIKRANT - Autonomous Quadruped Directional Chemical Plume Tracking (Chemotaxis Engine)
-// Pins: A0=MQ-2 (Front 0°), A1=MQ-3 (Right +90°), A2=MQ-5 (Rear 180°), A3=MQ-135 (Left -90°)
-// Pins: 9=TRIG, 10=ECHO (HC-SR04), Motors: 5=L_PWM, 6=R_PWM, 7=DIR_L, 8=DIR_R
-// ========================================================================================
-#define PIN_MQ2_FRONT   A0
-#define PIN_MQ3_RIGHT   A1
-#define PIN_MQ5_REAR    A2
-#define PIN_MQ135_LEFT  A3
-#define PIN_TRIG        9
-#define PIN_ECHO        10
+                  ? `#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
-float base_f = 300.0, base_r = 160.0, base_b = 220.0, base_l = 280.0;
-float filt_f = 300.0, filt_r = 160.0, filt_b = 220.0, filt_l = 280.0;
+// =====================================================
+// IR VIKRANT - COMPLETE OLED + 4 MQ GAS DETECTION
+// =====================================================
+// ARDUINO UNO
+// MQ3   -> A0 -> FRONT
+// MQ2   -> A1 -> RIGHT
+// MQ135 -> A2 -> REAR
+// MQ5   -> A3 -> LEFT
+// OLED: SDA -> A4, SCL -> A5 (0x3C)
+// HC-SR04: TRIG -> D6, ECHO -> D7
+// Serial: 115200 Baud
+// =====================================================
 
-void setup() {
-  Serial.begin(9600);
-  pinMode(PIN_TRIG, OUTPUT); pinMode(PIN_ECHO, INPUT);
-  // Auto-calibrate clean air baseline
-  float sf=0, sr=0, sb=0, sl=0;
-  for (int i=0; i<40; i++) {
-    sf += analogRead(PIN_MQ2_FRONT); sr += analogRead(PIN_MQ3_RIGHT);
-    sb += analogRead(PIN_MQ5_REAR);  sl += analogRead(PIN_MQ135_LEFT);
-    delay(30);
-  }
-  base_f = sf/40.0; base_r = sr/40.0; base_b = sb/40.0; base_l = sl/40.0;
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define OLED_ADDRESS 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+bool oledReady = false;
+
+#define MQ3_PIN   A0
+#define MQ2_PIN   A1
+#define MQ135_PIN A2
+#define MQ5_PIN   A3
+
+const char* MQ2_SIDE   = "RIGHT";
+const char* MQ3_SIDE   = "FRONT";
+const char* MQ5_SIDE   = "LEFT";
+const char* MQ135_SIDE = "REAR";
+
+const float MQ2_BASELINE   = 40.6;
+const float MQ3_BASELINE   = 25.8;
+const float MQ5_BASELINE   = 495.6;
+const float MQ135_BASELINE = 48.6;
+
+const float MQ2_THRESHOLD   = 45.0;
+const float MQ3_THRESHOLD   = 29.0;
+const float MQ5_THRESHOLD   = 546.0;
+const float MQ135_THRESHOLD = 54.0;
+
+#define TRIG_PIN 6
+#define ECHO_PIN 7
+
+const unsigned long SENSOR_UPDATE_TIME = 100UL;
+const unsigned long OLED_PAGE_TIME = 2500UL;
+const unsigned long GAS_ALERT_TIME = 1800UL;
+
+unsigned long lastSensorUpdate = 0;
+unsigned long lastPageChange = 0;
+unsigned long gasAlertUntil = 0;
+
+byte currentPage = 0;
+int mq2Value = 0, mq3Value = 0, mq5Value = 0, mq135Value = 0;
+float distanceCM = -1.0;
+float mq2Percent = 0.0, mq3Percent = 0.0, mq5Percent = 0.0, mq135Percent = 0.0;
+
+bool mq2Detected = false, mq3Detected = false, mq5Detected = false, mq135Detected = false;
+bool gasDetected = false;
+const float SPIKE_THRESHOLD_PERCENT = 10.0;
+bool mq2NewEvent = false, mq3NewEvent = false, mq5NewEvent = false, mq135NewEvent = false;
+int previousMq2Value = 0, previousMq3Value = 0, previousMq5Value = 0, previousMq135Value = 0;
+bool previousReadingsReady = false;
+bool previousMq2Detected = false, previousMq3Detected = false, previousMq5Detected = false, previousMq135Detected = false;
+
+float smoothStep(float x) {
+  if (x <= 0.0f) return 0.0f;
+  if (x >= 1.0f) return 1.0f;
+  return x * x * (3.0f - 2.0f * x);
 }
 
-float getDistanceCm() {
-  digitalWrite(PIN_TRIG, LOW); delayMicroseconds(2);
-  digitalWrite(PIN_TRIG, HIGH); delayMicroseconds(10);
-  digitalWrite(PIN_TRIG, LOW);
-  long d = pulseIn(PIN_ECHO, HIGH, 25000);
-  return (d > 115) ? (d * 0.0343) / 2.0 : 150.0;
+void centerText(const char* text, byte size, int y) {
+  if (!oledReady) return;
+  int16_t x1, y1; uint16_t width, height;
+  display.setTextSize(size);
+  display.getTextBounds(text, 0, 0, &x1, &y1, &width, &height);
+  int x = (SCREEN_WIDTH - width) / 2;
+  if (x < 0) x = 0;
+  display.setCursor(x, y);
+  display.print(text);
+}
+
+void initializeOLED() {
+  if (display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+    oledReady = true;
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    centerText("IR VIKRANT", 2, 8);
+    centerText("OLED READY", 1, 34);
+    centerText("Starting...", 1, 48);
+    display.display();
+    delay(800);
+  }
+}
+
+int readMQ(byte pin) { return analogRead(pin); }
+float percentAboveBaseline(int value, float baseline) { return ((value - baseline) / baseline) * 100.0f; }
+float percentIncreaseFromPrevious(int cur, int prev) {
+  if (prev <= 0) return 0.0f;
+  return ((cur - prev) / (float)prev) * 100.0f;
+}
+
+void evaluateGasDetection() {
+  mq2Percent = percentAboveBaseline(mq2Value, MQ2_BASELINE);
+  mq3Percent = percentAboveBaseline(mq3Value, MQ3_BASELINE);
+  mq5Percent = percentAboveBaseline(mq5Value, MQ5_BASELINE);
+  mq135Percent = percentAboveBaseline(mq135Value, MQ135_BASELINE);
+
+  mq2Detected = (mq2Value >= MQ2_THRESHOLD);
+  mq3Detected = (mq3Value >= MQ3_THRESHOLD);
+  mq5Detected = (mq5Value >= MQ5_THRESHOLD);
+  mq135Detected = (mq135Value >= MQ135_THRESHOLD);
+
+  float s2 = previousReadingsReady ? percentIncreaseFromPrevious(mq2Value, previousMq2Value) : 0;
+  float s3 = previousReadingsReady ? percentIncreaseFromPrevious(mq3Value, previousMq3Value) : 0;
+  float s5 = previousReadingsReady ? percentIncreaseFromPrevious(mq5Value, previousMq5Value) : 0;
+  float s135 = previousReadingsReady ? percentIncreaseFromPrevious(mq135Value, previousMq135Value) : 0;
+
+  bool c2 = previousReadingsReady && mq2Detected && !previousMq2Detected;
+  bool c3 = previousReadingsReady && mq3Detected && !previousMq3Detected;
+  bool c5 = previousReadingsReady && mq5Detected && !previousMq5Detected;
+  bool c135 = previousReadingsReady && mq135Detected && !previousMq135Detected;
+
+  mq2NewEvent = c2 || (previousReadingsReady && s2 >= SPIKE_THRESHOLD_PERCENT);
+  mq3NewEvent = c3 || (previousReadingsReady && s3 >= SPIKE_THRESHOLD_PERCENT);
+  mq5NewEvent = c5 || (previousReadingsReady && s5 >= SPIKE_THRESHOLD_PERCENT);
+  mq135NewEvent = c135 || (previousReadingsReady && s135 >= SPIKE_THRESHOLD_PERCENT);
+
+  gasDetected = mq2Detected || mq3Detected || mq5Detected || mq135Detected;
+
+  previousMq2Value = mq2Value; previousMq3Value = mq3Value;
+  previousMq5Value = mq5Value; previousMq135Value = mq135Value;
+  previousReadingsReady = true;
+}
+
+void printGasEvent() {
+  if (!mq2NewEvent && !mq3NewEvent && !mq5NewEvent && !mq135NewEvent) return;
+  Serial.println(F("\\n========================================\\n>>> GAS DETECTED <<<"));
+  if (mq2NewEvent)   Serial.println(F("SENSOR: MQ2 | SIDE: RIGHT"));
+  if (mq3NewEvent)   Serial.println(F("SENSOR: MQ3 | SIDE: FRONT"));
+  if (mq5NewEvent)   Serial.println(F("SENSOR: MQ5 | SIDE: LEFT"));
+  if (mq135NewEvent) Serial.println(F("SENSOR: MQ135 | SIDE: REAR"));
+  Serial.println(F("========================================\\n"));
+  gasAlertUntil = millis() + GAS_ALERT_TIME;
+}
+
+void printTelemetry() {
+  Serial.print(F("MQ2:")); Serial.print(mq2Value);
+  Serial.print(F(" | MQ3:")); Serial.print(mq3Value);
+  Serial.print(F(" | MQ5:")); Serial.print(mq5Value);
+  Serial.print(F(" | MQ135:")); Serial.print(mq135Value);
+  Serial.print(F(" | MQ2%:")); Serial.print(mq2Percent, 1);
+  Serial.print(F(" | MQ3%:")); Serial.print(mq3Percent, 1);
+  Serial.print(F(" | MQ5%:")); Serial.print(mq5Percent, 1);
+  Serial.print(F(" | MQ135%:")); Serial.print(mq135Percent, 1);
+  Serial.print(F(" | GAS:")); Serial.print(gasDetected ? "YES" : "NO");
+  Serial.print(F(" | Distance:"));
+  if (distanceCM > 0.0f) { Serial.print(distanceCM, 1); Serial.println(F("cm")); }
+  else { Serial.println(F("NO_ECHO")); }
+}
+
+float readUltrasonic() {
+  digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  unsigned long d = pulseIn(ECHO_PIN, HIGH, 30000UL);
+  if (d == 0) return -1.0f;
+  float cm = d / 58.0f;
+  return (cm < 2.0f || cm > 400.0f) ? -1.0f : cm;
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(MQ2_PIN, INPUT); pinMode(MQ3_PIN, INPUT);
+  pinMode(MQ5_PIN, INPUT); pinMode(MQ135_PIN, INPUT);
+  pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
+  digitalWrite(TRIG_PIN, LOW);
+  Wire.begin();
+  initializeOLED();
+  mq2Value = readMQ(MQ2_PIN); mq3Value = readMQ(MQ3_PIN);
+  mq5Value = readMQ(MQ5_PIN); mq135Value = readMQ(MQ135_PIN);
+  previousMq2Value = mq2Value; previousMq3Value = mq3Value;
+  previousMq5Value = mq5Value; previousMq135Value = mq135Value;
+  previousReadingsReady = true;
+  lastSensorUpdate = millis(); lastPageChange = millis();
 }
 
 void loop() {
-  // 1. Filtered Read
-  filt_f = (0.25 * analogRead(PIN_MQ2_FRONT)) + (0.75 * filt_f);
-  filt_r = (0.25 * analogRead(PIN_MQ3_RIGHT)) + (0.75 * filt_r);
-  filt_b = (0.25 * analogRead(PIN_MQ5_REAR))  + (0.75 * filt_b);
-  filt_l = (0.25 * analogRead(PIN_MQ135_LEFT)) + (0.75 * filt_l);
-
-  // 2. Relative % Excitation Above Baseline
-  float df = max(0.0, ((filt_f - base_f)/base_f)*100.0);
-  float dr = max(0.0, ((filt_r - base_r)/base_r)*100.0);
-  float db = max(0.0, ((filt_b - base_b)/base_b)*100.0);
-  float dl = max(0.0, ((filt_l - base_l)/base_l)*100.0);
-
-  // 3. 2D Vector Decomposition: X = Right-Left, Y = Front-Rear
-  float vx = dr - dl;
-  float vy = df - db;
-  float mag = sqrt(vx*vx + vy*vy);
-  float bearing = atan2(vx, vy) * (180.0 / 3.14159);
-  float dist_cm = getDistanceCm();
-
-  String action = "IDLE";
-  if (dist_cm < 30.0) action = "OBSTACLE_HOLD";
-  else if (mag >= 25.0) {
-    if (bearing >= -25.0 && bearing <= 25.0) action = "FORWARD";
-    else if (bearing > 25.0 && bearing <= 115.0) action = "TURN_RIGHT";
-    else if (bearing < -25.0 && bearing >= -115.0) action = "TURN_LEFT";
-    else action = "TURN_REVERSE";
+  unsigned long now = millis();
+  if (now - lastSensorUpdate >= SENSOR_UPDATE_TIME) {
+    lastSensorUpdate = now;
+    mq2Value = readMQ(MQ2_PIN); mq3Value = readMQ(MQ3_PIN);
+    mq5Value = readMQ(MQ5_PIN); mq135Value = readMQ(MQ135_PIN);
+    evaluateGasDetection();
+    printGasEvent();
+    distanceCM = readUltrasonic();
+    printTelemetry();
   }
-
-  // 4. Output JSON Telemetry to IR Vikrant Dashboard
-  Serial.print("{\\"front_mq2\\":"); Serial.print((int)filt_f);
-  Serial.print(",\\"right_mq3\\":"); Serial.print((int)filt_r);
-  Serial.print(",\\"rear_mq5\\":"); Serial.print((int)filt_b);
-  Serial.print(",\\"left_mq135\\":"); Serial.print((int)filt_l);
-  Serial.print(",\\"delta_front\\":"); Serial.print(df, 1);
-  Serial.print(",\\"delta_right\\":"); Serial.print(dr, 1);
-  Serial.print(",\\"delta_rear\\":"); Serial.print(db, 1);
-  Serial.print(",\\"delta_left\\":"); Serial.print(dl, 1);
-  Serial.print(",\\"bearing_deg\\":"); Serial.print(bearing, 1);
-  Serial.print(",\\"magnitude\\":"); Serial.print(mag, 1);
-  Serial.print(",\\"action\\":\\""); Serial.print(action);
-  Serial.print("\\",\\"distance_cm\\":"); Serial.print(dist_cm, 1);
-  Serial.println("}");
-  delay(250);
 }`
                   : sketchTab === 'single_mq3'
                   ? `// IR VIKRANT - High-Accuracy MQ-3 & Ultrasonic Rangefinder
@@ -915,18 +1100,30 @@ void loop() {
             </span>
           </Link>
 
-          {/* Connect USB Serial */}
-          <button
-            onClick={() => (isSerialConnected ? disconnectArduinoSerial() : connectArduinoSerial())}
-            className={`px-3 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 transition-all border shadow-xs ${
-              isSerialConnected
-                ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-red-600'
-                : 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800'
-            }`}
-          >
-            <Usb size={14} />
-            <span>{isSerialConnected ? 'DISCONNECT USB' : 'CONNECT HARDWARE (USB)'}</span>
-          </button>
+          {/* Connect USB Serial & Baud Rate */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={baudRate}
+              onChange={e => setBaudRate(Number(e.target.value))}
+              disabled={isSerialConnected}
+              className="px-2 py-1.5 rounded-xl font-mono text-xs bg-white/90 border border-slate-300 text-slate-800 shadow-xs cursor-pointer disabled:opacity-60"
+              title="Serial Baud Rate (Odor Compass sketch uses 115200)"
+            >
+              <option value={115200}>115200 BAUD</option>
+              <option value={9600}>9600 BAUD</option>
+            </select>
+            <button
+              onClick={() => (isSerialConnected ? disconnectArduinoSerial() : connectArduinoSerial())}
+              className={`px-3 py-1.5 rounded-xl font-sans text-xs font-bold flex items-center gap-2 transition-all border shadow-xs ${
+                isSerialConnected
+                  ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-red-600'
+                  : 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              <Usb size={14} />
+              <span>{isSerialConnected ? 'DISCONNECT USB' : 'CONNECT HARDWARE (USB)'}</span>
+            </button>
+          </div>
 
           {/* Arduino Code */}
           <button

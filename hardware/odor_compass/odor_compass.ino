@@ -894,7 +894,7 @@ void drawCuteEyes(
   float leftX,
   float rightX,
   float leftY,
-  float rightY,
+  rightY,
   float pupilX,
   float pupilY
 ) {
