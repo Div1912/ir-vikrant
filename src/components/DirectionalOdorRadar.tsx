@@ -18,14 +18,18 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface DirectionalPlumeTelemetry {
-  front_mq2: number;
-  right_mq3: number;
-  rear_mq5: number;
-  left_mq135: number;
-  delta_front: number; // relative % spike
-  delta_right: number;
-  delta_rear: number;
-  delta_left: number;
+  front_mq2?: number;  // backward compat
+  right_mq3?: number;  // backward compat
+  rear_mq5?: number;   // backward compat
+  left_mq135?: number; // backward compat
+  front_mq3?: number;  // accurate hardware: Front = MQ-3
+  right_mq2?: number;  // accurate hardware: Right = MQ-2
+  rear_mq135?: number; // accurate hardware: Rear = MQ-135
+  left_mq5?: number;   // accurate hardware: Left = MQ-5
+  delta_front: number; // relative % spike FRONT (MQ-3)
+  delta_right: number; // relative % spike RIGHT (MQ-2)
+  delta_rear: number;  // relative % spike REAR (MQ-135)
+  delta_left: number;  // relative % spike LEFT (MQ-5)
   bearing_deg: number; // -180 to +180
   magnitude: number;   // 0 to 200+
   action: 'IDLE' | 'FORWARD' | 'TURN_RIGHT' | 'TURN_LEFT' | 'TURN_REVERSE' | 'OBSTACLE_HOLD';
@@ -45,16 +49,20 @@ export default function DirectionalOdorRadar({
 }: DirectionalOdorRadarProps) {
   // Local telemetry state if running internal demo/mock or synced with serial
   const [telemetry, setTelemetry] = useState<DirectionalPlumeTelemetry>({
-    front_mq2: 340,
-    right_mq3: 165,
-    rear_mq5: 220,
-    left_mq135: 285,
-    delta_front: 2.1,
-    delta_right: 4.5,
+    front_mq3: 26,
+    right_mq2: 41,
+    rear_mq135: 49,
+    left_mq5: 496,
+    front_mq2: 41,
+    right_mq3: 26,
+    rear_mq5: 496,
+    left_mq135: 49,
+    delta_front: 0.8,
+    delta_right: 1.0,
     delta_rear: 0.8,
-    delta_left: 3.2,
+    delta_left: 0.1,
     bearing_deg: 0,
-    magnitude: 5.2,
+    magnitude: 1.2,
     action: 'IDLE',
     distance_cm: 125,
   });
@@ -84,83 +92,103 @@ export default function DirectionalOdorRadar({
     setActiveSimulationMode(direction);
     let sim: DirectionalPlumeTelemetry;
 
-    if (direction === 'right') {
-      // High Narcotics / Solvent vapor spike on Right (MQ-3)
+    if (direction === 'front') {
+      // High Narcotics / Solvent vapor spike directly in FRONT (MQ-3) + Front Ultrasonic
       sim = {
-        front_mq2: 350,
-        right_mq3: 680,
-        rear_mq5: 225,
-        left_mq135: 295,
-        delta_front: 6.2,
-        delta_right: 184.5,
-        delta_rear: 2.0,
-        delta_left: 4.8,
-        bearing_deg: 86.4,
-        magnitude: 182.0,
-        action: 'TURN_RIGHT',
-        distance_cm: 95.0,
+        front_mq3: 145,
+        right_mq2: 42,
+        rear_mq135: 49,
+        left_mq5: 497,
+        front_mq2: 42,
+        right_mq3: 145,
+        rear_mq5: 497,
+        left_mq135: 49,
+        delta_front: 182.0,
+        delta_right: 3.5,
+        delta_rear: 1.0,
+        delta_left: 0.2,
+        bearing_deg: 1.5,
+        magnitude: 181.0,
+        action: 'FORWARD',
+        distance_cm: 85.0,
       };
-    } else if (direction === 'left') {
-      // Chemical Precursor / Toxins spike on Left (MQ-135)
+    } else if (direction === 'right') {
+      // High Combustible Gas / Smoke spike on RIGHT (MQ-2)
       sim = {
-        front_mq2: 360,
-        right_mq3: 170,
-        rear_mq5: 220,
-        left_mq135: 720,
-        delta_front: 7.5,
-        delta_right: 3.0,
-        delta_rear: 1.5,
-        delta_left: 178.2,
-        bearing_deg: -87.8,
-        magnitude: 176.4,
-        action: 'TURN_LEFT',
+        front_mq3: 28,
+        right_mq2: 240,
+        rear_mq135: 50,
+        left_mq5: 496,
+        front_mq2: 240,
+        right_mq3: 28,
+        rear_mq5: 496,
+        left_mq135: 50,
+        delta_front: 4.2,
+        delta_right: 175.4,
+        delta_rear: 2.1,
+        delta_left: 0.5,
+        bearing_deg: 88.5,
+        magnitude: 174.0,
+        action: 'TURN_RIGHT',
         distance_cm: 110.0,
       };
-    } else if (direction === 'front') {
-      // Head-on Flammable / Combustible cloud in Front (MQ-2)
-      sim = {
-        front_mq2: 740,
-        right_mq3: 185,
-        rear_mq5: 230,
-        left_mq135: 290,
-        delta_front: 145.0,
-        delta_right: 8.5,
-        delta_rear: 3.0,
-        delta_left: 5.0,
-        bearing_deg: 1.2,
-        magnitude: 142.5,
-        action: 'FORWARD',
-        distance_cm: 140.0,
-      };
     } else if (direction === 'rear') {
-      // Gas trace behind robot (MQ-5)
+      // Chemical Precursor / Toxic Vapor trace behind robot in REAR (MQ-135)
       sim = {
-        front_mq2: 345,
-        right_mq3: 175,
-        rear_mq5: 690,
-        left_mq135: 285,
-        delta_front: 3.0,
-        delta_right: 6.0,
-        delta_rear: 165.0,
-        delta_left: 4.0,
-        bearing_deg: 179.1,
-        magnitude: 162.0,
+        front_mq3: 26,
+        right_mq2: 41,
+        rear_mq135: 220,
+        left_mq5: 498,
+        front_mq2: 41,
+        right_mq3: 26,
+        rear_mq5: 498,
+        left_mq135: 220,
+        delta_front: 1.5,
+        delta_right: 2.0,
+        delta_rear: 168.0,
+        delta_left: 0.8,
+        bearing_deg: 178.5,
+        magnitude: 166.5,
         action: 'TURN_REVERSE',
-        distance_cm: 125.0,
+        distance_cm: 130.0,
+      };
+    } else if (direction === 'left') {
+      // Natural Gas / Methane / LPG spike on LEFT (MQ-5)
+      sim = {
+        front_mq3: 27,
+        right_mq2: 42,
+        rear_mq135: 50,
+        left_mq5: 980,
+        front_mq2: 42,
+        right_mq3: 27,
+        rear_mq5: 980,
+        left_mq135: 50,
+        delta_front: 2.0,
+        delta_right: 3.0,
+        delta_rear: 1.2,
+        delta_left: 97.7,
+        bearing_deg: -88.0,
+        magnitude: 96.5,
+        action: 'TURN_LEFT',
+        distance_cm: 105.0,
       };
     } else {
       // Clean Ambient Air
       sim = {
-        front_mq2: 340,
-        right_mq3: 165,
-        rear_mq5: 220,
-        left_mq135: 285,
-        delta_front: 2.1,
-        delta_right: 3.5,
-        delta_rear: 1.0,
-        delta_left: 2.8,
+        front_mq3: 26,
+        right_mq2: 41,
+        rear_mq135: 49,
+        left_mq5: 496,
+        front_mq2: 41,
+        right_mq3: 26,
+        rear_mq5: 496,
+        left_mq135: 49,
+        delta_front: 0.8,
+        delta_right: 1.0,
+        delta_rear: 0.8,
+        delta_left: 0.1,
         bearing_deg: 0,
-        magnitude: 4.5,
+        magnitude: 1.2,
         action: 'IDLE',
         distance_cm: 125.0,
       };
@@ -273,23 +301,23 @@ export default function DirectionalOdorRadar({
             </div>
 
             {/* North / Front Pod Badge (0°) */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-sky-400 text-[10px] font-mono font-bold text-sky-300">
-              FRONT • MQ-2 (0°)
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-rose-400 text-[10px] font-mono font-bold text-rose-300">
+              FRONT • MQ-3 + US (0°)
             </div>
 
             {/* East / Right Pod Badge (90°) */}
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-rose-400 text-[10px] font-mono font-bold text-rose-300">
-              RIGHT • MQ-3 (+90°)
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-sky-400 text-[10px] font-mono font-bold text-sky-300">
+              RIGHT • MQ-2 (+90°)
             </div>
 
             {/* South / Rear Pod Badge (180°) */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-amber-400 text-[10px] font-mono font-bold text-amber-300">
-              REAR • MQ-5 (180°)
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-teal-400 text-[10px] font-mono font-bold text-teal-300">
+              REAR • MQ-135 (180°)
             </div>
 
             {/* West / Left Pod Badge (270°) */}
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-teal-400 text-[10px] font-mono font-bold text-teal-300">
-              LEFT • MQ-135 (-90°)
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded bg-slate-950/90 border border-amber-400 text-[10px] font-mono font-bold text-amber-300">
+              LEFT • MQ-5 (-90°)
             </div>
           </div>
 
@@ -312,87 +340,87 @@ export default function DirectionalOdorRadar({
             <span className="text-[10px] text-slate-500 font-semibold">Normalized Baseline</span>
           </div>
 
-          {/* 1. FRONT (MQ-2) */}
-          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Flame size={13} className="text-sky-600" />
-                <span>FRONT (MQ-2): Flammable / Smoke</span>
-              </span>
-              <span className="font-mono font-bold text-sky-700">+{telemetry.delta_front.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-sky-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_front / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.front_mq2} ADC</span>
-              <span>HEADING: 0°</span>
-            </div>
-          </div>
-
-          {/* 2. RIGHT (MQ-3) - Narcotics Specialist */}
+          {/* 1. FRONT (MQ-3) - Narcotics & Solvents Specialist */}
           <div className="p-2.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 shadow-xs flex flex-col gap-1">
             <div className="flex justify-between items-center text-xs font-sans">
               <span className="font-bold text-rose-950 flex items-center gap-1.5">
                 <Pill size={13} className="text-rose-600" />
-                <span>RIGHT (MQ-3): Alcohol / Narcotics Vapors</span>
+                <span>FRONT (MQ-3): Alcohol / Narcotics Vapors</span>
               </span>
-              <span className="font-mono font-bold text-rose-700">+{telemetry.delta_right.toFixed(1)}%</span>
+              <span className="font-mono font-bold text-rose-700">+{telemetry.delta_front.toFixed(1)}%</span>
             </div>
             <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
               <div
                 className="h-full bg-rose-600 transition-all duration-300"
+                style={{ width: `${Math.min(100, (telemetry.delta_front / 150) * 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>RAW: {telemetry.front_mq3 ?? telemetry.right_mq3 ?? 26} ADC</span>
+              <span>HEADING: 0° (FRONT)</span>
+            </div>
+          </div>
+
+          {/* 2. RIGHT (MQ-2) - Combustible Gas & Smoke */}
+          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
+            <div className="flex justify-between items-center text-xs font-sans">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <Flame size={13} className="text-sky-600" />
+                <span>RIGHT (MQ-2): Combustible Gas / Smoke</span>
+              </span>
+              <span className="font-mono font-bold text-sky-700">+{telemetry.delta_right.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-sky-600 transition-all duration-300"
                 style={{ width: `${Math.min(100, (telemetry.delta_right / 150) * 100)}%` }}
               />
             </div>
             <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.right_mq3} ADC</span>
-              <span>HEADING: +90°</span>
+              <span>RAW: {telemetry.right_mq2 ?? telemetry.front_mq2 ?? 41} ADC</span>
+              <span>HEADING: +90° (RIGHT)</span>
             </div>
           </div>
 
-          {/* 3. REAR (MQ-5) */}
-          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
-            <div className="flex justify-between items-center text-xs font-sans">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Activity size={13} className="text-amber-600" />
-                <span>REAR (MQ-5): Natural Gas / LPG</span>
-              </span>
-              <span className="font-mono font-bold text-amber-700">+{telemetry.delta_rear.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full bg-amber-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, (telemetry.delta_rear / 150) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.rear_mq5} ADC</span>
-              <span>HEADING: 180°</span>
-            </div>
-          </div>
-
-          {/* 4. LEFT (MQ-135) */}
+          {/* 3. REAR (MQ-135) - Air Quality & Toxic Precursors */}
           <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
             <div className="flex justify-between items-center text-xs font-sans">
               <span className="font-bold text-slate-800 flex items-center gap-1.5">
                 <Wind size={13} className="text-teal-600" />
-                <span>LEFT (MQ-135): Chemical Precursors / NH₃</span>
+                <span>REAR (MQ-135): Hazardous Precursors / NH₃</span>
               </span>
-              <span className="font-mono font-bold text-teal-700">+{telemetry.delta_left.toFixed(1)}%</span>
+              <span className="font-mono font-bold text-teal-700">+{telemetry.delta_rear.toFixed(1)}%</span>
             </div>
             <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
               <div
                 className="h-full bg-teal-600 transition-all duration-300"
+                style={{ width: `${Math.min(100, (telemetry.delta_rear / 150) * 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>RAW: {telemetry.rear_mq135 ?? telemetry.left_mq135 ?? 49} ADC</span>
+              <span>HEADING: 180° (REAR)</span>
+            </div>
+          </div>
+
+          {/* 4. LEFT (MQ-5) - Natural Gas & Methane */}
+          <div className="p-2.5 rounded-2xl bg-white/60 border border-white/90 shadow-xs flex flex-col gap-1">
+            <div className="flex justify-between items-center text-xs font-sans">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <Activity size={13} className="text-amber-600" />
+                <span>LEFT (MQ-5): Natural Gas / Methane / LPG</span>
+              </span>
+              <span className="font-mono font-bold text-amber-700">+{telemetry.delta_left.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-amber-600 transition-all duration-300"
                 style={{ width: `${Math.min(100, (telemetry.delta_left / 150) * 100)}%` }}
               />
             </div>
             <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>RAW: {telemetry.left_mq135} ADC</span>
-              <span>HEADING: -90° (270°)</span>
+              <span>RAW: {telemetry.left_mq5 ?? telemetry.rear_mq5 ?? 496} ADC</span>
+              <span>HEADING: -90° (LEFT)</span>
             </div>
           </div>
         </div>

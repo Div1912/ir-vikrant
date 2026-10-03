@@ -525,7 +525,7 @@ export default function NarcoticsSensorPage() {
                 handleIncomingSensorData(ppm3, ppm135, trimmed, raw3, raw135, distM, distCm);
               } else if (trimmed.includes('MQ2:') && trimmed.includes('MQ3:')) {
                 // Parse pipe-delimited 4-MQ format from odor_compass.ino
-                // Format: MQ2:40 | MQ3:25 | MQ5:495 | MQ135:48 | MQ2%:0.0 | MQ3%:0.0 | MQ5%:0.0 | MQ135%:0.0 | GAS:NO | Distance:12.4cm
+                // Format: MQ2:40 | MQ3:25 | MQ5:495 | MQ135:48 | MQ2%:0.0 | MQ3%:0.0 | MQ5%:0.0 | MQ135%:0.0 | GAS:NO | Bearing:0.0 | Mag:0.0 | Action:IDLE | Distance:12.4cm
                 const mq2Match = trimmed.match(/MQ2:\s*([+-]?\d+(?:\.\d+)?)/);
                 const mq3Match = trimmed.match(/MQ3:\s*([+-]?\d+(?:\.\d+)?)/);
                 const mq5Match = trimmed.match(/MQ5:\s*([+-]?\d+(?:\.\d+)?)/);
@@ -535,11 +535,14 @@ export default function NarcoticsSensorPage() {
                 const mq5PctMatch = trimmed.match(/MQ5%:\s*([+-]?\d+(?:\.\d+)?)/);
                 const mq135PctMatch = trimmed.match(/MQ135%:\s*([+-]?\d+(?:\.\d+)?)/);
                 const distMatch = trimmed.match(/Distance:\s*([+-]?\d+(?:\.\d+)?)cm/);
+                const bearingMatch = trimmed.match(/Bearing:\s*([+-]?\d+(?:\.\d+)?)/);
+                const magMatch = trimmed.match(/Mag:\s*([+-]?\d+(?:\.\d+)?)/);
+                const actionMatch = trimmed.match(/Action:\s*([A-Za-z_]+)/);
 
-                const vMq2 = mq2Match ? Number(mq2Match[1]) : 40;
-                const vMq3 = mq3Match ? Number(mq3Match[1]) : 25;
-                const vMq5 = mq5Match ? Number(mq5Match[1]) : 495;
-                const vMq135 = mq135Match ? Number(mq135Match[1]) : 48;
+                const vMq2 = mq2Match ? Number(mq2Match[1]) : 41;
+                const vMq3 = mq3Match ? Number(mq3Match[1]) : 26;
+                const vMq5 = mq5Match ? Number(mq5Match[1]) : 496;
+                const vMq135 = mq135Match ? Number(mq135Match[1]) : 49;
 
                 const pMq2 = mq2PctMatch ? Number(mq2PctMatch[1]) : 0;
                 const pMq3 = mq3PctMatch ? Number(mq3PctMatch[1]) : 0;
@@ -552,24 +555,33 @@ export default function NarcoticsSensorPage() {
                 // Sketch pin layout: MQ3 = FRONT, MQ2 = RIGHT, MQ135 = REAR, MQ5 = LEFT
                 const vx = pMq2 - pMq5;
                 const vy = pMq3 - pMq135;
-                const mag = Number(Math.sqrt(vx * vx + vy * vy).toFixed(1));
-                const bearing = Number((Math.atan2(vx, vy) * (180.0 / Math.PI)).toFixed(1));
+                const calculatedBearing = Number((Math.atan2(vx, vy) * (180.0 / Math.PI)).toFixed(1));
+                const calculatedMag = Number(Math.sqrt(vx * vx + vy * vy).toFixed(1));
 
-                let action: DirectionalPlumeTelemetry['action'] = 'IDLE';
-                if (distCm !== undefined && distCm > 0 && distCm < 30.0) {
-                  action = 'OBSTACLE_HOLD';
-                } else if (mag >= 8.0) {
-                  if (bearing >= -25.0 && bearing <= 25.0) action = 'FORWARD';
-                  else if (bearing > 25.0 && bearing <= 115.0) action = 'TURN_RIGHT';
-                  else if (bearing < -25.0 && bearing >= -115.0) action = 'TURN_LEFT';
-                  else action = 'TURN_REVERSE';
+                const bearing = bearingMatch ? Number(bearingMatch[1]) : calculatedBearing;
+                const mag = magMatch ? Number(magMatch[1]) : calculatedMag;
+
+                let action: DirectionalPlumeTelemetry['action'] = actionMatch ? (actionMatch[1] as DirectionalPlumeTelemetry['action']) : 'IDLE';
+                if (!actionMatch) {
+                  if (distCm !== undefined && distCm > 0 && distCm < 30.0) {
+                    action = 'OBSTACLE_HOLD';
+                  } else if (mag >= 8.0) {
+                    if (bearing >= -25.0 && bearing <= 25.0) action = 'FORWARD';
+                    else if (bearing > 25.0 && bearing <= 115.0) action = 'TURN_RIGHT';
+                    else if (bearing < -25.0 && bearing >= -115.0) action = 'TURN_LEFT';
+                    else action = 'TURN_REVERSE';
+                  }
                 }
 
                 const pData: DirectionalPlumeTelemetry = {
-                  front_mq2: vMq3, // front sensor is MQ3
-                  right_mq3: vMq2, // right sensor is MQ2
-                  rear_mq5: vMq135, // rear sensor is MQ135
-                  left_mq135: vMq5, // left sensor is MQ5
+                  front_mq3: vMq3,   // physical FRONT is MQ-3
+                  right_mq2: vMq2,   // physical RIGHT is MQ-2
+                  rear_mq135: vMq135,// physical REAR is MQ-135
+                  left_mq5: vMq5,    // physical LEFT is MQ-5
+                  front_mq2: vMq2,   // backward-compat alias
+                  right_mq3: vMq3,   // backward-compat alias
+                  rear_mq5: vMq5,    // backward-compat alias
+                  left_mq135: vMq135,// backward-compat alias
                   delta_front: pMq3,
                   delta_right: pMq2,
                   delta_rear: pMq135,
